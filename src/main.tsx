@@ -1,24 +1,33 @@
-// src/main.tsx
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import App from "./App";
-import HomePage from "./pages/HomePage";
-import LandingPage from "./pages/LandingPage";
-import LoginSuccessPage from "./pages/LoginSuccessPage";
-import CreateTeamPage from "./pages/CreateTeamPage.tsx";
-import './styles/index.css';
+import { RouterProvider } from "react-router-dom";
+import router from "./router";
+import "./index.css";
+import { Toaster } from "react-hot-toast";
+import { AuthProvider } from "./context/AuthContext";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
-        <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<App />} />
-                <Route path="/landing" element={<LandingPage />} />
-                <Route path="/home" element={<HomePage />} />
-                <Route path="/login-success" element={<LoginSuccessPage />} />
-                <Route path="/create-team" element={<CreateTeamPage />} />
-            </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+            <RouterProvider router={router} />
+            <Toaster
+                position="bottom-right"
+                toastOptions={{
+                    duration: 3000,
+                    style: {
+                        background: "#1f2937",
+                        color: "#fff",
+                        border: "1px solid #3f3f46",
+                        fontSize: "0.875rem",
+                    },
+                    success: {
+                        iconTheme: { primary: "#4f46e5", secondary: "#fff" },
+                    },
+                    error: {
+                        iconTheme: { primary: "#ef4444", secondary: "#fff" },
+                    },
+                }}
+            />
+        </AuthProvider>
     </React.StrictMode>
 );
