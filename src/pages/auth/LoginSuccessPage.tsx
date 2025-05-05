@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext.tsx";
+import { useAuth } from "../../context/AuthContext";
+import { RememberService } from "../../services/RememberService";
 
 export default function LoginSuccessPage() {
     const navigate = useNavigate();
@@ -15,6 +16,8 @@ export default function LoginSuccessPage() {
         }
 
         localStorage.setItem("steamId", steamId);
+        RememberService.save(steamId);
+
         refreshUser(steamId);
     }, [searchParams, refreshUser]);
 
@@ -35,7 +38,7 @@ export default function LoginSuccessPage() {
         if (!isComplete) {
             navigate("/complete-profile");
         } else {
-            navigate("/home");
+            navigate("/app/home");
         }
     }, [user, loading, navigate]);
 

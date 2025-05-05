@@ -1,22 +1,24 @@
 import { Navigate, createBrowserRouter } from "react-router-dom";
-import LandingPage from "./pages/home/LandingPage.tsx";
-import LoginSuccessPage from "./pages/auth/LoginSuccessPage.tsx";
-import CompleteProfilePage from "./pages/auth/CompleteProfilePage.tsx";
-import CreateTeamPage from "./pages/create/CreateTeamPage.tsx";
-import AppLayout from "./components/layout/AppLayout";
-import ProtectedHomePage from "./pages/home/HomePage.tsx";
+import AutoRedirect from "./pages/home/AutoRedirect";
+import LandingPage from "./pages/home/LandingPage";
+import LoginSuccessPage from "./pages/auth/LoginSuccessPage";
+import CompleteProfilePage from "./pages/auth/CompleteProfilePage";
+import CreateTeamPage from "./pages/create/CreateTeamPage";
 import ProtectedLayout from "./ProtectedLayout";
-import ManagementPage from "./pages/team/ManagementPage.tsx";
-import PlanningPage from "./pages/team/PlanningPage.tsx";
-import StratbookPage from "./pages/team/StratbookPage.tsx";
-import StatsPage from "./pages/team/StatsPage.tsx";
+import AppLayout from "./components/layout/AppLayout";
+import ProtectedHomePage from "./pages/home/HomePage";
+import ManagementPage from "./pages/team/ManagementPage";
+import PlanningPage from "./pages/team/PlanningPage";
+import StratbookPage from "./pages/team/StratbookPage";
+import StatsPage from "./pages/team/StatsPage";
 
 const router = createBrowserRouter([
+    { path: "/", element: <AutoRedirect /> },
     { path: "/landing", element: <LandingPage /> },
     { path: "/login-success", element: <LoginSuccessPage /> },
     { path: "/complete-profile", element: <CompleteProfilePage /> },
     {
-        path: "/",
+        path: "/app",
         element: <ProtectedLayout />,
         children: [
             { path: "home", element: <ProtectedHomePage /> },
@@ -33,7 +35,7 @@ const router = createBrowserRouter([
             },
         ],
     },
-    { path: "*", element: <Navigate to="/landing" replace /> },
+    { path: "*", element: <Navigate to="/" replace /> },
 ]);
 
 export default router;

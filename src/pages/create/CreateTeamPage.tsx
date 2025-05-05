@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../../components/layout/AppHeader.tsx";
 import { useAuth } from "../../context/AuthContext.tsx";
@@ -31,7 +31,7 @@ export default function CreateTeamPage() {
         });
 
         if (response.ok) {
-            navigate("/home");
+            navigate("/app/home");
         } else {
             alert("Erreur lors de la création de l'équipe.");
         }

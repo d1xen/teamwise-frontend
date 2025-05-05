@@ -1,4 +1,10 @@
+import {useParams} from "react-router-dom";
+import {useTeamAccessGuard} from "../../hook/useTeamAccessGuard.ts";
+
 export default function StatsPage() {
+    const { teamId } = useParams();
+    useTeamAccessGuard(teamId);
+
     return (
         <div className="flex flex-col items-center justify-center h-full text-center">
             <h1 className="text-4xl font-bold text-indigo-400 mb-4">Stats</h1>

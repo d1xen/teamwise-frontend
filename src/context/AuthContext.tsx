@@ -1,5 +1,5 @@
-// src/context/AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from "react";
+import { RememberService } from "../services/RememberService";
 
 interface AuthResponse {
     steamId: string;
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     useEffect(() => {
-        const steamId = localStorage.getItem("steamId");
+        const steamId = RememberService.load();
         if (!steamId) {
             setLoading(false);
             return;
@@ -63,6 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = () => {
         localStorage.removeItem("steamId");
+        RememberService.clear();
         setUser(null);
         window.location.href = "/landing";
     };

@@ -34,7 +34,7 @@ const TeamCard = ({ team, isMenuOpen, onOpenMenu, onLeaveTeam }: {
             className="w-80 h-72 relative group cursor-pointer bg-neutral-800 p-6 rounded-2xl border border-neutral-700 transition-transform duration-200 transform hover:scale-[1.03] overflow-hidden flex flex-col justify-between"
             onClick={() => {
                 localStorage.setItem("teamId", String(team.id));
-                navigate(`/team/${team.id}`);
+                navigate(`/app/team/${team.id}/management`);
             }}
         >
             <div
@@ -84,22 +84,26 @@ export default function HomePage() {
 
     const hasReachedTeamLimit = teams.length >= 3;
 
-    useEffect(() => {
+    const fetchTeams = async () => {
         if (!user) return;
-        fetch(`/api/teams/by-user?steamId=${user.steamId}`)
-            .then((res) => res.json())
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setTeams(data);
-                    // si teamId pas en localStorage et il y a une team, on stocke
-                    if (!localStorage.getItem("teamId") && data.length > 0) {
-                        localStorage.setItem("teamId", String(data[0].id));
-                    }
-                } else {
-                    setTeams([]);
+        try {
+            const res = await fetch(`/api/teams/by-user?steamId=${user.steamId}`);
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setTeams(data);
+                if (!localStorage.getItem("teamId") && data.length > 0) {
+                    localStorage.setItem("teamId", String(data[0].id));
                 }
-            })
-            .catch(console.error);
+            } else {
+                setTeams([]);
+            }
+        } catch (err) {
+            console.error("Erreur lors du chargement des équipes :", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchTeams();
     }, [user]);
 
     const handleLeaveTeam = async (teamId: number) => {
@@ -136,7 +140,7 @@ export default function HomePage() {
         }
 
         try {
-            const res = await fetch(`/api/teams/join?steamId=${user.steamId}`, {
+            const res = await fetch(`/api/teams/join-team?steamId=${user.steamId}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ inviteUrl: joinUrl })
@@ -144,18 +148,21 @@ export default function HomePage() {
 
             if (res.ok) {
                 toast.success("Équipe rejointe avec succès !");
-                const updatedTeams = await res.json();
-                setTeams(updatedTeams);
-                if (updatedTeams.length > 0) {
-                    localStorage.setItem("teamId", String(updatedTeams[0].id));
-                }
+                await fetchTeams();
                 setJoinUrl("");
             } else {
-                toast.error("Lien invalide ou expiré.");
+                const errorText = await res.text();
+                if (errorText.includes("expiré") || errorText.includes("utilisé")) {
+                    toast.error("Lien d'invitation expiré ou déjà utilisé.");
+                } else if (errorText.includes("déjà partie")) {
+                    toast.info("Tu es déjà dans cette équipe.");
+                } else {
+                    toast.error("Lien invalide ou erreur lors de l'invitation.");
+                }
             }
         } catch (err) {
             console.error(err);
-            toast.error("Une erreur est survenue.");
+            toast.error("Erreur réseau ou inattendue.");
         }
     };
 
@@ -183,7 +190,7 @@ export default function HomePage() {
                                 toast.info("Nombre maximum d'équipe atteint.");
                                 return;
                             }
-                            navigate("/create-team");
+                            navigate("/app/create-team");
                         }}
                         className={`w-80 h-72 border-2 border-dashed p-6 rounded-2xl transition flex flex-col justify-center items-center text-center ${hasReachedTeamLimit ? 'border-neutral-700 bg-neutral-800 cursor-default opacity-50' : 'cursor-pointer border-indigo-500 hover:bg-neutral-800'}`}
                     >

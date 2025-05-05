@@ -108,7 +108,7 @@ export default function AppLayout() {
                     <button
                         onClick={() => {
                             localStorage.removeItem("teamId");
-                            navigate("/home");
+                            navigate("/app/home");
                         }}
                         className={`${linkBase} ${
                             collapsed ? "justify-center" : "justify-start gap-3 pl-6"

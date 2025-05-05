@@ -41,10 +41,8 @@ export default function CompleteProfilePage() {
                 const isComplete = user.customUsername && user.firstName && user.lastName && user.email;
 
                 if (isComplete) {
-                    console.log("Profil complet, redirection vers /home");
-                    navigate("/home");
+                    navigate("/app/home");
                 } else {
-                    console.log("Profil incomplet, affichage du formulaire");
                     setFormData({
                         customUsername: user.customUsername || "",
                         firstName: user.firstName || "",
@@ -79,7 +77,7 @@ export default function CompleteProfilePage() {
 
         if (response.ok && steamId) {
             await refreshUser(steamId);
-            navigate("/home");
+            navigate("/app/home");
         } else {
             alert("Erreur lors de la mise à jour du profil.");
         }
