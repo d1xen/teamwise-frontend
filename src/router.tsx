@@ -11,6 +11,7 @@ import ManagementPage from "./pages/team/ManagementPage";
 import PlanningPage from "./pages/team/PlanningPage";
 import StratbookPage from "./pages/team/StratbookPage";
 import StatsPage from "./pages/team/StatsPage";
+import PlayersPage from "./pages/team/PlayersPage";
 
 const router = createBrowserRouter([
     { path: "/", element: <AutoRedirect /> },
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
                 path: "team/:teamId",
                 element: <AppLayout />,
                 children: [
+                    { path: "players", element: <PlayersPage /> },
                     { path: "planning", element: <PlanningPage /> },
                     { path: "stratbook", element: <StratbookPage /> },
                     { path: "management", element: <ManagementPage /> },

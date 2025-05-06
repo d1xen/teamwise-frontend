@@ -22,6 +22,7 @@ export default function AppLayout() {
     if (!user) return null;
 
     const navItems = [
+        { label: "Players", icon: BarChart2, path: "players" },
         { label: "Planning", icon: LayoutDashboard, path: "planning" },
         { label: "Stratbook", icon: BookOpen, path: "stratbook" },
         { label: "Management", icon: Settings, path: "management" },
