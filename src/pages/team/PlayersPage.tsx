@@ -48,8 +48,8 @@ export default function PlayersPage() {
                     {players.map((player) => (
                         <div
                             key={player.id}
-                            onClick={() => navigate(`/players/${player.id}`)}
-                            className="bg-neutral-800 rounded-2xl p-4 cursor-pointer hover:shadow-lg hover:bg-neutral-700 transition"
+                            onClick={() => navigate(`/app/team/${teamId}/players/${player.id}`)}
+                            className="bg-neutral-800 rounded-md p-4 cursor-pointer hover:shadow-lg hover:bg-neutral-700 transition"
                         >
                             <img
                                 src={player.playerPictureUrl}

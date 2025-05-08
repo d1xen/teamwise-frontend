@@ -2,10 +2,10 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { limitedToast as toast } from "../utils/limitedToast";
-import { useAuth } from "../context/AuthContext";
+import {useRequiredUser} from "../context/AuthContext.tsx";
 
 export function useTeamAccessGuard(teamId?: string | number) {
-    const { user } = useAuth();
+    const user = useRequiredUser();
     const navigate = useNavigate();
 
     useEffect(() => {

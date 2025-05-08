@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../../components/layout/AppHeader.tsx";
-import { useAuth } from "../../context/AuthContext.tsx";
+import {useAuth, useRequiredUser} from "../../context/AuthContext.tsx";
 
 export default function CreateTeamPage() {
     const navigate = useNavigate();
     const steamId = localStorage.getItem("steamId");
-    const { user, logout } = useAuth();
+    const { logout } = useAuth();
+    const user = useRequiredUser();
     if (!user) return null;
 
     const [formData, setFormData] = useState({

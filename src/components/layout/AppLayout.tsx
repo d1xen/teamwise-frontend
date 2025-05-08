@@ -1,20 +1,13 @@
 import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { AppHeader } from "./AppHeader";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth, useRequiredUser } from "../../context/AuthContext.tsx";
 import teamwiseLogo from "../../assets/TeamWiseLogo.png";
-import {
-    LayoutDashboard,
-    BookOpen,
-    BarChart2,
-    Settings,
-    ChevronLeft,
-    ChevronRight,
-    LogOut
-} from "lucide-react";
+import { BookOpen, BarChart2, Settings, ChevronLeft, ChevronRight, LogOut, Trophy, Swords, CalendarClock, UserCog, Users } from "lucide-react";
 
 export default function AppLayout() {
-    const { user, logout } = useAuth();
+    const { logout } = useAuth();
+    const user = useRequiredUser();
     const navigate = useNavigate();
     const location = useLocation();
     const [collapsed, setCollapsed] = useState(false);
@@ -22,8 +15,11 @@ export default function AppLayout() {
     if (!user) return null;
 
     const navItems = [
-        { label: "Players", icon: BarChart2, path: "players" },
-        { label: "Planning", icon: LayoutDashboard, path: "planning" },
+        { label: "Players", icon: Users, path: "players" },
+        { label: "Staffs", icon: UserCog, path: "staffs" },
+        { label: "Planning", icon: CalendarClock, path: "planning" },
+        { label: "Scrim", icon: Swords, path: "scrim" },
+        { label: "Results", icon: Trophy, path: "results" },
         { label: "Stratbook", icon: BookOpen, path: "stratbook" },
         { label: "Management", icon: Settings, path: "management" },
         { label: "Stats", icon: BarChart2, path: "stats" }
@@ -55,7 +51,7 @@ export default function AppLayout() {
                                 className="absolute right-4 w-8 h-8 flex items-center justify-center text-white rounded hover:bg-neutral-700"
                                 title="Réduire"
                             >
-                                <ChevronLeft className="w-5 h-5"/>
+                                <ChevronLeft className="w-5 h-5" />
                             </button>
                         </>
                     ) : (
@@ -75,7 +71,7 @@ export default function AppLayout() {
                                        bg-neutral-800 text-white border border-neutral-700 rounded-r-full shadow-sm transition
                                        group-hover:bg-neutral-700"
                                 >
-                                    <ChevronRight className="w-4 h-4 pointer-events-none"/>
+                                    <ChevronRight className="w-4 h-4 pointer-events-none" />
                                 </div>
                             </button>
                         </>
@@ -95,7 +91,7 @@ export default function AppLayout() {
                                     collapsed ? "justify-center" : "justify-start gap-3 pl-6"
                                 } ${isActive ? "bg-indigo-600 text-white" : hoverStyle}`}
                             >
-                                <item.icon className="w-6 h-6"/>
+                                <item.icon className="w-6 h-6" />
                                 {!collapsed && (
                                     <span className="text-[15px]">{item.label}</span>
                                 )}
@@ -104,8 +100,8 @@ export default function AppLayout() {
                     })}
                 </nav>
 
-                {/* Changer d'équipe */}
-                <div className="px-2 pb-4 mt-auto">
+                {/* Changer d'équipe + Footer */}
+                <div className="px-2 pb-6 mt-auto flex flex-col items-center gap-2">
                     <button
                         onClick={() => {
                             localStorage.removeItem("teamId");
@@ -115,21 +111,32 @@ export default function AppLayout() {
                             collapsed ? "justify-center" : "justify-start gap-3 pl-6"
                         } hover:bg-red-500/10 hover:text-red-300`}
                     >
-                        <LogOut className="w-6 h-6"/>
+                        <LogOut className="w-6 h-6" />
                         {!collapsed && (
                             <span className="text-[15px]">Changer d'équipe</span>
                         )}
                     </button>
+
+                    {!collapsed && (
+                        <a
+                            href="https://twitter.com/d1xen_cs"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full text-left pl-6 pr-1 text-xs text-gray-500 hover:text-indigo-400 transition"
+                        >
+                            TeamWise App Powered by <span className="font-semibold">d1xen</span>
+                        </a>
+                    )}
                 </div>
             </aside>
 
             {/* Main content */}
             <div className={`flex-1 flex flex-col ${collapsed ? "ml-20" : "ml-64"}`}>
                 <div className="fixed top-0 left-0 right-0 z-30">
-                    <AppHeader user={user} onLogout={logout} small/>
+                    <AppHeader user={user} onLogout={logout} small />
                 </div>
                 <main className="flex-1 overflow-y-auto pt-14 p-6">
-                    <Outlet/>
+                    <Outlet />
                 </main>
             </div>
         </div>

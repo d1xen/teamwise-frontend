@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { RememberService } from "../services/RememberService";
 
-interface AuthResponse {
+export interface AuthResponse {
     steamId: string;
     nickname: string;
     avatarUrl: string;
@@ -15,19 +15,31 @@ interface AuthResponse {
 
 interface AuthContextProps {
     user: AuthResponse | null;
+    loading: boolean;
     logout: () => void;
     refreshUser: (steamId: string) => Promise<void>;
-    loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextProps>({
-    user: null,
-    logout: () => {},
-    refreshUser: async () => {},
-    loading: true,
-});
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = (): AuthContextProps => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error("useAuth must be used within an AuthProvider");
+    }
+    return context;
+};
+
+export const useRequiredUser = (): AuthResponse => {
+    const { user, loading } = useAuth();
+    if (loading) {
+        throw new Error("User is still loading");
+    }
+    if (!user) {
+        throw new Error("No authenticated user found");
+    }
+    return user;
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<AuthResponse | null>(null);
@@ -38,7 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             const res = await fetch(`/api/auth/steam/me?steamId=${steamId}`);
             if (res.ok) {
-                const data = await res.json();
+                const data: AuthResponse = await res.json();
                 setUser(data);
             } else {
                 throw new Error("Failed to fetch user");
@@ -69,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, logout, refreshUser, loading }}>
+        <AuthContext.Provider value={{ user, loading, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

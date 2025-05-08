@@ -1,8 +1,8 @@
 import { JSX, useEffect, useMemo, useRef, useState } from "react";
-import { useAuth } from "../../context/AuthContext.tsx";
+import {useRequiredUser} from "../../context/AuthContext.tsx";
 import { useParams } from "react-router-dom";
 import { limitedToast as toast } from "../../utils/limitedToast.ts";
-import { Settings, Users } from "lucide-react";
+import {Settings, User, Users} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {useTeamAccessGuard} from "../../hook/useTeamAccessGuard.ts";
 
@@ -22,7 +22,7 @@ const tabs: { key: TabKey; label: string; icon: JSX.Element }[] = [
 ];
 
 export default function ManagementPage() {
-    const { user } = useAuth();
+    const user = useRequiredUser();
     const { teamId } = useParams();
     const [activeTab, setActiveTab] = useState<TabKey>("MEMBRES");
     const [members, setMembers] = useState<Member[]>([]);
@@ -204,28 +204,56 @@ export default function ManagementPage() {
                                     return (
                                         <div
                                             key={member.steamId}
-                                            className="bg-neutral-800 rounded-lg px-4 py-3 flex items-center justify-between relative"
+                                            className="bg-neutral-800 rounded-md px-4 py-3 flex items-center justify-between relative"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <img src={member.avatarUrl} className="w-9 h-9 rounded-full"
-                                                     alt={member.nickname}/>
-                                                <span className="text-white text-sm">
-                                                {member.customUsername || member.nickname}
-                                                    {isMe && <span
-                                                        className="ml-2 text-xs text-yellow-400 font-semibold">[Moi]</span>}
+                                                <img
+                                                    src={member.avatarUrl}
+                                                    className="w-9 h-9 rounded-full"
+                                                    alt={member.nickname}
+                                                />
+                                                <span
+                                                    className="text-white text-base font-medium flex items-center gap-2">
+                                                    {member.customUsername || member.nickname}
+                                                    {isMe && (
+                                                        <User className="w-5 h-5 text-yellow-600 stroke-2" />
+                                                    )}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-4">
+                                                <div className="relative w-full max-w-xs">
                                                 <select
-                                                    disabled={!isCurrentUserStaff || isMe || isLastOwner}
-                                                    value={member.role}
-                                                    onChange={(e) => handleRoleChange(member.steamId, e.target.value)}
-                                                    className="bg-neutral-700 text-sm text-white p-2 rounded disabled:opacity-50"
-                                                >
-                                                    {[...new Set(roles)].map(role => (
-                                                        <option key={role} value={role}>{role}</option>
-                                                    ))}
-                                                </select>
+                                                        disabled={!isCurrentUserStaff || isMe || isLastOwner}
+                                                        value={member.role}
+                                                        onChange={(e) => handleRoleChange(member.steamId, e.target.value)}
+                                                        className={`
+                                                          bg-neutral-700 text-sm text-white w-full px-3 py-2 pr-10 rounded-md
+                                                          border border-neutral-600 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                                                          disabled:opacity-50 appearance-none transition
+                                                        `}
+                                                    >
+                                                        {[...new Set(roles)].map(role => (
+                                                            <option key={role} value={role}>
+                                                                {role}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+
+                                                    {/* Chevron icon */}
+                                                    <div
+                                                        className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+                                                        <svg
+                                                            className="w-4 h-4"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path strokeLinecap="round" strokeLinejoin="round"
+                                                                  d="M19 9l-7 7-7-7"/>
+                                                        </svg>
+                                                    </div>
+                                                </div>
                                                 {isCurrentUserStaff && (
                                                     <div className="relative">
                                                         <button

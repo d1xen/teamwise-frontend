@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../../components/layout/AppHeader.tsx";
-import { useAuth } from "../../context/AuthContext.tsx";
+import {useAuth, useRequiredUser} from "../../context/AuthContext.tsx";
+import { useTeamContext } from "../../context/TeamContext.tsx";
 import { limitedToast as toast } from "../../utils/limitedToast.ts";
 
 interface Team {
@@ -18,6 +19,8 @@ const TeamCard = ({ team, isMenuOpen, onOpenMenu, onLeaveTeam }: {
 }) => {
     const navigate = useNavigate();
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const user = useRequiredUser();
+    const { setTeamRole } = useTeamContext();
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -29,13 +32,27 @@ const TeamCard = ({ team, isMenuOpen, onOpenMenu, onLeaveTeam }: {
         return () => window.removeEventListener("click", handleClickOutside);
     }, [onOpenMenu]);
 
+    const handleSelectTeam = async () => {
+        localStorage.setItem("teamId", String(team.id));
+        try {
+            const res = await fetch(`/api/teams/${team.id}/members?steamId=${user.steamId}`);
+            const members = await res.json();
+            const current = members.find((m: any) => m.steamId === user?.steamId);
+            if (current) {
+                setTeamRole(current.role);
+            } else {
+                setTeamRole(null);
+            }
+        } catch (err) {
+            console.error("Erreur lors de la récupération du rôle :", err);
+        }
+        navigate(`/app/team/${team.id}/management`);
+    };
+
     return (
         <div
             className="w-80 h-72 relative group cursor-pointer bg-neutral-800 p-6 rounded-2xl border border-neutral-700 transition-transform duration-200 transform hover:scale-[1.03] overflow-hidden flex flex-col justify-between"
-            onClick={() => {
-                localStorage.setItem("teamId", String(team.id));
-                navigate(`/app/team/${team.id}/management`);
-            }}
+            onClick={handleSelectTeam}
         >
             <div
                 onClick={(e) => {
@@ -200,7 +217,8 @@ export default function HomePage() {
                 </div>
 
                 <div className="flex justify-center mt-10">
-                    <div className={`flex gap-2 items-center bg-neutral-800 border p-4 rounded-md shadow-md ${hasReachedTeamLimit ? 'border-neutral-700 opacity-50 cursor-default' : 'border-neutral-600'}`}>
+                    <div
+                        className={`flex gap-2 items-center bg-neutral-800 border p-4 rounded-md shadow-md ${hasReachedTeamLimit ? 'border-neutral-700 opacity-50 cursor-default' : 'border-neutral-600'}`}>
                         <input
                             type="text"
                             value={joinUrl}
@@ -216,6 +234,16 @@ export default function HomePage() {
                             Rejoindre
                         </button>
                     </div>
+                </div>
+                <div className="mt-10 text-center text-sm text-white">
+                    <a
+                        href="https://twitter.com/d1xen_cs"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-500 hover:text-indigo-400 transition"
+                    >
+                        TeamWise App Powered by <span className="font-semibold">d1xen</span>
+                    </a>
                 </div>
             </main>
         </div>

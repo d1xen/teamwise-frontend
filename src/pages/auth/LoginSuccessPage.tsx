@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import { RememberService } from "../../services/RememberService";
+import {useAuth} from "../../context/AuthContext.tsx";
 
 export default function LoginSuccessPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { refreshUser, user, loading } = useAuth();
+    const {user, refreshUser, loading } = useAuth();
 
     useEffect(() => {
         const steamId = searchParams.get("steamId");
