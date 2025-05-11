@@ -78,7 +78,9 @@
     "remove_owner": "Remove ownership",
     "owner_added": "Member promoted to owner.",
     "owner_removed": "Ownership removed.",
-    "load_error": "Unable to load profile."
+    "load_error": "Unable to load profile.",
+    "edit_profile": "Edit profile",
+    "edit_soon": "Edit feature coming soon"
   },
   "auth": {
     "redirecting": "Redirecting...",
@@ -87,15 +89,16 @@
   "common": {
     "back": "Back",
     "years_old": "{{count}} y.o",
-    "discord_copied": "Discord username copied!",
+    "discord_copied": "Discord tag copied to clipboard",
     "age": "Age",
     "years": "years",
-    "copy_discord": "Copy Discord username",
+    "copy_discord": "Copy Discord tag",
     "error": "An error occurred.",
     "network_error": "Network error.",
     "loading": "Loading...",
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "email": "Email"
   },
   "management": {
     "tab_members": "MEMBERS",
@@ -172,13 +175,13 @@
     "fetch_error": "Failed to fetch players.",
     "captain": "Captain",
     "none_found": "No players found for this team.",
-    "role_label": "Role:"
+    "role_label": "In-game role"
   },
   "staffs": {
     "title": "Team Staff",
     "empty": "No staff member found for this team.",
     "fetch_error": "Unable to fetch staff.",
-    "role_label": "Role:"
+    "role_label": "Team role"
   },
   "roles": {
     "COACH": "Coach",

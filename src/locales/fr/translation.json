@@ -69,16 +69,18 @@
     "loading": "Chargement...",
     "missing_fields": "Merci de remplir tous les champs obligatoires.",
     "update_error": "Erreur lors de la mise à jour du profil.",
-    "edit": "Modifier le profil",
+    "edit": "Modifier",
     "remove": "Exclure",
-    "remove_confirm": "Supprimer ce membre de l'équipe ?",
-    "remove_error": "Erreur lors de la suppression du membre.",
-    "removed": "Membre supprimé.",
+    "remove_confirm": "Es-tu sûr de vouloir retirer ce membre ?",
+    "remove_error": "Erreur lors du retrait du membre",
+    "removed": "Membre retiré",
     "promote_owner": "Promouvoir propriétaire",
     "remove_owner": "Retirer propriétaire",
-    "owner_added": "Membre promu propriétaire.",
-    "owner_removed": "Propriété retirée.",
-    "load_error": "Impossible de charger le profil."
+    "owner_added": "Nouveau propriétaire ajouté",
+    "owner_removed": "Propriétaire retiré",
+    "load_error": "Erreur de chargement du profil",
+    "edit_profile": "Modifier le profil",
+    "edit_soon": "Fonction de modification à venir"
   },
   "auth": {
     "redirecting": "Redirection en cours...",
@@ -87,14 +89,15 @@
   "common": {
     "back": "Retour",
     "years_old": "{{count}} ans",
-    "discord_copied": "Pseudo Discord copié !",
+    "discord_copied": "Pseudo Discord copié dans le presse-papiers",
     "age": "Âge",
     "years": "ans",
     "copy_discord": "Copier le pseudo Discord",
-    "error": "Une erreur est survenue.",
-    "network_error": "Erreur réseau.",
+    "error": "Une erreur est survenue",
+    "network_error": "Erreur réseau",
     "cancel": "Annuler",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "email": "Email"
   },
   "management": {
     "tab_members": "MEMBRES",
@@ -170,13 +173,13 @@
     "fetch_error": "Impossible de récupérer les joueurs.",
     "captain": "Capitaine",
     "none_found": "Aucun joueur trouvé pour cette équipe.",
-    "role_label": "Rôle :"
+    "role_label": "Rôle in-game"
   },
   "staffs": {
     "title": "Staff de l’équipe",
     "empty": "Aucun membre du staff trouvé pour cette équipe.",
     "fetch_error": "Impossible de récupérer le staff.",
-    "role_label": "Rôle :"
+    "role_label": "Rôle dans l'équipe"
   },
   "roles": {
     "COACH": "Coach",

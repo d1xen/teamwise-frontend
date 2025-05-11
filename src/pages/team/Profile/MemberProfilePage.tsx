@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Flag from "react-world-flags";
-import { Pencil, ShieldCheck, UserX } from "lucide-react";
+import { Pencil, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext.tsx";
 import { useTeamContext } from "../../../context/TeamContext.tsx";
 import { limitedToast as toast } from "../../../utils/limitedToast.ts";
@@ -61,53 +61,11 @@ export default function MemberProfilePage({ type }: ProfileProps) {
         );
     }
 
-    const handleToggleOwner = async () => {
-        if (!id || !user?.steamId) return;
-        try {
-            const res = await fetch(
-                `/api/teams/${profile.teamId}/owner?steamId=${profile.steamId}&updatedBy=${user.steamId}`,
-                { method: profile.isOwner ? "DELETE" : "POST" }
-            );
-            if (!res.ok) {
-                const msg = await res.text();
-                toast.error(msg || t("common.error"));
-                return;
-            }
-            setProfile((prev: any) => ({ ...prev, isOwner: !prev.isOwner }));
-            toast.success(profile.isOwner ? t("profile.owner_removed") : t("profile.owner_added"));
-        } catch {
-            toast.error(t("common.network_error"));
-        }
-    };
-
-    const handleRemoveMember = async () => {
-        if (!confirm(t("profile.remove_confirm"))) return;
-        try {
-            const res = await fetch(
-                `/api/teams/${profile.teamId}/members/${profile.steamId}?steamIdRequester=${user.steamId}`,
-                { method: "DELETE" }
-            );
-            if (!res.ok) throw new Error();
-            toast.success(t("profile.removed"));
-            window.location.href = "/home";
-        } catch {
-            toast.error(t("profile.remove_error"));
-        }
-    };
-
-    console.log("user.steamId", user?.steamId);
-    console.log("profile.steamId", profile?.steamId);
-    console.log("isCurrentUser", isCurrentUser);
-    console.log("Membership for teamId", teamId, "=", currentMembership);
-
     return (
         <div className="relative max-w-5xl mx-auto mt-20 px-4">
-
-
-            <div
-                className="bg-neutral-800 rounded-lg shadow-lg overflow-hidden border border-neutral-700 flex-col md:flex-row flex">
+            <div className="bg-neutral-800 rounded-lg shadow-lg overflow-hidden border border-neutral-700 flex-col md:flex-row flex">
                 <div className="absolute">
-                    <BackButton/>
+                    <BackButton />
                 </div>
                 <div className="bg-neutral-900 p-6 flex items-center justify-center">
                     <img
@@ -123,38 +81,24 @@ export default function MemberProfilePage({ type }: ProfileProps) {
                             className="absolute top-4 right-4 text-gray-500 opacity-70 hover:opacity-100 hover:text-indigo-400 transition"
                             title={t("profile.edit")}
                         >
-                            <Pencil className="w-4 h-4"/>
+                            <Pencil className="w-4 h-4" />
                         </button>
                     )}
 
                     <div className="flex items-center justify-between mb-4">
                         <h1 className="text-3xl font-bold flex items-center gap-2">
                             {profile.nickname}
-                            {currentMembership?.isOwner && (
-                                <ShieldCheck className="w-5 h-5 text-yellow-400"/>
+                            {type === "player" && profile.captain && (
+                                <span className="text-green-400 text-sm flex items-center gap-1">
+                                    <ShieldCheck className="w-4 h-4" />
+                                    {t("players.captain")}
+                                </span>
                             )}
                         </h1>
-
-                        {currentMembership?.isOwner && !isCurrentUser && (
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleToggleOwner}
-                                    className="text-sm bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded"
-                                >
-                                    {profile.isOwner ? t("profile.remove_owner") : t("profile.promote_owner")}
-                                </button>
-                                <button
-                                    onClick={handleRemoveMember}
-                                    className="text-sm bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded flex items-center gap-1"
-                                >
-                                    <UserX className="w-4 h-4"/> {t("profile.remove")}
-                                </button>
-                            </div>
-                        )}
                     </div>
 
                     <p className="text-base text-gray-400 mb-6 flex items-center gap-2">
-                        <Flag code={profile.nationality} style={{width: 20, height: 15, borderRadius: 2}}/>
+                        <Flag code={profile.nationality} style={{ width: 20, height: 15, borderRadius: 2 }} />
                         {profile.firstName} {profile.lastName}
                     </p>
 
@@ -163,6 +107,20 @@ export default function MemberProfilePage({ type }: ProfileProps) {
                             <span className="font-semibold">{t("common.age")}</span>
                             <span>{profile.age} {t("common.years")}</span>
                         </div>
+
+                        {profile.email && (
+                            <div className="flex justify-between border-b border-neutral-700 pb-2">
+                                <span className="font-semibold">{t("common.email")}</span>
+                                <span>{profile.email}</span>
+                            </div>
+                        )}
+
+                        {profile.steamId && (
+                            <div className="flex justify-between border-b border-neutral-700 pb-2">
+                                <span className="font-semibold">SteamID</span>
+                                <span className="font-mono text-sm">{profile.steamId}</span>
+                            </div>
+                        )}
 
                         {type === "staff" && (
                             <div className="flex justify-between border-b border-neutral-700 pb-2">
@@ -182,19 +140,19 @@ export default function MemberProfilePage({ type }: ProfileProps) {
                             {profile.faceit && (
                                 <a href={profile.faceit} target="_blank" rel="noopener noreferrer"
                                    className="w-4 h-4 hover:scale-125 transition-transform cursor-pointer">
-                                    <img src={faceitIcon} alt="FACEIT" title="FACEIT" className="w-4 h-4"/>
+                                    <img src={faceitIcon} alt="FACEIT" title="FACEIT" className="w-4 h-4" />
                                 </a>
                             )}
                             {profile.hltvProfileUrl && (
                                 <a href={profile.hltvProfileUrl} target="_blank" rel="noopener noreferrer"
                                    className="w-4 h-4 hover:scale-125 transition-transform cursor-pointer">
-                                    <img src={hltvIcon} alt="HLTV" title="HLTV" className="w-4 h-4"/>
+                                    <img src={hltvIcon} alt="HLTV" title="HLTV" className="w-4 h-4" />
                                 </a>
                             )}
                             {profile.twitter && (
                                 <a href={profile.twitter} target="_blank" rel="noopener noreferrer"
                                    className="w-4 h-4 hover:scale-125 transition-transform cursor-pointer">
-                                    <FaTwitter title="Twitter" className="w-4 h-4"/>
+                                    <FaTwitter title="Twitter" className="w-4 h-4" />
                                 </a>
                             )}
                             {profile.discord && (
@@ -206,7 +164,7 @@ export default function MemberProfilePage({ type }: ProfileProps) {
                                     title={t("common.copy_discord")}
                                     className="w-4 h-4 hover:scale-125 transition-transform cursor-pointer"
                                 >
-                                    <FaDiscord className="w-4 h-4"/>
+                                    <FaDiscord className="w-4 h-4" />
                                 </button>
                             )}
                         </div>
