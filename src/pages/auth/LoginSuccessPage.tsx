@@ -1,12 +1,15 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { RememberService } from "../../services/RememberService";
-import {useAuth} from "../../context/AuthContext.tsx";
+import { useAuth } from "../../context/AuthContext.tsx";
+import { useTranslation } from "react-i18next";
+import Loader from "../../components/ui/Loader";
 
 export default function LoginSuccessPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const {user, refreshUser, loading } = useAuth();
+    const { user, refreshUser, loading } = useAuth();
+    const { t } = useTranslation();
 
     useEffect(() => {
         const steamId = searchParams.get("steamId");
@@ -44,7 +47,8 @@ export default function LoginSuccessPage() {
 
     return (
         <div className="p-8 text-center text-white">
-            Connexion en cours...
+            {t("auth.logging_in")}
+            <Loader />
         </div>
     );
 }

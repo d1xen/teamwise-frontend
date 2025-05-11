@@ -1,6 +1,8 @@
+import { useTranslation } from "react-i18next";
 import Select from "react-select";
 import Flag from "react-world-flags";
 import countryList from "react-select-country-list";
+import { useMemo } from "react";
 
 type Props = {
     value: string;
@@ -8,15 +10,20 @@ type Props = {
 };
 
 export default function CountrySelector({ value, onChange }: Props) {
-    const options = countryList().getData().map((country) => ({
-        value: country.value,
-        label: (
-            <div className="flex items-center gap-2">
-                <Flag code={country.value} style={{ width: 20, height: 15 }} />
-                {country.label}
-            </div>
-        ),
-    }));
+    const { t, i18n } = useTranslation();
+    const lang = i18n.language;
+
+    const options = useMemo(() => {
+        return countryList({ locale: lang }).getData().map((country) => ({
+            value: country.value,
+            label: (
+                <div className="flex items-center gap-2">
+                    <Flag code={country.value} style={{ width: 20, height: 15 }} />
+                    {country.label}
+                </div>
+            ),
+        }));
+    }, [lang]);
 
     const selected = options.find((opt) => opt.value === value) || null;
 
@@ -29,7 +36,7 @@ export default function CountrySelector({ value, onChange }: Props) {
                 if (option) onChange((option as any).value);
             }}
             isSearchable
-            placeholder="Sélectionner votre pays"
+            placeholder={t("form.select_country")}
             styles={{
                 control: (base, state) => ({
                     ...base,
@@ -43,7 +50,7 @@ export default function CountrySelector({ value, onChange }: Props) {
                 }),
                 menu: (base) => ({
                     ...base,
-                    backgroundColor: "#3f3f3f", // bg-neutral-800
+                    backgroundColor: "#3f3f3f",
                     borderRadius: "0.5rem",
                     marginTop: "0.25rem",
                     zIndex: 10,
@@ -69,7 +76,7 @@ export default function CountrySelector({ value, onChange }: Props) {
                 }),
                 placeholder: (base) => ({
                     ...base,
-                    color: "#9CA3AF", // gray-400
+                    color: "#9CA3AF",
                 }),
                 dropdownIndicator: (base) => ({
                     ...base,
@@ -80,12 +87,12 @@ export default function CountrySelector({ value, onChange }: Props) {
             }}
             theme={(theme) => ({
                 ...theme,
-                borderRadius: 4, // Tailwind 'rounded' = 4px
+                borderRadius: 4,
                 colors: {
                     ...theme.colors,
                     primary: "#6366f1",
                     primary25: "#4f46e5",
-                    neutral0: "#1f2937", // bg-neutral-800
+                    neutral0: "#1f2937",
                 },
             })}
         />

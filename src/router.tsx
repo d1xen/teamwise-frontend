@@ -37,11 +37,13 @@ const router = createBrowserRouter([
                 children: [
                     // Joueurs
                     { path: "players", element: <PlayersPage /> },
-                    { path: "players/:id", element: <ProfilePage type="player" /> },
 
                     // Staff
                     { path: "staffs", element: <StaffsPage /> },
-                    { path: "staffs/:id", element: <ProfilePage type="staff" /> },
+
+                    // Profils (structure centralisée)
+                    { path: "profile/player/:id", element: <ProfilePage type="player" /> },
+                    { path: "profile/staff/:id", element: <ProfilePage type="staff" /> },
 
                     // Autres sections
                     { path: "planning", element: <PlanningPage /> },

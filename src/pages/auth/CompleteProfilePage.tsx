@@ -4,6 +4,9 @@ import { useAuth } from "../../context/AuthContext.tsx";
 import CountrySelector from "../../components/ui/CountrySelector.tsx";
 import DateInput from "../../components/ui/DateInput.tsx";
 import "../../styles/react-datepicker.css";
+import { useTranslation } from "react-i18next";
+import Loader from "../../components/ui/Loader";
+import {BackButton} from "../../components/ui/BackButton.tsx";
 
 interface UserProfile {
     customUsername: string;
@@ -20,6 +23,7 @@ export default function CompleteProfilePage() {
     const navigate = useNavigate();
     const steamId = localStorage.getItem("steamId");
     const { refreshUser } = useAuth();
+    const { t } = useTranslation();
 
     const [formData, setFormData] = useState<UserProfile>({
         customUsername: "",
@@ -43,7 +47,7 @@ export default function CompleteProfilePage() {
 
         fetch(`/api/auth/steam/me?steamId=${steamId}`)
             .then((res) => {
-                if (!res.ok) throw new Error("Erreur HTTP: " + res.status);
+                if (!res.ok) throw new Error("HTTP error");
                 return res.json();
             })
             .then((user) => {
@@ -64,7 +68,7 @@ export default function CompleteProfilePage() {
                         firstName: user.firstName || "",
                         lastName: user.lastName || "",
                         email: user.email || "",
-                        birthDate: user.birthDate || "",
+                        birthDate: user.birthDate || null,
                         twitter: user.twitter || "",
                         discord: user.discord || "",
                         countryCode: user.countryCode || "",
@@ -72,7 +76,7 @@ export default function CompleteProfilePage() {
                 }
             })
             .catch((err) => {
-                console.error("Erreur chargement profil:", err);
+                console.error("Erreur profil:", err);
             })
             .finally(() => setLoading(false));
     }, [navigate, steamId]);
@@ -92,7 +96,7 @@ export default function CompleteProfilePage() {
     const handleNext = () => {
         const { firstName, lastName, email, birthDate, countryCode } = formData;
         if (!firstName || !lastName || !email || !birthDate || !countryCode) {
-            alert("Merci de remplir tous les champs obligatoires.");
+            alert(t("profile.missing_fields"));
             return;
         }
         setStep(2);
@@ -116,83 +120,107 @@ export default function CompleteProfilePage() {
             await refreshUser(steamId);
             navigate("/app/home");
         } else {
-            alert("Erreur lors de la mise à jour du profil.");
+            alert(t("profile.update_error"));
         }
     };
 
-    if (loading) return <div className="text-white p-6">Chargement...</div>;
+    const inputStyle =
+        "w-full p-3 rounded bg-neutral-700 text-white placeholder-gray-400";
+    const buttonPrimary =
+        "w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded shadow";
+    const buttonSuccess =
+        "w-full h-12 bg-green-600 hover:bg-green-500 text-white font-semibold rounded shadow";
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
+                <Loader />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-neutral-900 text-white flex items-center justify-center px-4 relative">
             {step === 2 && (
-                <button
-                    onClick={() => setStep(1)}
-                    className="absolute left-[calc(50%-290px)] top-[50%] translate-y-[-50%] bg-indigo-600 hover:bg-indigo-500 text-white w-11 h-11 rounded-full flex items-center justify-center transition"
-                    title="Retour"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5"
-                         stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                    </svg>
-                </button>
+                <BackButton onClick={() => setStep(1)} />
             )}
 
             <form
                 onSubmit={handleSubmit}
-                className="bg-neutral-800 p-8 rounded-lg shadow-lg w-full max-w-md space-y-4"
+                className="bg-neutral-800 p-8 rounded-xl shadow-lg w-full max-w-md space-y-5"
             >
-                <h2 className="text-2xl font-bold mb-2">Complétez votre profil ({step}/2)</h2>
+                <h2 className="text-2xl font-bold mb-2">
+                    {t("profile.title")} ({step}/2)
+                </h2>
 
                 {step === 1 && (
                     <>
-                        {['firstName', 'lastName', 'email'].map((field) => (
-                            <input
-                                key={field}
-                                type={field === 'email' ? 'email' : 'text'}
-                                name={field}
-                                placeholder={field === 'firstName' ? 'Prénom' : field === 'lastName' ? 'Nom' : 'Email'}
-                                value={(formData as any)[field]}
-                                onChange={handleChange}
-                                className="w-full h-12 px-3 py-2 rounded border-none bg-neutral-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                required
-                            />
-                        ))}
-                        <DateInput value={formData.birthDate} onChange={handleDateChange} />
-                        <CountrySelector value={formData.countryCode} onChange={handleCountryChange} />
-                        <button
-                            type="button"
-                            onClick={handleNext}
-                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded focus:ring-gray-400"
-                        >
-                            Suivant
+                        <input
+                            type="text"
+                            name="firstName"
+                            placeholder={t("profile.first_name")}
+                            value={formData.firstName}
+                            onChange={handleChange}
+                            className={inputStyle}
+                        />
+                        <input
+                            type="text"
+                            name="lastName"
+                            placeholder={t("profile.last_name")}
+                            value={formData.lastName}
+                            onChange={handleChange}
+                            className={inputStyle}
+                        />
+                        <input
+                            type="email"
+                            name="email"
+                            placeholder={t("profile.email")}
+                            value={formData.email}
+                            onChange={handleChange}
+                            className={inputStyle}
+                        />
+                        <DateInput
+                            value={formData.birthDate}
+                            onChange={handleDateChange}
+                        />
+                        <CountrySelector
+                            value={formData.countryCode}
+                            onChange={handleCountryChange}
+                        />
+                        <button type="button" onClick={handleNext} className={buttonPrimary}>
+                            {t("profile.next")}
                         </button>
                     </>
                 )}
 
                 {step === 2 && (
                     <>
-                        {['customUsername', 'twitter', 'discord'].map((field) => (
-                            <input
-                                key={field}
-                                type={field === 'twitter' ? 'url' : 'text'}
-                                name={field}
-                                placeholder={
-                                    field === 'customUsername'
-                                        ? 'Pseudo officiel'
-                                        : field === 'twitter'
-                                            ? 'Lien Twitter (facultatif)'
-                                            : 'Pseudo Discord (facultatif)'
-                                }
-                                value={(formData as any)[field]}
-                                onChange={handleChange}
-                                className="w-full h-12 px-3 py-2 rounded border-none bg-neutral-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        ))}
-                        <button
-                            type="submit"
-                            className="w-full bg-green-600 hover:bg-green-500 text-white font-semibold py-3 rounded"
-                        >
-                            Enregistrer et continuer
+                        <input
+                            type="text"
+                            name="customUsername"
+                            placeholder={t("profile.username")}
+                            value={formData.customUsername}
+                            onChange={handleChange}
+                            className={inputStyle}
+                        />
+                        <input
+                            type="url"
+                            name="twitter"
+                            placeholder={t("profile.twitter")}
+                            value={formData.twitter}
+                            onChange={handleChange}
+                            className={inputStyle}
+                        />
+                        <input
+                            type="text"
+                            name="discord"
+                            placeholder={t("profile.discord")}
+                            value={formData.discord}
+                            onChange={handleChange}
+                            className={inputStyle}
+                        />
+                        <button type="submit" className={buttonSuccess}>
+                            {t("profile.submit")}
                         </button>
                     </>
                 )}

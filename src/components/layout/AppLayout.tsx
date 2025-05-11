@@ -1,28 +1,50 @@
-import { useState } from "react";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet, useNavigate, useLocation, useParams } from "react-router-dom";
 import { AppHeader } from "./AppHeader";
 import { useAuth, useRequiredUser } from "../../context/AuthContext.tsx";
+import { useTeamContext } from "../../context/TeamContext.tsx";
 import teamwiseLogo from "../../assets/TeamWiseLogo.png";
-import { BookOpen, BarChart2, Settings, ChevronLeft, ChevronRight, LogOut, Trophy, Swords, CalendarClock, UserCog, Users } from "lucide-react";
+import {
+    BookOpen,
+    BarChart2,
+    Settings,
+    ChevronLeft,
+    ChevronRight,
+    LogOut,
+    Trophy,
+    Swords,
+    CalendarClock,
+    UserCog,
+    Users
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function AppLayout() {
+    const { t: translate } = useTranslation();
     const { logout } = useAuth();
     const user = useRequiredUser();
     const navigate = useNavigate();
     const location = useLocation();
+    const { teamId } = useParams<{ teamId: string }>();
+    const { loadMembership } = useTeamContext();
     const [collapsed, setCollapsed] = useState(false);
+
+    useEffect(() => {
+        if (!teamId || !user?.steamId) return;
+        loadMembership(teamId, user.steamId);
+    }, [teamId, user?.steamId, loadMembership]);
 
     if (!user) return null;
 
     const navItems = [
-        { label: "Players", icon: Users, path: "players" },
-        { label: "Staffs", icon: UserCog, path: "staffs" },
-        { label: "Planning", icon: CalendarClock, path: "planning" },
-        { label: "Scrim", icon: Swords, path: "scrim" },
-        { label: "Results", icon: Trophy, path: "results" },
-        { label: "Stratbook", icon: BookOpen, path: "stratbook" },
-        { label: "Management", icon: Settings, path: "management" },
-        { label: "Stats", icon: BarChart2, path: "stats" }
+        { label: translate("nav.players"), icon: Users, path: "players" },
+        { label: translate("nav.staff"), icon: UserCog, path: "staffs" },
+        { label: translate("nav.schedule"), icon: CalendarClock, path: "planning" },
+        { label: translate("nav.scrims"), icon: Swords, path: "scrim" },
+        { label: translate("nav.results"), icon: Trophy, path: "results" },
+        { label: translate("nav.stratbook"), icon: BookOpen, path: "stratbook" },
+        { label: translate("nav.management"), icon: Settings, path: "management" },
+        { label: translate("nav.stats"), icon: BarChart2, path: "stats" }
     ];
 
     const linkBase =
@@ -49,7 +71,7 @@ export default function AppLayout() {
                             <button
                                 onClick={() => setCollapsed(true)}
                                 className="absolute right-4 w-8 h-8 flex items-center justify-center text-white rounded hover:bg-neutral-700"
-                                title="Réduire"
+                                title={translate("sidebar.collapse")}
                             >
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
@@ -59,7 +81,7 @@ export default function AppLayout() {
                             <button
                                 onClick={() => setCollapsed(false)}
                                 className="relative flex items-center justify-center w-full h-20 group"
-                                title="Ouvrir la barre latérale"
+                                title={translate("sidebar.expand")}
                             >
                                 <img
                                     src={teamwiseLogo}
@@ -100,7 +122,7 @@ export default function AppLayout() {
                     })}
                 </nav>
 
-                {/* Changer d'équipe + Footer */}
+                {/* Switch team + Footer */}
                 <div className="px-2 pb-6 mt-auto flex flex-col items-center gap-2">
                     <button
                         onClick={() => {
@@ -113,7 +135,9 @@ export default function AppLayout() {
                     >
                         <LogOut className="w-6 h-6" />
                         {!collapsed && (
-                            <span className="text-[15px]">Changer d'équipe</span>
+                            <span className="text-[15px]">
+                                {translate("sidebar.switch_team")}
+                            </span>
                         )}
                     </button>
 
@@ -124,7 +148,7 @@ export default function AppLayout() {
                             rel="noopener noreferrer"
                             className="w-full text-left pl-6 pr-1 text-xs text-gray-500 hover:text-indigo-400 transition"
                         >
-                            TeamWise App Powered by <span className="font-semibold">d1xen</span>
+                            {translate("sidebar.powered_by", { name: "d1xen" })}
                         </a>
                     )}
                 </div>

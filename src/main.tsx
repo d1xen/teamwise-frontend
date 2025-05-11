@@ -6,6 +6,7 @@ import "./index.css";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import {TeamProvider} from "./context/TeamContext.tsx";
+import './locales/i18n';
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>

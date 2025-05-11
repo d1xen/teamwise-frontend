@@ -4,9 +4,7 @@ declare module "react-select-country-list" {
         value: string;
     }
 
-    function useCountryList(): {
-        getData: () => CountryOption[];
-    };
+    function useCountryList(p: { locale: string }): { getData: () => CountryOption[] };
 
     export default useCountryList;
 }

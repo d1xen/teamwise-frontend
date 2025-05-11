@@ -1,0 +1,188 @@
+{
+  "nav": {
+    "players": "Players",
+    "staff": "Staff",
+    "schedule": "Schedule",
+    "scrims": "Scrims",
+    "results": "Results",
+    "stratbook": "Stratbook",
+    "management": "Management",
+    "stats": "Statistics"
+  },
+  "sidebar": {
+    "collapse": "Collapse",
+    "expand": "Expand sidebar",
+    "switch_team": "Switch team",
+    "powered_by": "TeamWise App powered by {{name}}"
+  },
+  "header": {
+    "logout": "Logout",
+    "language": "Language",
+    "english": "English",
+    "french": "French"
+  },
+  "landing": {
+    "subtitle": "Manage your team",
+    "like_never": "like never before.",
+    "login": "Log in"
+  },
+  "team": {
+    "select_title": "Choose your team",
+    "tag": "Tag",
+    "leave": "Leave team",
+    "confirm_leave": "Are you sure you want to leave this team?",
+    "left_success": "You have left the team!",
+    "leave_failed": "Unable to leave the team.",
+    "limit_reached": "Maximum number of teams reached.",
+    "join_success": "Successfully joined the team!",
+    "invite_expired": "Invitation link expired or already used.",
+    "already_member": "You're already a member of this team.",
+    "invite_invalid": "Invalid link or error during invitation.",
+    "network_error": "Network or unexpected error.",
+    "create_desc": "Create a new team and invite your players.",
+    "create_button": "New team",
+    "invite_placeholder": "Invitation URL",
+    "join_button": "Join",
+    "create_title": "Create a team",
+    "name_placeholder": "Team name",
+    "tag_placeholder": "Tag (e.g. G2, NAVI)",
+    "game_cs2": "Counter-Strike 2",
+    "create_error": "Error while creating the team.",
+    "logo_label": "Team logo",
+    "hltv_placeholder": "HLTV link (optional)",
+    "faceit_placeholder": "Faceit link (optional)",
+    "twitter_placeholder": "Twitter Team link (optional)"
+  },
+  "profile": {
+    "title": "Complete your profile",
+    "first_name": "First name",
+    "last_name": "Last name",
+    "email": "Email address",
+    "birth_date": "Date of birth",
+    "country": "Country",
+    "username": "Official nickname",
+    "twitter": "Twitter link (optional)",
+    "discord": "Discord nickname (optional)",
+    "next": "Next",
+    "submit": "Save and continue",
+    "back": "Back",
+    "loading": "Loading...",
+    "missing_fields": "Please fill in all required fields.",
+    "update_error": "Error updating profile.",
+    "edit": "Edit profile",
+    "remove": "Remove",
+    "remove_confirm": "Remove this member from the team?",
+    "remove_error": "Error removing member.",
+    "removed": "Member removed.",
+    "promote_owner": "Promote to owner",
+    "remove_owner": "Remove ownership",
+    "owner_added": "Member promoted to owner.",
+    "owner_removed": "Ownership removed.",
+    "load_error": "Unable to load profile."
+  },
+  "auth": {
+    "redirecting": "Redirecting...",
+    "logging_in": "Logging in..."
+  },
+  "common": {
+    "back": "Back",
+    "years_old": "{{count}} y.o",
+    "discord_copied": "Discord username copied!",
+    "age": "Age",
+    "years": "years",
+    "copy_discord": "Copy Discord username",
+    "error": "An error occurred.",
+    "network_error": "Network error.",
+    "loading": "Loading..."
+  },
+  "management": {
+    "tab_members": "MEMBERS",
+    "tab_team": "TEAM",
+    "feature_coming": "Feature coming soon: edit team information.",
+    "not_in_team": "You're no longer part of this team.",
+    "role_fetch_error": "Unable to fetch available roles.",
+    "invite_error": "Missing info to generate invitation.",
+    "invite_success": "Invitation link copied!",
+    "remove_confirm": "Remove this member from the team?",
+    "remove_success": "Member removed.",
+    "remove_error": "Error removing member.",
+    "leave_confirm": "Are you sure you want to leave this team?",
+    "leave_success": "You left the team.",
+    "leave_error": "Unable to leave the team.",
+    "leave_owner_error": "You can't leave: you're the only OWNER.",
+    "leave_network_error": "Error leaving the team.",
+    "role_change_error": "Unable to change role.",
+    "role_change_success": "Role changed to {{role}}",
+    "owner_toggle_error": "Error changing ownership status.",
+    "owner_toggle_success": "Member promoted to owner.",
+    "owner_remove_success": "Ownership removed.",
+    "owner_toggle_network": "Network error during ownership update."
+  },
+  "member": {
+    "options": "Options",
+    "remove_owner": "Remove ownership",
+    "leave_team": "Leave team",
+    "promote_owner": "Promote to owner",
+    "kick": "Kick {{name}}"
+  },
+  "invite": {
+    "permission_error": "Only staff or owners can generate an invitation.",
+    "generate": "Generate invitation link",
+    "copied": "Link copied!"
+  },
+  "guard": {
+    "access_denied": "You don't have access to this team.",
+    "error": "Access denied."
+  },
+  "form": {
+    "birthdate_placeholder": "Date of birth",
+    "select_country": "Select your country"
+  },
+  "pages": {
+    "common": {
+      "coming_soon": "Coming soon..."
+    },
+    "stratbook": {
+      "title": "Stratbook"
+    },
+    "stats": {
+      "title": "Statistics"
+    },
+    "scrim": {
+      "title": "Scrims"
+    },
+    "results": {
+      "title": "Results"
+    },
+    "planning": {
+      "title": "Schedule"
+    }
+  },
+  "players": {
+    "title": "Team players",
+    "fetch_error": "Failed to fetch players.",
+    "captain": "Captain",
+    "none_found": "No players found for this team.",
+    "role_label": "Role:"
+  },
+  "staffs": {
+    "title": "Team Staff",
+    "empty": "No staff member found for this team.",
+    "fetch_error": "Unable to fetch staff.",
+    "role_label": "Role:"
+  },
+  "roles": {
+    "COACH": "Coach",
+    "MANAGER": "Manager",
+    "ANALYST": "Analyst",
+    "CAPTAIN": "Captain",
+    "PLAYER": "Player",
+    "TBD": "TBD"
+  },
+  "image_uploader": {
+    "import": "Upload",
+    "remove": "Remove",
+    "hint": "PNG recommended",
+    "logo_invalid_format": "The logo must be in PNG format"
+  }
+}

@@ -1,5 +1,6 @@
 import { User, X, ArrowUp, ArrowDown } from "lucide-react";
 import { Member } from "../../types/types.ts";
+import { useTranslation } from "react-i18next";
 
 interface MemberRowProps {
     member: Member;
@@ -32,6 +33,7 @@ export default function MemberRow({
                                       onSelfLeave,
                                       hasOtherOwners,
                                   }: MemberRowProps) {
+    const { t } = useTranslation();
     const isMe = member.steamId === currentUserSteamId;
     const canToggleOwner = isCurrentUserOwner && (!isMe || hasOtherOwners);
     const canChangeRole = isCurrentUserOwner || isCurrentUserStaff;
@@ -49,19 +51,10 @@ export default function MemberRow({
                 <span className="text-white text-base font-medium flex items-center gap-2">
                     {member.customUsername || member.nickname}
                     {member.isOwner && (
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-5 h-5 text-yellow-400"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 2.5-7.5L2 9h7l3-7z"
-                            />
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-yellow-400" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round"
+                                  d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 2.5-7.5L2 9h7l3-7z"/>
                         </svg>
                     )}
                     {isMe && <User className="w-5 h-5 text-blue-500 stroke-2" />}
@@ -88,14 +81,9 @@ export default function MemberRow({
                         ))}
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-                        <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            viewBox="0 0 24 24"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}
+                             viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </div>
                 </div>
@@ -107,7 +95,7 @@ export default function MemberRow({
                             setOpenMenu(openMenu === member.steamId ? null : member.steamId);
                         }}
                         className="text-white hover:text-gray-300 px-2"
-                        title="Options"
+                        title={t("member.options")}
                     >
                         ⋮
                     </button>
@@ -126,21 +114,23 @@ export default function MemberRow({
                                             onClick={() => handleMenuAction(() => onOwnerToggle(member.steamId, true))}
                                             className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300 hover:bg-neutral-700 w-full text-left px-3 py-2 rounded text-sm"
                                         >
-                                            <ArrowDown className="w-4 h-4 text-white" /> Me retirer propriétaire
+                                            <ArrowDown className="w-4 h-4 text-white" /> {t("member.remove_owner")}
                                         </button>
                                     )}
                                     <button
                                         onClick={() => handleMenuAction(onSelfLeave)}
                                         className="flex items-center gap-2 text-red-400 hover:text-red-300 hover:bg-neutral-700 w-full text-left px-3 py-2 rounded text-sm"
                                     >
-                                        <X className="w-4 h-4 text-red-500" /> Quitter l'équipe
+                                        <X className="w-4 h-4 text-red-500" /> {t("member.leave_team")}
                                     </button>
                                 </>
                             ) : (
                                 <>
                                     {canToggleOwner && (
                                         <button
-                                            onClick={() => handleMenuAction(() => onOwnerToggle(member.steamId, member.isOwner))}
+                                            onClick={() =>
+                                                handleMenuAction(() => onOwnerToggle(member.steamId, member.isOwner))
+                                            }
                                             className="flex items-center gap-2 text-white hover:text-gray-200 hover:bg-neutral-700 w-full text-left px-3 py-2 rounded text-sm"
                                         >
                                             {member.isOwner ? (
@@ -148,7 +138,9 @@ export default function MemberRow({
                                             ) : (
                                                 <ArrowUp className="w-4 h-4 text-white" />
                                             )}
-                                            {member.isOwner ? "Retirer propriétaire" : "Promouvoir propriétaire"}
+                                            {member.isOwner
+                                                ? t("member.remove_owner")
+                                                : t("member.promote_owner")}
                                         </button>
                                     )}
                                     <button
@@ -163,7 +155,8 @@ export default function MemberRow({
                                                 : "text-gray-500 cursor-not-allowed"
                                         }`}
                                     >
-                                        <X className="w-4 h-4 text-red-500" /> Exclure {member.customUsername || member.nickname}
+                                        <X className="w-4 h-4 text-red-500" />{" "}
+                                        {t("member.kick", { name: member.customUsername || member.nickname })}
                                     </button>
                                 </>
                             )}

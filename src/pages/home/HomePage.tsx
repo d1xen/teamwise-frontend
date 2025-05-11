@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../../components/layout/AppHeader.tsx";
-import {useAuth, useRequiredUser} from "../../context/AuthContext.tsx";
+import { useAuth, useRequiredUser } from "../../context/AuthContext.tsx";
 import { useTeamContext } from "../../context/TeamContext.tsx";
 import { limitedToast as toast } from "../../utils/limitedToast.ts";
+import { useTranslation } from "react-i18next";
+import Loader from "../../components/ui/Loader.tsx";
 
 interface Team {
     id: number;
@@ -21,6 +23,7 @@ const TeamCard = ({ team, isMenuOpen, onOpenMenu, onLeaveTeam }: {
     const dropdownRef = useRef<HTMLDivElement>(null);
     const user = useRequiredUser();
     const { setTeamRole } = useTeamContext();
+    const { t } = useTranslation();
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -77,7 +80,7 @@ const TeamCard = ({ team, isMenuOpen, onOpenMenu, onLeaveTeam }: {
                         onClick={() => onLeaveTeam(team.id)}
                         className="px-4 py-2 text-sm text-red-400 hover:text-red-300 w-full text-left"
                     >
-                        Quitter l'équipe
+                        {t("team.leave")}
                     </button>
                 </div>
             )}
@@ -85,7 +88,9 @@ const TeamCard = ({ team, isMenuOpen, onOpenMenu, onLeaveTeam }: {
             <div className="relative z-10 h-full flex flex-col justify-between">
                 <div>
                     <h3 className="text-2xl font-bold text-white">{team.name}</h3>
-                    <p className="text-indigo-400 font-medium mt-1">Tag : {team.tag}</p>
+                    <p className="text-indigo-400 font-medium mt-1">
+                        {t("team.tag")}: {team.tag}
+                    </p>
                 </div>
             </div>
         </div>
@@ -98,6 +103,8 @@ export default function HomePage() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [openMenuId, setOpenMenuId] = useState<number | null>(null);
     const [joinUrl, setJoinUrl] = useState("");
+    const [loading, setLoading] = useState(true);
+    const { t } = useTranslation();
 
     const hasReachedTeamLimit = teams.length >= 3;
 
@@ -116,6 +123,8 @@ export default function HomePage() {
             }
         } catch (err) {
             console.error("Erreur lors du chargement des équipes :", err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -125,7 +134,7 @@ export default function HomePage() {
 
     const handleLeaveTeam = async (teamId: number) => {
         if (!user) return;
-        const confirmed = window.confirm("Es-tu sûr de vouloir quitter cette équipe ?");
+        const confirmed = window.confirm(t("team.confirm_leave"));
         if (!confirmed) return;
 
         try {
@@ -135,24 +144,24 @@ export default function HomePage() {
 
             if (res.ok) {
                 setTeams(prev => prev.filter(t => t.id !== teamId));
-                toast.success("Tu as quitté l'équipe !");
+                toast.success(t("team.left_success"));
                 const storedTeamId = localStorage.getItem("teamId");
                 if (storedTeamId && parseInt(storedTeamId) === teamId) {
                     localStorage.removeItem("teamId");
                 }
             } else {
-                toast.error("Impossible de quitter l'équipe.");
+                toast.error(t("team.leave_failed"));
             }
         } catch (err) {
             console.error(err);
-            toast.error("Une erreur est survenue.");
+            toast.error(t("generic.error"));
         }
     };
 
     const handleJoinTeam = async () => {
         if (!user) return;
         if (hasReachedTeamLimit) {
-            toast.info("Nombre maximum d'équipe atteint.");
+            toast.info(t("team.limit_reached"));
             return;
         }
 
@@ -164,22 +173,22 @@ export default function HomePage() {
             });
 
             if (res.ok) {
-                toast.success("Équipe rejointe avec succès !");
+                toast.success(t("team.join_success"));
                 await fetchTeams();
                 setJoinUrl("");
             } else {
                 const errorText = await res.text();
                 if (errorText.includes("expiré") || errorText.includes("utilisé")) {
-                    toast.error("Lien d'invitation expiré ou déjà utilisé.");
+                    toast.error(t("team.invite_expired"));
                 } else if (errorText.includes("déjà partie")) {
-                    toast.info("Tu es déjà dans cette équipe.");
+                    toast.info(t("team.already_member"));
                 } else {
-                    toast.error("Lien invalide ou erreur lors de l'invitation.");
+                    toast.error(t("team.invite_invalid"));
                 }
             }
         } catch (err) {
             console.error(err);
-            toast.error("Erreur réseau ou inattendue.");
+            toast.error(t("generic.network_error"));
         }
     };
 
@@ -190,61 +199,70 @@ export default function HomePage() {
             <AppHeader user={user} onLogout={logout} />
 
             <main className="flex-1 flex flex-col justify-center items-center px-6 py-10">
-                <div className="flex flex-wrap justify-center gap-6 w-full max-w-6xl">
-                    {teams.map(team => (
-                        <TeamCard
-                            key={team.id}
-                            team={team}
-                            isMenuOpen={openMenuId === team.id}
-                            onOpenMenu={(id) => setOpenMenuId(id)}
-                            onLeaveTeam={handleLeaveTeam}
-                        />
-                    ))}
+                <h2 className="text-3xl font-bold text-white mb-8">{t("team.select_title")}</h2>
 
-                    <div
-                        onClick={() => {
-                            if (hasReachedTeamLimit) {
-                                toast.info("Nombre maximum d'équipe atteint.");
-                                return;
-                            }
-                            navigate("/app/create-team");
-                        }}
-                        className={`w-80 h-72 border-2 border-dashed p-6 rounded-2xl transition flex flex-col justify-center items-center text-center ${hasReachedTeamLimit ? 'border-neutral-700 bg-neutral-800 cursor-default opacity-50' : 'cursor-pointer border-indigo-500 hover:bg-neutral-800'}`}
-                    >
-                        <p className="text-gray-300 text-lg">Créer une nouvelle équipe et inviter vos joueurs.</p>
-                        <p className="text-indigo-400 font-semibold mt-4 text-2xl">+ Nouvelle équipe</p>
-                    </div>
-                </div>
+                {loading ? (
+                    <Loader />
+                ) : (
+                    <>
+                        <div className="flex flex-wrap justify-center gap-6 w-full max-w-6xl">
+                            {teams.map(team => (
+                                <TeamCard
+                                    key={team.id}
+                                    team={team}
+                                    isMenuOpen={openMenuId === team.id}
+                                    onOpenMenu={(id) => setOpenMenuId(id)}
+                                    onLeaveTeam={handleLeaveTeam}
+                                />
+                            ))}
 
-                <div className="flex justify-center mt-10">
-                    <div
-                        className={`flex gap-2 items-center bg-neutral-800 border p-4 rounded-md shadow-md ${hasReachedTeamLimit ? 'border-neutral-700 opacity-50 cursor-default' : 'border-neutral-600'}`}>
-                        <input
-                            type="text"
-                            value={joinUrl}
-                            onChange={(e) => setJoinUrl(e.target.value)}
-                            placeholder="URL d'invitation"
-                            className="px-4 py-2 rounded bg-neutral-900 border border-neutral-700 text-white w-80"
-                            disabled={hasReachedTeamLimit}
-                        />
-                        <button
-                            onClick={handleJoinTeam}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded font-semibold"
-                        >
-                            Rejoindre
-                        </button>
-                    </div>
-                </div>
-                <div className="mt-10 text-center text-sm text-white">
-                    <a
-                        href="https://twitter.com/d1xen_cs"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-500 hover:text-indigo-400 transition"
-                    >
-                        TeamWise App Powered by <span className="font-semibold">d1xen</span>
-                    </a>
-                </div>
+                            <div
+                                onClick={() => {
+                                    if (hasReachedTeamLimit) {
+                                        toast.info(t("team.limit_reached"));
+                                        return;
+                                    }
+                                    navigate("/app/create-team");
+                                }}
+                                className={`w-80 h-72 border-2 border-dashed p-6 rounded-2xl transition flex flex-col justify-center items-center text-center ${hasReachedTeamLimit ? 'border-neutral-700 bg-neutral-800 cursor-default opacity-50' : 'cursor-pointer border-indigo-500 hover:bg-neutral-800'}`}
+                            >
+                                <p className="text-gray-300 text-lg">{t("team.create_desc")}</p>
+                                <p className="text-indigo-400 font-semibold mt-4 text-2xl">+ {t("team.create_button")}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-center mt-10">
+                            <div
+                                className={`flex gap-2 items-center bg-neutral-800 border p-4 rounded-md shadow-md ${hasReachedTeamLimit ? 'border-neutral-700 opacity-50 cursor-default' : 'border-neutral-600'}`}>
+                                <input
+                                    type="text"
+                                    value={joinUrl}
+                                    onChange={(e) => setJoinUrl(e.target.value)}
+                                    placeholder={t("team.invite_placeholder")}
+                                    className="px-4 py-2 rounded bg-neutral-900 border border-neutral-700 text-white w-80"
+                                    disabled={hasReachedTeamLimit}
+                                />
+                                <button
+                                    onClick={handleJoinTeam}
+                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded font-semibold"
+                                >
+                                    {t("team.join_button")}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="mt-10 text-center text-sm text-white">
+                            <a
+                                href="https://twitter.com/d1xen_cs"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-500 hover:text-indigo-400 transition"
+                            >
+                                TeamWise App Powered by <span className="font-semibold">d1xen</span>
+                            </a>
+                        </div>
+                    </>
+                )}
             </main>
         </div>
     );

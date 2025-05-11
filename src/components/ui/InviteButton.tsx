@@ -1,5 +1,5 @@
-// InviteButton.tsx
 import { toast } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 export interface InviteButtonProps {
     isStaff: boolean;
@@ -14,11 +14,12 @@ export default function InviteButton({
                                          onClick,
                                          inviteGenerated,
                                      }: InviteButtonProps) {
+    const { t } = useTranslation();
     const disabled = !isStaff && !isOwner;
 
     const handleClick = () => {
         if (disabled) {
-            toast.error("Seuls le staff ou les propriétaires peuvent générer une invitation.");
+            toast.error(t("invite.permission_error"));
             return;
         }
         onClick();
@@ -35,7 +36,9 @@ export default function InviteButton({
                 }`}
             >
                 <span className="text-sm">
-                    {inviteGenerated ? "Lien copié !" : "Générer un lien d'invitation"}
+                    {inviteGenerated
+                        ? t("invite.copied")
+                        : t("invite.generate")}
                 </span>
             </button>
         </div>

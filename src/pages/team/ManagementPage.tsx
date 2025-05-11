@@ -1,12 +1,14 @@
-import {JSX, useEffect, useMemo, useRef, useState} from "react";
+import { JSX, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Settings, Users } from "lucide-react";
+import { Settings, Users} from "lucide-react";
 import { useRequiredUser } from "../../context/AuthContext.tsx";
 import { useTeamAccessGuard } from "../../hook/useTeamAccessGuard.ts";
 import { limitedToast as toast } from "../../utils/limitedToast.ts";
 import TeamTabs from "../../components/ui/TeamTabs.tsx";
 import InviteButton from "../../components/ui/InviteButton.tsx";
 import MembersList from "../../components/ui/MembersList.tsx";
+import { useTranslation } from "react-i18next";
+import Loader from "../../components/ui/Loader.tsx";
 
 interface Member {
     steamId: string;
@@ -17,17 +19,14 @@ interface Member {
     customUsername?: string;
 }
 
-const TABS: { key: string; label: string; icon: JSX.Element }[] = [
-    { key: "MEMBRES", label: "MEMBRES", icon: <Users size={16} /> },
-    { key: "TEAM", label: "TEAM", icon: <Settings size={16} /> },
-];
-
-export type TabKey = typeof TABS[number]["key"];
+export type TabKey = "MEMBRES" | "TEAM";
 
 export default function ManagementPage() {
     const user = useRequiredUser();
     const { teamId } = useParams();
     const navigate = useNavigate();
+    const { t } = useTranslation();
+    const [isLoadingMembers, setIsLoadingMembers] = useState(true);
 
     const [activeTab, setActiveTab] = useState<TabKey>("MEMBRES");
     const [members, setMembers] = useState<Member[]>([]);
@@ -35,7 +34,12 @@ export default function ManagementPage() {
     const [inviteGenerated, setInviteGenerated] = useState(false);
     const [openMenu, setOpenMenu] = useState<string | null>(null);
     const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
-    const roleOrder = ["MANAGER", "COACH", "CAPTAIN", "PLAYER"];
+    const roleOrder = ["MANAGER", "COACH", "ANALYST", "CAPTAIN", "PLAYER"];
+
+    const TABS: { key: TabKey; label: string; icon: JSX.Element }[] = [
+        { key: "MEMBRES", label: t("management.tab_members"), icon: <Users size={16} /> },
+        { key: "TEAM", label: t("management.tab_team"), icon: <Settings size={16} /> }
+    ];
 
     useTeamAccessGuard(teamId);
 
@@ -66,11 +70,13 @@ export default function ManagementPage() {
     useEffect(() => {
         if (!teamId || !user?.steamId) return;
 
+        setIsLoadingMembers(true);
+
         fetch(`/api/teams/${teamId}/members?steamId=${user.steamId}`)
             .then((res) => {
                 if (!res.ok) {
                     if (res.status === 403 || res.status === 404) {
-                        toast.error("Tu ne fais plus partie de cette équipe.");
+                        toast.error(t("management.not_in_team"));
                         navigate("/home");
                     }
                     throw new Error();
@@ -85,8 +91,8 @@ export default function ManagementPage() {
                     }));
                 }
             })
-            .catch(() => {});
-    }, [teamId, user?.steamId]);
+            .finally(() => setIsLoadingMembers(false));
+    }, [teamId, user?.steamId, t, navigate]);
 
     useEffect(() => {
         fetch(`/api/teams/roles`)
@@ -94,12 +100,12 @@ export default function ManagementPage() {
             .then((data) => {
                 if (Array.isArray(data)) setRoles(data);
             })
-            .catch(() => toast.error("Impossible de récupérer les rôles disponibles."));
-    }, []);
+            .catch(() => toast.error(t("management.role_fetch_error")));
+    }, [t]);
 
     const handleGenerateInvite = async () => {
         if (!teamId || !user?.steamId) {
-            toast.error("Identifiants manquants pour générer l'invitation.");
+            toast.error(t("management.invite_error"));
             return;
         }
 
@@ -113,14 +119,15 @@ export default function ManagementPage() {
             await navigator.clipboard.writeText(`${baseUrl}/invite/${data.inviteUrl}`);
             setInviteGenerated(true);
             setTimeout(() => setInviteGenerated(false), 1600);
+            toast.success(t("management.invite_success"));
         } catch {
-            toast.error("Erreur lors de la génération du lien.");
+            toast.error(t("management.invite_error"));
         }
     };
 
     const handleRemove = async (steamId: string) => {
         if (!user?.steamId || !teamId || steamId === user.steamId) return;
-        if (!confirm("Supprimer ce membre de l'équipe ?")) return;
+        if (!confirm(t("management.remove_confirm"))) return;
 
         try {
             const res = await fetch(`/api/teams/${teamId}/members/${steamId}?steamIdRequester=${user.steamId}`, {
@@ -128,33 +135,34 @@ export default function ManagementPage() {
             });
             if (!res.ok) throw new Error();
             setMembers(prev => prev.filter(m => m.steamId !== steamId));
-            toast.success("Membre supprimé.");
+            toast.success(t("management.remove_success"));
         } catch {
-            toast.error("Erreur lors de la suppression du membre.");
+            toast.error(t("management.remove_error"));
         }
     };
 
     const handleLeaveTeam = async () => {
         if (!user?.steamId || !teamId) return;
-        if (!confirm("Es-tu sûr de vouloir quitter cette équipe ?")) return;
+        if (!confirm(t("management.leave_confirm"))) return;
 
         try {
             const res = await fetch(`/api/teams/${teamId}/leave?steamId=${user.steamId}`, {
                 method: "DELETE"
             });
+
             if (!res.ok) {
                 const errorText = await res.text();
                 if (errorText.includes("OWNER")) {
-                    toast.error("Tu ne peux pas quitter l’équipe : tu es le seul OWNER.");
+                    toast.error(t("management.leave_owner_error"));
                 } else {
-                    toast.error("Impossible de quitter l'équipe.");
+                    toast.error(t("management.leave_error"));
                 }
                 return;
             }
-            toast.success("Tu as quitté l'équipe.");
+            toast.success(t("management.leave_success"));
             navigate("/home");
         } catch {
-            toast.error("Erreur lors de la sortie d'équipe.");
+            toast.error(t("management.leave_network_error"));
         }
     };
 
@@ -169,16 +177,16 @@ export default function ManagementPage() {
 
             if (!res.ok) {
                 const msg = await res.text();
-                toast.error(msg || "Impossible de modifier le rôle.");
+                toast.error(msg || t("management.role_change_error"));
                 return;
             }
 
             setMembers(prev =>
                 prev.map(m => m.steamId === steamId ? { ...m, role: newRole } : m)
             );
-            toast.success(`Rôle modifié en ${newRole}`);
+            toast.success(t("management.role_change_success", { role: newRole }));
         } catch {
-            toast.error("Erreur lors de la modification du rôle.");
+            toast.error(t("management.role_change_error"));
         }
     };
 
@@ -193,7 +201,7 @@ export default function ManagementPage() {
 
             if (!res.ok) {
                 const msg = await res.text();
-                toast.error(msg || "Erreur lors du changement de statut propriétaire.");
+                toast.error(msg || t("management.owner_toggle_error"));
                 return;
             }
 
@@ -201,9 +209,13 @@ export default function ManagementPage() {
                 prev.map(m => m.steamId === steamId ? { ...m, isOwner: !currentlyOwner } : m)
             );
 
-            toast.success(currentlyOwner ? "Propriété retirée." : "Membre promu propriétaire.");
+            toast.success(
+                currentlyOwner
+                    ? t("management.owner_remove_success")
+                    : t("management.owner_toggle_success")
+            );
         } catch {
-            toast.error("Erreur réseau pendant la mise à jour du statut propriétaire.");
+            toast.error(t("management.owner_toggle_network"));
         }
     };
 
@@ -215,6 +227,7 @@ export default function ManagementPage() {
                     activeTab={activeTab}
                     onTabChange={(tabKey: string) => setActiveTab(tabKey as TabKey)}
                 />
+
                 {activeTab === "MEMBRES" && (
                     <>
                         <InviteButton
@@ -223,27 +236,35 @@ export default function ManagementPage() {
                             onClick={handleGenerateInvite}
                             inviteGenerated={inviteGenerated}
                         />
-                        <MembersList
-                            members={members}
-                            roles={roles}
-                            currentUserSteamId={user.steamId}
-                            isCurrentUserStaff={isCurrentUserStaff}
-                            isCurrentUserOwner={isCurrentUserOwner}
-                            roleOrder={roleOrder}
-                            openMenu={openMenu}
-                            setOpenMenu={setOpenMenu}
-                            menuRefs={menuRefs}
-                            onMemberRoleChange={handleRoleChange}
-                            onOwnerToggle={handleToggleOwner}
-                            onMemberRemove={handleRemove}
-                            onSelfLeave={handleLeaveTeam}
-                        />
+
+                        {isLoadingMembers ? (
+                            <div className="flex justify-center mt-10">
+                                <Loader />
+                            </div>
+                        ) : (
+                            <MembersList
+                                members={members}
+                                roles={roles}
+                                currentUserSteamId={user.steamId}
+                                isCurrentUserStaff={isCurrentUserStaff}
+                                isCurrentUserOwner={isCurrentUserOwner}
+                                roleOrder={roleOrder}
+                                openMenu={openMenu}
+                                setOpenMenu={setOpenMenu}
+                                menuRefs={menuRefs}
+                                onMemberRoleChange={handleRoleChange}
+                                onOwnerToggle={handleToggleOwner}
+                                onMemberRemove={handleRemove}
+                                onSelfLeave={handleLeaveTeam}
+                            />
+                        )}
                     </>
                 )}
 
+
                 {activeTab === "TEAM" && (
                     <div className="text-center text-gray-400 mt-10">
-                        Fonctionnalité à venir : édition des infos d’équipe.
+                        {t("management.feature_coming")}
                     </div>
                 )}
             </div>
