@@ -1,5 +1,6 @@
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import { Link2 } from "lucide-react";
 
 export interface InviteButtonProps {
     isStaff: boolean;
@@ -26,21 +27,23 @@ export default function InviteButton({
     };
 
     return (
-        <div className="ml-4">
-            <button
-                onClick={handleClick}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition font-medium text-white ${
-                    inviteGenerated
-                        ? "bg-green-600 hover:bg-green-500"
-                        : "bg-indigo-600 hover:bg-indigo-500"
-                }`}
-            >
-                <span className="text-sm">
-                    {inviteGenerated
-                        ? t("invite.copied")
-                        : t("invite.generate")}
-                </span>
-            </button>
-        </div>
+        <button
+            onClick={handleClick}
+            disabled={disabled}
+            className={`w-fit inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow transition
+                ${disabled
+                ? "bg-gray-600 cursor-not-allowed text-white/60"
+                : inviteGenerated
+                    ? "bg-green-600 hover:bg-green-500 text-white"
+                    : "bg-indigo-600 hover:bg-indigo-500 text-white"
+            }`}
+        >
+            <Link2 className="w-4 h-4" />
+            <span>
+                {inviteGenerated
+                    ? t("invite.copied")
+                    : t("invite.generate")}
+            </span>
+        </button>
     );
 }

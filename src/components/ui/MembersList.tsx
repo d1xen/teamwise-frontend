@@ -1,5 +1,5 @@
 import MemberRow from "./MemberRow";
-import {Member} from "../../types/types.ts";
+import { Member } from "../../types/types.ts";
 
 interface MemberListProps {
     members: Member[];
@@ -45,24 +45,34 @@ export default function MembersList({
 
     return (
         <div className="space-y-3 mt-6 ml-4">
-            {sortedMembers.map((member) => (
-                <MemberRow
-                    key={member.steamId}
-                    member={member}
-                    roles={roles}
-                    currentUserSteamId={currentUserSteamId}
-                    isCurrentUserStaff={isCurrentUserStaff}
-                    isCurrentUserOwner={isCurrentUserOwner}
-                    openMenu={openMenu}
-                    setOpenMenu={setOpenMenu}
-                    menuRefs={menuRefs}
-                    onMemberRoleChange={onMemberRoleChange}
-                    onOwnerToggle={onOwnerToggle}
-                    onMemberRemove={onMemberRemove}
-                    onSelfLeave={onSelfLeave}
-                    hasOtherOwners={ownerCount > 1}
-                />
-            ))}
+            {sortedMembers.map((member) => {
+                const isSelf = member.steamId === currentUserSteamId;
+                const canEditRole = isCurrentUserStaff || isCurrentUserOwner;
+                const canChangeRole = canEditRole;
+                const canToggleOwner = isCurrentUserOwner && (!isSelf || ownerCount > 1);
+                const canRemoveMember = isCurrentUserOwner && !isSelf;
+                const hasOtherOwners = member.isOwner && ownerCount > 1;
+
+                return (
+                    <MemberRow
+                        key={member.steamId}
+                        member={member}
+                        roles={roles}
+                        canChangeRole={canChangeRole}
+                        canToggleOwner={canToggleOwner}
+                        canRemoveMember={canRemoveMember}
+                        openMenu={openMenu}
+                        setOpenMenu={setOpenMenu}
+                        menuRefs={menuRefs}
+                        onMemberRoleChange={onMemberRoleChange}
+                        onOwnerToggle={onOwnerToggle}
+                        onMemberRemove={onMemberRemove}
+                        onSelfLeave={onSelfLeave}
+                        isSelf={isSelf}
+                        hasOtherOwners={hasOtherOwners}
+                    />
+                );
+            })}
         </div>
     );
 }

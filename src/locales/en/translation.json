@@ -93,12 +93,13 @@
     "copy_discord": "Copy Discord username",
     "error": "An error occurred.",
     "network_error": "Network error.",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
   },
   "management": {
     "tab_members": "MEMBERS",
     "tab_team": "TEAM",
-    "feature_coming": "Feature coming soon: edit team information.",
     "not_in_team": "You're no longer part of this team.",
     "role_fetch_error": "Unable to fetch available roles.",
     "invite_error": "Missing info to generate invitation.",
@@ -116,7 +117,15 @@
     "owner_toggle_error": "Error changing ownership status.",
     "owner_toggle_success": "Member promoted to owner.",
     "owner_remove_success": "Ownership removed.",
-    "owner_toggle_network": "Network error during ownership update."
+    "owner_toggle_network": "Network error during ownership update.",
+    "delete_team": "Delete team",
+    "delete_success": "Team successfully deleted.",
+    "delete_error": "Error while deleting the team.",
+    "delete_no_permission": "You don't have permission to delete the team.",
+    "export_team": "Export team",
+    "export_soon": "The export feature is not available yet.",
+    "delete_confirm_title": "Confirm deletion",
+    "delete_confirm": "Are you sure you want to delete this team? This action cannot be undone."
   },
   "member": {
     "options": "Options",
@@ -159,7 +168,7 @@
     }
   },
   "players": {
-    "title": "Team players",
+    "title": "Team Players",
     "fetch_error": "Failed to fetch players.",
     "captain": "Captain",
     "none_found": "No players found for this team.",

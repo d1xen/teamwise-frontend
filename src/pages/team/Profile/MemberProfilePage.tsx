@@ -16,7 +16,7 @@ interface ProfileProps {
     type: "player" | "staff";
 }
 
-export default function ProfilePage({ type }: ProfileProps) {
+export default function MemberProfilePage({ type }: ProfileProps) {
     const { t } = useTranslation();
     const { id, teamId } = useParams<{ id: string; teamId: string }>();
     const { user, loading: userLoading } = useAuth();
@@ -102,11 +102,13 @@ export default function ProfilePage({ type }: ProfileProps) {
 
     return (
         <div className="relative max-w-5xl mx-auto mt-20 px-4">
-            <div className="absolute left-60 top-1/2 -translate-y-1/2 z-10">
-                <BackButton />
-            </div>
 
-            <div className="bg-neutral-800 rounded-lg shadow-lg overflow-hidden border border-neutral-700 flex-col md:flex-row flex">
+
+            <div
+                className="bg-neutral-800 rounded-lg shadow-lg overflow-hidden border border-neutral-700 flex-col md:flex-row flex">
+                <div className="absolute">
+                    <BackButton/>
+                </div>
                 <div className="bg-neutral-900 p-6 flex items-center justify-center">
                     <img
                         src={profile.playerPictureUrl || profile.staffPictureUrl || profile.avatarUrl}
@@ -121,7 +123,7 @@ export default function ProfilePage({ type }: ProfileProps) {
                             className="absolute top-4 right-4 text-gray-500 opacity-70 hover:opacity-100 hover:text-indigo-400 transition"
                             title={t("profile.edit")}
                         >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="w-4 h-4"/>
                         </button>
                     )}
 
@@ -129,7 +131,7 @@ export default function ProfilePage({ type }: ProfileProps) {
                         <h1 className="text-3xl font-bold flex items-center gap-2">
                             {profile.nickname}
                             {currentMembership?.isOwner && (
-                                <ShieldCheck className="w-5 h-5 text-yellow-400" />
+                                <ShieldCheck className="w-5 h-5 text-yellow-400"/>
                             )}
                         </h1>
 
@@ -145,14 +147,14 @@ export default function ProfilePage({ type }: ProfileProps) {
                                     onClick={handleRemoveMember}
                                     className="text-sm bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded flex items-center gap-1"
                                 >
-                                    <UserX className="w-4 h-4" /> {t("profile.remove")}
+                                    <UserX className="w-4 h-4"/> {t("profile.remove")}
                                 </button>
                             </div>
                         )}
                     </div>
 
                     <p className="text-base text-gray-400 mb-6 flex items-center gap-2">
-                        <Flag code={profile.nationality} style={{ width: 20, height: 15, borderRadius: 2 }} />
+                        <Flag code={profile.nationality} style={{width: 20, height: 15, borderRadius: 2}}/>
                         {profile.firstName} {profile.lastName}
                     </p>
 
@@ -180,19 +182,19 @@ export default function ProfilePage({ type }: ProfileProps) {
                             {profile.faceit && (
                                 <a href={profile.faceit} target="_blank" rel="noopener noreferrer"
                                    className="w-4 h-4 hover:scale-125 transition-transform cursor-pointer">
-                                    <img src={faceitIcon} alt="FACEIT" title="FACEIT" className="w-4 h-4" />
+                                    <img src={faceitIcon} alt="FACEIT" title="FACEIT" className="w-4 h-4"/>
                                 </a>
                             )}
                             {profile.hltvProfileUrl && (
                                 <a href={profile.hltvProfileUrl} target="_blank" rel="noopener noreferrer"
                                    className="w-4 h-4 hover:scale-125 transition-transform cursor-pointer">
-                                    <img src={hltvIcon} alt="HLTV" title="HLTV" className="w-4 h-4" />
+                                    <img src={hltvIcon} alt="HLTV" title="HLTV" className="w-4 h-4"/>
                                 </a>
                             )}
                             {profile.twitter && (
                                 <a href={profile.twitter} target="_blank" rel="noopener noreferrer"
                                    className="w-4 h-4 hover:scale-125 transition-transform cursor-pointer">
-                                    <FaTwitter title="Twitter" className="w-4 h-4" />
+                                    <FaTwitter title="Twitter" className="w-4 h-4"/>
                                 </a>
                             )}
                             {profile.discord && (
@@ -204,7 +206,7 @@ export default function ProfilePage({ type }: ProfileProps) {
                                     title={t("common.copy_discord")}
                                     className="w-4 h-4 hover:scale-125 transition-transform cursor-pointer"
                                 >
-                                    <FaDiscord className="w-4 h-4" />
+                                    <FaDiscord className="w-4 h-4"/>
                                 </button>
                             )}
                         </div>

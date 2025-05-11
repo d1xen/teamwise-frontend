@@ -16,7 +16,9 @@ import PlayersPage from "./pages/team/PlayersPage";
 import StaffsPage from "./pages/team/StaffsPage";
 import ScrimPage from "./pages/team/Scrim";
 import ResultsPage from "./pages/team/Results";
-import ProfilePage from "./pages/team/Profile/ProfilePage";
+import MemberProfilePage from "./pages/team/Profile/MemberProfilePage.tsx";
+import TeamPage from "./pages/team/TeamPage.tsx";
+import EditTeamPage from "./pages/team/Profile/EditTeamPage.tsx";
 
 const router = createBrowserRouter([
     { path: "/", element: <AutoRedirect /> },
@@ -42,8 +44,11 @@ const router = createBrowserRouter([
                     { path: "staffs", element: <StaffsPage /> },
 
                     // Profils (structure centralisée)
-                    { path: "profile/player/:id", element: <ProfilePage type="player" /> },
-                    { path: "profile/staff/:id", element: <ProfilePage type="staff" /> },
+                    { path: "profile/player/:id", element: <MemberProfilePage type="player" /> },
+                    { path: "profile/staff/:id", element: <MemberProfilePage type="staff" /> },
+
+                    { path: "profile", element: <TeamPage /> },
+                    { path: "profile/edit", element: <EditTeamPage /> },
 
                     // Autres sections
                     { path: "planning", element: <PlanningPage /> },

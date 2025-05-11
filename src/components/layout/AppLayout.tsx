@@ -15,7 +15,7 @@ import {
     Swords,
     CalendarClock,
     UserCog,
-    Users
+    Users, ShieldCheck
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -44,7 +44,8 @@ export default function AppLayout() {
         { label: translate("nav.results"), icon: Trophy, path: "results" },
         { label: translate("nav.stratbook"), icon: BookOpen, path: "stratbook" },
         { label: translate("nav.management"), icon: Settings, path: "management" },
-        { label: translate("nav.stats"), icon: BarChart2, path: "stats" }
+        { label: translate("nav.stats"), icon: BarChart2, path: "stats" },
+        { label: translate("nav.team"), icon: ShieldCheck, path: "profile" },
     ];
 
     const linkBase =

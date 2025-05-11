@@ -5,9 +5,9 @@ import { useTranslation } from "react-i18next";
 interface MemberRowProps {
     member: Member;
     roles: string[];
-    currentUserSteamId: string;
-    isCurrentUserStaff: boolean;
-    isCurrentUserOwner: boolean;
+    canChangeRole: boolean;
+    canToggleOwner: boolean;
+    canRemoveMember: boolean;
     openMenu: string | null;
     setOpenMenu: (steamId: string | null) => void;
     menuRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
@@ -15,15 +15,16 @@ interface MemberRowProps {
     onOwnerToggle: (steamId: string, currentlyOwner: boolean) => void;
     onMemberRemove: (steamId: string) => void;
     onSelfLeave: () => void;
+    isSelf: boolean;
     hasOtherOwners: boolean;
 }
 
 export default function MemberRow({
                                       member,
                                       roles,
-                                      currentUserSteamId,
-                                      isCurrentUserStaff,
-                                      isCurrentUserOwner,
+                                      canChangeRole,
+                                      canToggleOwner,
+                                      canRemoveMember,
                                       openMenu,
                                       setOpenMenu,
                                       menuRefs,
@@ -31,13 +32,10 @@ export default function MemberRow({
                                       onOwnerToggle,
                                       onMemberRemove,
                                       onSelfLeave,
-                                      hasOtherOwners,
+                                      isSelf,
+                                      hasOtherOwners
                                   }: MemberRowProps) {
     const { t } = useTranslation();
-    const isMe = member.steamId === currentUserSteamId;
-    const canToggleOwner = isCurrentUserOwner && (!isMe || hasOtherOwners);
-    const canChangeRole = isCurrentUserOwner || isCurrentUserStaff;
-    const canRemoveMember = isCurrentUserStaff || isCurrentUserOwner;
 
     const handleMenuAction = (action: () => void) => {
         action();
@@ -57,7 +55,7 @@ export default function MemberRow({
                                   d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 2.5-7.5L2 9h7l3-7z"/>
                         </svg>
                     )}
-                    {isMe && <User className="w-5 h-5 text-blue-500 stroke-2" />}
+                    {isSelf && <User className="w-5 h-5 text-blue-500 stroke-2" />}
                 </span>
             </div>
 
@@ -107,7 +105,7 @@ export default function MemberRow({
                             }}
                             className="absolute right-0 top-8 z-10 bg-neutral-800 border border-neutral-600 rounded-xl shadow-lg px-3 py-2 min-w-[240px] space-y-1"
                         >
-                            {isMe ? (
+                            {isSelf ? (
                                 <>
                                     {member.isOwner && hasOtherOwners && (
                                         <button
@@ -126,7 +124,7 @@ export default function MemberRow({
                                 </>
                             ) : (
                                 <>
-                                    {canToggleOwner && (
+                                    {!isSelf && canToggleOwner && (
                                         <button
                                             onClick={() =>
                                                 handleMenuAction(() => onOwnerToggle(member.steamId, member.isOwner))

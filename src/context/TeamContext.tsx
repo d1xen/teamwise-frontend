@@ -1,22 +1,23 @@
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 export interface TeamMembership {
+    steamId: string;
     role: string;
     isOwner: boolean;
 }
 
 interface TeamContextType {
     memberships: Record<string, TeamMembership>;
-    setInitialMembership: (teamId: string, data: TeamMembership) => void;
+    isLoading: boolean;
     getMembership: (teamId: string) => TeamMembership | null;
     getRole: (teamId: string) => string | null;
     isOwner: (teamId: string) => boolean;
-    loadMembership: (teamId: string, steamId: string) => Promise<void>;
+    loadMembership: (teamId: string, steamId: string, force?: boolean) => Promise<void>;
 }
 
 const TeamContext = createContext<TeamContextType>({
     memberships: {},
-    setInitialMembership: () => {},
+    isLoading: false,
     getMembership: () => null,
     getRole: () => null,
     isOwner: () => false,
@@ -25,48 +26,37 @@ const TeamContext = createContext<TeamContextType>({
 
 export const TeamProvider = ({ children }: { children: React.ReactNode }) => {
     const [memberships, setMemberships] = useState<Record<string, TeamMembership>>({});
+    const [isLoading, setIsLoading] = useState(false);
 
-    const setInitialMembership = (teamId: string, data: TeamMembership) => {
-        setMemberships((prev) => {
-            if (prev[teamId]) return prev;
-            return { ...prev, [teamId]: data };
-        });
-    };
+    const getMembership = (teamId: string) => memberships[teamId] || null;
+    const getRole = (teamId: string) => memberships[teamId]?.role || null;
+    const isOwner = (teamId: string) => memberships[teamId]?.isOwner || false;
 
-    const getMembership = (teamId: string) => {
-        return memberships[teamId] || null;
-    };
-
-    const getRole = (teamId: string) => {
-        return memberships[teamId]?.role || null;
-    };
-
-    const isOwner = (teamId: string) => {
-        return memberships[teamId]?.isOwner === true;
-    };
-
-    const loadMembership = useCallback(async (teamId: string, steamId: string) => {
-        if (memberships[teamId]) return;
+    const loadMembership = async (teamId: string, steamId: string, force = false) => {
+        if (!force && memberships[teamId]) return;
         try {
+            setIsLoading(true);
             const res = await fetch(`/api/teams/${teamId}/membership?steamId=${steamId}`);
             if (!res.ok) throw new Error("Failed to fetch membership");
+
             const data = await res.json();
-            setInitialMembership(teamId, data);
-        } catch (error) {
-            console.error("Erreur lors du chargement du membership", error);
+            const mapped: TeamMembership = {
+                steamId: data.steamId,
+                role: data.role,
+                isOwner: data.owner === true,
+            };
+
+            setMemberships(prev => ({ ...prev, [teamId]: mapped }));
+        } catch (err) {
+            console.error("Erreur lors du chargement du membership :", err);
+        } finally {
+            setIsLoading(false);
         }
-    }, [memberships]);
+    };
 
     return (
         <TeamContext.Provider
-            value={{
-                memberships,
-                setInitialMembership,
-                getMembership,
-                getRole,
-                isOwner,
-                loadMembership,
-            }}
+            value={{ memberships, isLoading, getMembership, getRole, isOwner, loadMembership }}
         >
             {children}
         </TeamContext.Provider>

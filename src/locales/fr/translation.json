@@ -92,12 +92,13 @@
     "years": "ans",
     "copy_discord": "Copier le pseudo Discord",
     "error": "Une erreur est survenue.",
-    "network_error": "Erreur réseau."
+    "network_error": "Erreur réseau.",
+    "cancel": "Annuler",
+    "confirm": "Confirmer"
   },
   "management": {
     "tab_members": "MEMBRES",
     "tab_team": "ÉQUIPE",
-    "feature_coming": "Fonctionnalité à venir : édition des infos d’équipe.",
     "not_in_team": "Tu ne fais plus partie de cette équipe.",
     "role_fetch_error": "Impossible de récupérer les rôles disponibles.",
     "invite_error": "Identifiants manquants pour générer l'invitation.",
@@ -115,7 +116,14 @@
     "owner_toggle_error": "Erreur lors du changement de statut propriétaire.",
     "owner_toggle_success": "Membre promu propriétaire.",
     "owner_remove_success": "Propriété retirée.",
-    "owner_toggle_network": "Erreur réseau pendant la mise à jour du statut propriétaire."
+    "owner_toggle_network": "Erreur réseau pendant la mise à jour du statut propriétaire.",
+    "delete_success": "Équipe supprimée avec succès.",
+    "delete_error": "Erreur lors de la suppression de l’équipe.",
+    "delete_no_permission": "Vous n’avez pas les droits pour supprimer l’équipe.",
+    "export_team": "Exporter l'équipe",
+    "export_soon": "La fonctionnalité d’export n’est pas encore disponible.",
+    "delete_confirm_title": "Confirmer la suppression",
+    "delete_confirm": "Êtes-vous sûr de vouloir supprimer cette équipe ? Cette action est irréversible."
   },
   "member": {
     "options": "Options",
