@@ -18,7 +18,8 @@ import ScrimPage from "./pages/team/Scrim";
 import ResultsPage from "./pages/team/Results";
 import MemberProfilePage from "./pages/team/Profile/MemberProfilePage.tsx";
 import TeamPage from "./pages/team/TeamPage.tsx";
-import EditTeamPage from "./pages/team/Profile/EditTeamPage.tsx";
+import EditPlayerPage from "./pages/team/Profile/EditPlayerPage.tsx";
+import EditStaffPage from "./pages/team/Profile/EditStaffPage.tsx";
 
 const router = createBrowserRouter([
     { path: "/", element: <AutoRedirect /> },
@@ -39,16 +40,18 @@ const router = createBrowserRouter([
                 children: [
                     // Joueurs
                     { path: "players", element: <PlayersPage /> },
+                    { path: "player/:id/edit", element: <EditPlayerPage /> },
 
                     // Staff
                     { path: "staffs", element: <StaffsPage /> },
+                    { path: "staff/:id/edit", element: <EditStaffPage /> },
 
-                    // Profils (structure centralisée)
+                    // Profils
                     { path: "profile/player/:id", element: <MemberProfilePage type="player" /> },
                     { path: "profile/staff/:id", element: <MemberProfilePage type="staff" /> },
 
+                    // Équipe
                     { path: "profile", element: <TeamPage /> },
-                    { path: "profile/edit", element: <EditTeamPage /> },
 
                     // Autres sections
                     { path: "planning", element: <PlanningPage /> },
@@ -58,7 +61,8 @@ const router = createBrowserRouter([
                     { path: "management", element: <ManagementPage /> },
                     { path: "stats", element: <StatsPage /> },
                 ],
-            },
+            }
+
         ],
     },
 

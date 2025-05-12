@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import Flag from "react-world-flags";
 import { Pencil, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext.tsx";
@@ -27,6 +27,7 @@ export default function MemberProfilePage({ type }: ProfileProps) {
 
     const isCurrentUser = user?.steamId === profile?.steamId;
     const currentMembership = teamId ? getMembership(teamId) : null;
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (!id || !user?.steamId) return;
@@ -78,6 +79,7 @@ export default function MemberProfilePage({ type }: ProfileProps) {
                 <div className="relative flex-1 p-8 text-white">
                     {canEdit && (
                         <button
+                            onClick={() => navigate(`/app/team/${teamId}/${type}/${profile.steamId}/edit`)}
                             className="absolute top-4 right-4 text-gray-500 opacity-70 hover:opacity-100 hover:text-indigo-400 transition"
                             title={t("profile.edit")}
                         >

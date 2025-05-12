@@ -7,7 +7,8 @@
     "results": "Results",
     "stratbook": "Stratbook",
     "management": "Management",
-    "stats": "Statistics"
+    "stats": "Statistics",
+    "team" : "Team"
   },
   "sidebar": {
     "collapse": "Collapse",
@@ -28,11 +29,6 @@
   },
   "team": {
     "select_title": "Choose your team",
-    "tag": "Tag",
-    "leave": "Leave team",
-    "confirm_leave": "Are you sure you want to leave this team?",
-    "left_success": "You have left the team!",
-    "leave_failed": "Unable to leave the team.",
     "limit_reached": "Maximum number of teams reached.",
     "join_success": "Successfully joined the team!",
     "invite_expired": "Invitation link expired or already used.",
@@ -51,7 +47,14 @@
     "logo_label": "Team logo",
     "hltv_placeholder": "HLTV link (optional)",
     "faceit_placeholder": "Faceit link (optional)",
-    "twitter_placeholder": "Twitter Team link (optional)"
+    "twitter_placeholder": "Twitter Team link (optional)",
+    "average_age": "Average age",
+    "game": "Game",
+    "update_button": "Update team",
+    "update_success": "Team updated successfully.",
+    "update_error": "An error occurred while updating the team.",
+    "logo_invalid_format": "Only PNG files are allowed.",
+    "no_permission_edit": "You don't have permission to edit this team."
   },
   "profile": {
     "title": "Complete your profile",
@@ -89,6 +92,7 @@
   "common": {
     "back": "Back",
     "years_old": "{{count}} y.o",
+    "age_display": "{{age}} y.o",
     "discord_copied": "Discord tag copied to clipboard",
     "age": "Age",
     "years": "years",

@@ -1,15 +1,20 @@
 import { JSX, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import {FileDown, Settings, Trash2, Users} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Settings, Users} from "lucide-react";
 import { useRequiredUser } from "../../context/AuthContext.tsx";
 import { useTeamAccessGuard } from "../../hook/useTeamAccessGuard.ts";
 import { limitedToast as toast } from "../../utils/limitedToast.ts";
 import TeamTabs from "../../components/ui/TeamTabs.tsx";
-import InviteButton from "../../components/ui/InviteButton.tsx";
+import GenerateInviteButton from "../../components/ui/GenerateInviteButton.tsx";
 import MembersList from "../../components/ui/MembersList.tsx";
 import { useTranslation } from "react-i18next";
 import Loader from "../../components/ui/Loader.tsx";
 import { useTeamContext } from "../../context/TeamContext.tsx";
+import {TeamEditForm} from "../../components/layout/TeamEditForm.tsx";
+import {useTeamId} from "../../hook/useTeamId.ts";
+import ExportTeamButton from "../../components/ui/ExportTeamButton.tsx";
+import DeleteTeamButton from "../../components/ui/DeleteTeamButton.tsx";
+import DeleteTeamModal from "../../components/ui/DeleteTeamModal.tsx";
 
 interface Member {
     steamId: string;
@@ -24,7 +29,7 @@ export type TabKey = "MEMBRES" | "TEAM";
 
 export default function ManagementPage() {
     const user = useRequiredUser();
-    const { teamId } = useParams();
+    const teamId = useTeamId();
     const navigate = useNavigate();
     const { t } = useTranslation();
     const { getMembership, loadMembership, isLoading } = useTeamContext();
@@ -32,7 +37,6 @@ export default function ManagementPage() {
     const [activeTab, setActiveTab] = useState<TabKey>("MEMBRES");
     const [members, setMembers] = useState<Member[]>([]);
     const [roles, setRoles] = useState<string[]>([]);
-    const [inviteGenerated, setInviteGenerated] = useState(false);
     const [openMenu, setOpenMenu] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -123,28 +127,6 @@ export default function ManagementPage() {
             })
             .catch(() => toast.error(t("management.role_fetch_error")));
     }, [t]);
-
-    const handleGenerateInvite = async () => {
-        if (!teamId || !user?.steamId) {
-            toast.error(t("management.invite_error"));
-            return;
-        }
-
-        try {
-            const res = await fetch(`/api/invitations?teamId=${teamId}&steamId=${user.steamId}`, {
-                method: "POST"
-            });
-            if (!res.ok) throw new Error();
-            const data = await res.json();
-            const baseUrl = window.location.origin;
-            await navigator.clipboard.writeText(`${baseUrl}/invite/${data.inviteUrl}`);
-            setInviteGenerated(true);
-            setTimeout(() => setInviteGenerated(false), 1600);
-            toast.success(t("management.invite_success"));
-        } catch {
-            toast.error(t("management.invite_error"));
-        }
-    };
 
     const handleRemove = async (steamId: string) => {
         if (!user?.steamId || !teamId || steamId === user.steamId) return;
@@ -248,22 +230,6 @@ export default function ManagementPage() {
         }
     };
 
-    const handleDeleteTeam = async () => {
-        if (!teamId || !user?.steamId) return;
-
-        try {
-            const res = await fetch(`/api/teams/${teamId}?steamId=${user.steamId}`, {
-                method: "DELETE",
-            });
-            if (!res.ok) throw new Error();
-
-            toast.success(t("management.delete_success"));
-            navigate("/app/home");
-        } catch {
-            toast.error(t("management.delete_error"));
-        }
-    };
-
     if (isLoading || !currentMembership) {
         return <Loader />;
     }
@@ -306,67 +272,28 @@ export default function ManagementPage() {
 
                 {activeTab === "TEAM" && (
                     <div className="flex flex-col gap-4 justify-start mt-10">
-                        <InviteButton
+
+                        <TeamEditForm
                             isStaff={isCurrentUserStaff}
                             isOwner={currentIsOwner}
-                            onClick={handleGenerateInvite}
-                            inviteGenerated={inviteGenerated}
+                            teamId={teamId}
+                            onSuccess={() => navigate(`/app/team/${teamId}/profile`)}
                         />
-                        <button
-                            onClick={() => {
-                                if (currentIsOwner) {
-                                    setShowDeleteConfirm(true);
-                                } else {
-                                    toast.error(t("management.delete_no_permission"));
-                                }
-                            }}
-                            className={`w-fit inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow transition
-                            ${currentIsOwner
-                                ? "bg-red-600 hover:bg-red-500 text-white"
-                                : "bg-gray-600 cursor-not-allowed text-white/60"
-                            }`}
-                        >
-                            <Trash2 className="w-4 h-4"/>
-                            {t("management.delete_team")}
-                        </button>
-
-                        <button
-                            onClick={() => toast.info(t("management.export_soon"))}
-                            className="w-fit inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow transition bg-emerald-600 hover:bg-emerald-500 text-white"
-                        >
-                            <FileDown className="w-4 h-4"/>
-                            {t("management.export_team")}
-                        </button>
-
-                        {showDeleteConfirm && (
-                            <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-                                <div
-                                    ref={deleteModalRef}
-                                    className="bg-neutral-800 p-6 rounded-xl shadow-xl w-[90%] max-w-md text-left"
-                                >
-                                    <h3 className="text-xl font-bold mb-4 text-white">
-                                        {t("management.delete_confirm_title")}
-                                    </h3>
-                                    <p className="text-gray-300 mb-6">
-                                        {t("management.delete_confirm")}
-                                    </p>
-                                    <div className="flex justify-end gap-4">
-                                        <button
-                                            onClick={() => setShowDeleteConfirm(false)}
-                                            className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white"
-                                        >
-                                            {t("common.cancel")}
-                                        </button>
-                                        <button
-                                            onClick={handleDeleteTeam}
-                                            className="px-4 py-2 rounded bg-red-500 hover:bg-red-700 text-white"
-                                        >
-                                            {t("common.confirm")}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        <GenerateInviteButton
+                            teamId={teamId}
+                            isStaff={isCurrentUserStaff}
+                            isOwner={currentIsOwner}
+                        />
+                        <ExportTeamButton />
+                        <DeleteTeamButton
+                            isOwner={currentIsOwner}
+                            onClick={() => setShowDeleteConfirm(true)}
+                        />
+                        <DeleteTeamModal
+                            isOpen={showDeleteConfirm}
+                            teamId={teamId}
+                            onClose={() => setShowDeleteConfirm(false)}
+                        />
                     </div>
                 )}
             </div>

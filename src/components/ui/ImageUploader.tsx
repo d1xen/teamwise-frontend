@@ -1,13 +1,13 @@
-import React from "react";
-import { useTranslation } from "react-i18next";
 import {toast} from "react-hot-toast";
+import {useTranslation} from "react-i18next";
 
 interface ImageUploaderProps {
     imagePreview: string | null;
     loading: boolean;
     onRemove: () => void;
     onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    label?: string; // Optionnel pour contextualiser (ex: "Logo d'équipe", "Photo joueur")
+    label?: string;
+    disabled?: boolean;
 }
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({
@@ -15,52 +15,39 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                                                                 loading,
                                                                 onRemove,
                                                                 onFileChange,
-                                                                label
+                                                                label,
+                                                                disabled = false,
                                                             }) => {
     const { t } = useTranslation();
 
+    const isDisabled = disabled || loading;
+
     return (
         <div className="flex gap-6 items-end w-full max-w-3xl">
-            {/* Aperçu étendu */}
+            {/* Aperçu */}
             {!imagePreview ? (
-                <div className="relative w-[183px] h-[183px] border border-dashed border-gray-600 flex items-center justify-center text-center">
-                    {imagePreview ? (
-                        <>
-                            <img
-                                src={imagePreview}
-                                alt="Preview"
-                                className="w-[183px] h-[183px] object-cover"
-                            />
-                            <button
-                                type="button"
-                                onClick={onRemove}
-                                className="absolute top-1 right-1 text-red-500 hover:text-red-400 text-2xl font-bold"
-                                title={t("image_uploader.remove")}
-                            >
-                                ×
-                            </button>
-                        </>
-                    ) : (
-                        <span className="text-sm text-gray-500">
+                <div className="relative w-[175px] h-[175px] border border-dashed border-gray-600 flex items-center justify-center text-center">
+                    <span className="text-sm text-gray-500">
                         {label || "Image"}
                     </span>
-                    )}
                 </div>
             ) : (
-                <div className="relative w-[183px] h-[183px] flex items-center justify-center text-center">
+                <div className="relative w-[175px] h-[175px] flex items-center justify-center text-center">
                     <img
                         src={imagePreview}
                         alt="Preview"
-                        className="w-[183px] h-[183px] object-cover"
+                        className="w-[175px] h-[175px] object-cover"
                     />
-                    <button
-                        type="button"
-                        onClick={onRemove}
-                        className="absolute top-1 right-1 text-red-500 hover:text-red-400 text-2xl font-bold"
-                        title={t("image_uploader.remove")}
-                    >
-                        ×
-                    </button>
+                    {!isDisabled && (
+                        <button
+                            type="button"
+                            onClick={onRemove}
+                            className="absolute top-1 right-1 text-red-500 hover:text-red-400 text-2xl font-bold"
+                            title={t("image_uploader.remove")}
+                        >
+                            ×
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -82,12 +69,16 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                         onFileChange(e);
                     }}
                     className="hidden"
-                    disabled={loading}
+                    disabled={isDisabled}
                 />
 
                 <label
                     htmlFor="imageUpload"
-                    className="w-full max-w-sm h-12 flex items-center justify-center bg-indigo-600 text-white hover:bg-indigo-500 font-semibold text-sm rounded shadow cursor-pointer"
+                    className={`w-full max-w-sm h-12 flex items-center justify-center font-semibold text-sm rounded shadow 
+                        ${isDisabled
+                        ? "bg-gray-600 text-white/60 cursor-not-allowed"
+                        : "bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer"
+                    }`}
                 >
                     {t("image_uploader.import")}
                 </label>

@@ -18,6 +18,7 @@ interface AppHeaderProps {
 export const AppHeader: React.FC<AppHeaderProps> = ({ user, onLogout }) => {
     const { teamId } = useParams();
     const [teamName, setTeamName] = useState<string | null>(null);
+    const [teamLogo, setTeamLogo] = useState<string | null>(null);
     const { t: translate } = useTranslation();
     const [lang, setLang] = useState(i18n.language);
     const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
@@ -26,18 +27,24 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ user, onLogout }) => {
     useEffect(() => {
         if (!teamId) {
             setTeamName(null);
+            setTeamLogo(null);
             return;
         }
 
         fetch(`/api/teams/${teamId}`)
-            .then((res) => (res.ok ? res.json() : null))
+            .then((res) => res.ok ? res.json() : null)
             .then((data) => {
                 if (data?.name) {
                     setTeamName(data.name);
+                    setTeamLogo(data.logoUrl ? `http://localhost:8080${data.logoUrl}` : null); // ⬅️ Ajout
                 }
             })
-            .catch(() => setTeamName(null));
+            .catch(() => {
+                setTeamName(null);
+                setTeamLogo(null);
+            });
     }, [teamId]);
+
 
     const toggleLanguageMenu = () => {
         setIsLangMenuOpen((prev) => !prev);
@@ -67,7 +74,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ user, onLogout }) => {
 
             <div className="flex-1 flex justify-center items-center">
                 {teamName ? (
-                    <h1 className="font-bold tracking-tight text-white text-2xl">{teamName}</h1>
+                    <div className="flex items-center gap-3">
+                        {teamLogo && (
+                            <img
+                                src={teamLogo}
+                                alt={`${teamName} logo`}
+                                className="h-8 w-auto object-contain"
+                            />
+                        )}
+                        <h1 className="font-bold tracking-tight text-white text-2xl">{teamName}</h1>
+                    </div>
                 ) : (
                     <div className="flex items-center gap-2">
                         <img

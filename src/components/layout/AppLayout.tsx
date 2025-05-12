@@ -13,9 +13,8 @@ import {
     LogOut,
     Trophy,
     Swords,
-    CalendarClock,
     UserCog,
-    Users, ShieldCheck
+    Users, Calendar, Gamepad
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -37,15 +36,15 @@ export default function AppLayout() {
     if (!user) return null;
 
     const navItems = [
+        { label: translate("nav.team"), icon: Gamepad, path: "profile" },
         { label: translate("nav.players"), icon: Users, path: "players" },
         { label: translate("nav.staff"), icon: UserCog, path: "staffs" },
-        { label: translate("nav.schedule"), icon: CalendarClock, path: "planning" },
+        { label: translate("nav.management"), icon: Settings, path: "management" },
+        { label: translate("nav.schedule"), icon: Calendar, path: "planning" },
         { label: translate("nav.scrims"), icon: Swords, path: "scrim" },
         { label: translate("nav.results"), icon: Trophy, path: "results" },
         { label: translate("nav.stratbook"), icon: BookOpen, path: "stratbook" },
-        { label: translate("nav.management"), icon: Settings, path: "management" },
         { label: translate("nav.stats"), icon: BarChart2, path: "stats" },
-        { label: translate("nav.team"), icon: ShieldCheck, path: "profile" },
     ];
 
     const linkBase =

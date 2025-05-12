@@ -12,6 +12,7 @@ import countries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
 import frLocale from "i18n-iso-countries/langs/fr.json";
 import Loader from "../../components/ui/Loader.tsx";
+import {ShieldCheck} from "lucide-react";
 
 countries.registerLocale(enLocale);
 countries.registerLocale(frLocale);
@@ -97,9 +98,10 @@ export default function PlayersPage() {
                                             {player.captain && (
                                                 <span
                                                     title={t("players.captain")}
-                                                    className="w-4 h-4 flex items-center justify-center rounded-full bg-yellow-400 text-black text-[10px] leading-none"
+                                                    className="text-green-400 text-xs flex items-center gap-1"
                                                 >
-                                                    C
+                                                  <ShieldCheck className="w-3 h-3"/>
+                                                  <span className="hidden sm:inline">{t("players.captain")}</span>
                                                 </span>
                                             )}
                                         </h2>
