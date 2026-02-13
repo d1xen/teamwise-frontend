@@ -1,0 +1,201 @@
+{
+  "nav": {
+    "players": "Joueurs",
+    "staff": "Staffs",
+    "schedule": "Planning",
+    "scrims": "Scrim",
+    "results": "Résultats",
+    "stratbook": "Stratbook",
+    "management": "Management",
+    "stats": "Statistiques",
+    "team" : "Team"
+  },
+  "sidebar": {
+    "collapse": "Réduire",
+    "expand": "Ouvrir la barre latérale",
+    "switch_team": "Changer d'équipe",
+    "powered_by": "TeamWise App propulsée par {{name}}"
+  },
+  "header": {
+    "logout": "Se déconnecter",
+    "language": "Langue",
+    "english": "Anglais",
+    "french": "Français"
+  },
+  "landing": {
+    "subtitle": "Managez votre équipe",
+    "like_never": "comme jamais.",
+    "login": "Se connecter"
+  },
+  "team": {
+    "select_title": "Choisissez votre équipe",
+    "limit_reached": "Nombre maximum d'équipe atteint.",
+    "join_success": "Équipe rejointe avec succès !",
+    "invite_expired": "Lien d'invitation expiré ou déjà utilisé.",
+    "already_member": "Tu es déjà dans cette équipe.",
+    "invite_invalid": "Lien invalide ou erreur lors de l'invitation.",
+    "network_error": "Erreur réseau ou inattendue.",
+    "create_desc": "Créer une nouvelle équipe et inviter vos joueurs.",
+    "create_button": "Nouvelle équipe",
+    "invite_placeholder": "URL d'invitation",
+    "join_button": "Rejoindre",
+    "create_title": "Créer une équipe",
+    "name_placeholder": "Nom de l'équipe",
+    "tag_placeholder": "Tag (ex: G2, NAVI)",
+    "game_cs2": "Counter-Strike 2",
+    "create_error": "Erreur lors de la création de l'équipe.",
+    "logo_label": "Logo d'équipe",
+    "hltv_placeholder": "Lien HLTV (facultatif)",
+    "faceit_placeholder": "Lien Faceit (facultatif)",
+    "twitter_placeholder": "Twitter de l'équipe (facultatif)",
+    "average_age": "Âge moyen",
+    "game": "Jeu",
+    "update_success": "Équipe mise à jour avec succès.",
+    "update_error": "Erreur lors de la mise à jour de l'équipe.",
+    "logo_invalid_format": "Seuls les fichiers PNG sont autorisés.",
+    "no_permission_edit": "Vous n'avez pas les droits pour modifier cette équipe."
+  },
+  "profile": {
+    "title": "Complétez votre profil",
+    "first_name": "Prénom",
+    "last_name": "Nom",
+    "email": "Adresse email",
+    "birth_date": "Date de naissance",
+    "country": "Pays",
+    "username": "Pseudo officiel",
+    "twitter": "Lien Twitter (facultatif)",
+    "discord": "Pseudo Discord (facultatif)",
+    "next": "Suivant",
+    "submit": "Enregistrer et continuer",
+    "back": "Retour",
+    "loading": "Chargement...",
+    "missing_fields": "Merci de remplir tous les champs obligatoires.",
+    "update_error": "Erreur lors de la mise à jour du profil.",
+    "edit": "Modifier",
+    "remove": "Exclure",
+    "remove_confirm": "Es-tu sûr de vouloir retirer ce membre ?",
+    "remove_error": "Erreur lors du retrait du membre",
+    "removed": "Membre retiré",
+    "promote_owner": "Promouvoir propriétaire",
+    "remove_owner": "Retirer propriétaire",
+    "owner_added": "Nouveau propriétaire ajouté",
+    "owner_removed": "Propriétaire retiré",
+    "load_error": "Erreur de chargement du profil",
+    "edit_profile": "Modifier le profil",
+    "edit_soon": "Fonction de modification à venir"
+  },
+  "auth": {
+    "redirecting": "Redirection en cours...",
+    "logging_in": "Connexion en cours..."
+  },
+  "common": {
+    "back": "Retour",
+    "years_old": "{{count}} ans",
+    "age_display": "{{age}} ans",
+    "discord_copied": "Pseudo Discord copié dans le presse-papiers",
+    "age": "Âge",
+    "years": "ans",
+    "copy_discord": "Copier le pseudo Discord",
+    "error": "Une erreur est survenue",
+    "network_error": "Erreur réseau",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "email": "Email"
+  },
+  "management": {
+    "tab_members": "MEMBRES",
+    "tab_team": "ÉQUIPE",
+    "not_in_team": "Tu ne fais plus partie de cette équipe.",
+    "role_fetch_error": "Impossible de récupérer les rôles disponibles.",
+    "invite_error": "Identifiants manquants pour générer l'invitation.",
+    "invite_success": "Lien d'invitation copié !",
+    "remove_confirm": "Supprimer ce membre de l'équipe ?",
+    "remove_success": "Membre supprimé.",
+    "remove_error": "Erreur lors de la suppression du membre.",
+    "leave_confirm": "Es-tu sûr de vouloir quitter cette équipe ?",
+    "leave_success": "Tu as quitté l'équipe.",
+    "leave_error": "Impossible de quitter l'équipe.",
+    "leave_owner_error": "Tu ne peux pas quitter l’équipe : tu es le seul OWNER.",
+    "leave_network_error": "Erreur lors de la sortie d'équipe.",
+    "role_change_error": "Impossible de modifier le rôle.",
+    "role_change_success": "Rôle modifié en {{role}}",
+    "owner_toggle_error": "Erreur lors du changement de statut propriétaire.",
+    "owner_toggle_success": "Membre promu propriétaire.",
+    "owner_remove_success": "Propriété retirée.",
+    "owner_toggle_network": "Erreur réseau pendant la mise à jour du statut propriétaire.",
+    "delete_success": "Équipe supprimée avec succès.",
+    "delete_error": "Erreur lors de la suppression de l’équipe.",
+    "delete_no_permission": "Vous n’avez pas les droits pour supprimer l’équipe.",
+    "export_team": "Exporter l'équipe",
+    "export_soon": "La fonctionnalité d’export n’est pas encore disponible.",
+    "delete_confirm_title": "Confirmer la suppression",
+    "delete_confirm": "Êtes-vous sûr de vouloir supprimer cette équipe ? Cette action est irréversible."
+  },
+  "member": {
+    "options": "Options",
+    "remove_owner": "Me retirer propriétaire",
+    "leave_team": "Quitter l'équipe",
+    "promote_owner": "Promouvoir propriétaire",
+    "kick": "Exclure {{name}}"
+  },
+  "invite": {
+    "permission_error": "Seuls le staff ou les propriétaires peuvent générer une invitation.",
+    "generate": "Générer un lien d'invitation",
+    "copied": "Lien copié !"
+  },
+  "guard": {
+    "access_denied": "Tu n'as pas accès à cette équipe.",
+    "error": "Accès refusé."
+  },
+  "form": {
+    "birthdate_placeholder": "Date de naissance",
+    "select_country": "Sélectionner votre pays"
+  },
+  "pages": {
+    "common": {
+      "coming_soon": "Bientôt disponible..."
+    },
+    "stratbook": {
+      "title": "Stratbook"
+    },
+    "stats": {
+      "title": "Statistiques"
+    },
+    "scrim": {
+      "title": "Scrim"
+    },
+    "results": {
+      "title": "Résultats"
+    },
+    "planning": {
+      "title": "Planning"
+    }
+  },
+  "players": {
+    "title": "Joueurs de l’équipe",
+    "fetch_error": "Impossible de récupérer les joueurs.",
+    "captain": "Capitaine",
+    "none_found": "Aucun joueur trouvé pour cette équipe.",
+    "role_label": "Rôle in-game"
+  },
+  "staffs": {
+    "title": "Staff de l’équipe",
+    "empty": "Aucun membre du staff trouvé pour cette équipe.",
+    "fetch_error": "Impossible de récupérer le staff.",
+    "role_label": "Rôle dans l'équipe"
+  },
+  "roles": {
+    "COACH": "Coach",
+    "MANAGER": "Manager",
+    "ANALYST": "Analyste",
+    "CAPTAIN": "Capitaine",
+    "PLAYER": "Joueur",
+    "TBD": "À définir"
+  },
+  "image_uploader": {
+    "import": "Importer",
+    "remove": "Supprimer",
+    "hint": "PNG recommandé",
+    "logo_invalid_format": "Le logo doit être au format PNG"
+  }
+}

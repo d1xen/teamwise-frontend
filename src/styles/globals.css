@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body {
+    @apply bg-neutral-900 text-white font-sans antialiased;
+}
+
+a {
+    @apply text-blue-400 hover:underline;
+}
+
+.scrollbar-gutter-stable {
+    scrollbar-gutter: stable;
+}
+
+@layer components {
+    /* ======================
+       FORM ELEMENTS
+       ====================== */
+
+    .input {
+        @apply w-full h-11 px-3 rounded-md
+        bg-neutral-900 border border-neutral-700
+        text-white placeholder-neutral-400
+        focus:outline-none focus:ring-2 focus:ring-indigo-500
+        transition;
+    }
+
+    .input:disabled {
+        @apply bg-neutral-800 text-neutral-400 cursor-not-allowed;
+    }
+
+    select.input {
+        @apply appearance-none;
+    }
+
+    /* ======================
+       BUTTONS
+       ====================== */
+
+    .btn-primary {
+        @apply w-full h-11 rounded-md
+        bg-indigo-600 text-white font-medium
+        hover:bg-indigo-500
+        disabled:opacity-50 disabled:cursor-not-allowed
+        transition;
+    }
+
+    /* ======================
+       FORM LAYOUT HELPERS
+       ====================== */
+
+    .form-card {
+        @apply w-full max-w-md
+        bg-neutral-800 rounded-xl
+        p-6 space-y-6;
+    }
+
+    .form-grid-2 {
+        @apply grid grid-cols-2 gap-3;
+    }
+
+    .form-grid-country {
+        @apply grid grid-cols-[1fr_auto] gap-3 items-center;
+    }
+
+    .form-grid-phone {
+        @apply grid grid-cols-[96px_1fr] gap-3;
+    }
+}

@@ -1,54 +1,43 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { RememberService } from "../../services/RememberService";
-import { useAuth } from "../../context/AuthContext.tsx";
-import { useTranslation } from "react-i18next";
-import Loader from "../../components/ui/Loader";
+import { useAuth } from "@/contexts/AuthContext";
+import { jwtDecode } from "jwt-decode";
+
+type JwtPayload = {
+    sub: string;
+    nickname: string;
+    avatarUrl?: string;
+    hasTeam: boolean;
+    profileCompleted: boolean;
+};
 
 export default function LoginSuccessPage() {
+    const [params] = useSearchParams();
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const { user, refreshUser, loading } = useAuth();
-    const { t } = useTranslation();
+    const { login } = useAuth();
 
     useEffect(() => {
-        const steamId = searchParams.get("steamId");
-        if (!steamId) {
-            navigate("/landing");
+        const token = params.get("token");
+
+        if (!token) {
+            navigate("/login", { replace: true });
             return;
         }
 
-        localStorage.setItem("steamId", steamId);
-        RememberService.save(steamId);
+        localStorage.setItem("jwt", token);
 
-        refreshUser(steamId);
-    }, [searchParams, refreshUser]);
+        const decoded = jwtDecode<JwtPayload>(token);
 
-    useEffect(() => {
-        if (loading) return;
+        login({
+            steamId: decoded.sub,
+            nickname: decoded.nickname,
+            avatarUrl: decoded.avatarUrl ?? null,
+            hasTeam: decoded.hasTeam,
+            profileCompleted: decoded.profileCompleted,
+        });
 
-        if (!user) {
-            navigate("/landing");
-            return;
-        }
+        navigate("/select-team", { replace: true });
+    }, [params, navigate, login]);
 
-        const isComplete =
-            user.customUsername &&
-            user.firstName &&
-            user.lastName &&
-            user.email;
-
-        if (!isComplete) {
-            navigate("/complete-profile");
-        } else {
-            navigate("/app/home");
-        }
-    }, [user, loading, navigate]);
-
-    return (
-        <div className="p-8 text-center text-white">
-            {t("auth.logging_in")}
-            <Loader />
-        </div>
-    );
+    return null;
 }

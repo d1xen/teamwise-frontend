@@ -1,302 +1,239 @@
-import { JSX, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Settings, Users} from "lucide-react";
-import { useRequiredUser } from "../../context/AuthContext.tsx";
-import { useTeamAccessGuard } from "../../hook/useTeamAccessGuard.ts";
-import { limitedToast as toast } from "../../utils/limitedToast.ts";
-import TeamTabs from "../../components/ui/TeamTabs.tsx";
-import GenerateInviteButton from "../../components/ui/GenerateInviteButton.tsx";
-import MembersList from "../../components/ui/MembersList.tsx";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Loader from "../../components/ui/Loader.tsx";
-import { useTeamContext } from "../../context/TeamContext.tsx";
-import {TeamEditForm} from "../../components/layout/TeamEditForm.tsx";
-import {useTeamId} from "../../hook/useTeamId.ts";
-import ExportTeamButton from "../../components/ui/ExportTeamButton.tsx";
-import DeleteTeamButton from "../../components/ui/DeleteTeamButton.tsx";
-import DeleteTeamModal from "../../components/ui/DeleteTeamModal.tsx";
+import { toast } from "react-hot-toast";
 
-interface Member {
-    steamId: string;
-    nickname: string;
-    avatarUrl: string;
-    role: string;
-    isOwner: boolean;
-    customUsername?: string;
-}
+import { useAuth } from "@/contexts/AuthContext";
+import { useTeam, TeamMember, TeamMembership } from "@/contexts/TeamContext";
+import { useManagementPermissions } from "@/pages/team/management/hook/useManagementPermissions";
 
-export type TabKey = "MEMBRES" | "TEAM";
+import ManagementHeader from "@/pages/team/management/component/ManagementHeader";
+import TeamCard from "@/pages/team/management/component/TeamCard";
+import TeamEditPanel from "@/pages/team/management/component/TeamEditPanel";
+import InviteLinkPanel from "@/pages/team/management/component/InviteLinkPanel";
+import MembersGrid from "@/pages/team/management/component/MembersGrid";
+import MemberEditPanel from "@/pages/team/management/component/MemberEditPanel";
+
+type Tab = "team" | "members";
+type Selection =
+    | { type: "team" }
+    | { type: "member"; member: TeamMember }
+    | null;
 
 export default function ManagementPage() {
-    const user = useRequiredUser();
-    const teamId = useTeamId();
-    const navigate = useNavigate();
     const { t } = useTranslation();
-    const { getMembership, loadMembership, isLoading } = useTeamContext();
-    const [isLoadingMembers, setIsLoadingMembers] = useState(true);
-    const [activeTab, setActiveTab] = useState<TabKey>("MEMBRES");
-    const [members, setMembers] = useState<Member[]>([]);
-    const [roles, setRoles] = useState<string[]>([]);
-    const [openMenu, setOpenMenu] = useState<string | null>(null);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const { user } = useAuth();
+    const { team, membership, members, isLoading } = useTeam();
 
-    const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
-    const roleOrder = ["MANAGER", "COACH", "ANALYST", "CAPTAIN", "PLAYER"];
+    const [activeTab, setActiveTab] = useState<Tab>("team");
+    const [selection, setSelection] = useState<Selection>(null);
 
-    useTeamAccessGuard(teamId);
+    if (isLoading) {
+        return <div className="text-gray-400">{t("common.loading")}</div>;
+    }
 
-    useEffect(() => {
-        if (teamId && user?.steamId) {
-            loadMembership(teamId, user.steamId, true);
-        }
-    }, [teamId, user?.steamId]);
+    if (!team || !membership || !user) {
+        return <div className="text-gray-400">{t("management.no_team")}</div>;
+    }
 
-    const currentMembership = getMembership(teamId!);
-    const currentRole = currentMembership?.role || "";
-    const currentIsOwner = currentMembership?.isOwner || false;
-    const isCurrentUserStaff = useMemo(
-        () => ["MANAGER", "COACH", "CAPTAIN", "ANALYST"].includes(currentRole),
-        [currentRole]
-    );
+    const permissions = useManagementPermissions({
+        currentSteamId: user.steamId,
+        membership: membership as TeamMembership,
+    });
 
-    const TABS: { key: TabKey; label: string; icon: JSX.Element }[] = [
-        { key: "MEMBRES", label: t("management.tab_members"), icon: <Users size={16} /> },
-        { key: "TEAM", label: t("management.tab_team"), icon: <Settings size={16} /> }
-    ];
+    const ownerMember = members.find((m) => m.isOwner);
+    const selectedMember =
+        selection?.type === "member" ? selection.member : null;
+    const isTeamSelected = selection?.type === "team";
 
-    const deleteModalRef = useRef<HTMLDivElement | null>(null);
+    /* ======================
+       ACTIONS MEMBRES
+       ====================== */
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (showDeleteConfirm && deleteModalRef.current && !deleteModalRef.current.contains(event.target as Node)) {
-                setShowDeleteConfirm(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [showDeleteConfirm]);
+    const handleKick = async (member: TeamMember) => {
+        if (!permissions.canKickMember(member)) return;
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (openMenu) {
-                const ref = menuRefs.current[openMenu];
-                if (ref && !ref.contains(event.target as Node)) {
-                    setOpenMenu(null);
-                }
-            }
-        };
-        window.addEventListener("mousedown", handleClickOutside);
-        return () => window.removeEventListener("mousedown", handleClickOutside);
-    }, [openMenu]);
+        const confirmed = window.confirm(
+            t("management.confirm_kick", { nickname: member.nickname })
+        );
+        if (!confirmed) return;
 
-    const fetchMembers = async (withLoading = true) => {
-        if (!teamId || !user?.steamId) return;
-        if (withLoading) setIsLoadingMembers(true);
         try {
-            const res = await fetch(`/api/teams/${teamId}/members?steamId=${user.steamId}`);
-            if (!res.ok) {
-                if (res.status === 403 || res.status === 404) {
-                    toast.error(t("management.not_in_team"));
-                    navigate("/home");
-                }
-                throw new Error();
-            }
-            const data = await res.json();
-            if (Array.isArray(data)) {
-                setMembers(data.map((m: any) => {
-                    const { owner, ...rest } = m;
-                    return { ...rest, isOwner: owner };
-                }));
-            }
+            const res = await fetch(
+                `/api/teams/${team.id}/members/${member.steamId}`,
+                { method: "DELETE" }
+            );
+            if (!res.ok) throw new Error();
+            toast.success(t("management.member_kicked"));
         } catch {
-            toast.error(t("management.member_fetch_error"));
-        } finally {
-            if (withLoading) setIsLoadingMembers(false);
+            toast.error(t("common.error"));
         }
     };
 
-    useEffect(() => {
-        fetchMembers();
-    }, [teamId, user?.steamId]);
+    const handlePromoteOwner = async (member: TeamMember) => {
+        if (!permissions.canPromoteOwner(member)) return;
 
-    useEffect(() => {
-        fetch(`/api/teams/roles`)
-            .then((res) => res.json())
-            .then((data) => {
-                if (Array.isArray(data)) setRoles(data);
+        const confirmed = window.confirm(
+            t("management.confirm_transfer_owner", {
+                nickname: member.nickname,
             })
-            .catch(() => toast.error(t("management.role_fetch_error")));
-    }, [t]);
-
-    const handleRemove = async (steamId: string) => {
-        if (!user?.steamId || !teamId || steamId === user.steamId) return;
-        if (!confirm(t("management.remove_confirm"))) return;
+        );
+        if (!confirmed) return;
 
         try {
-            const res = await fetch(`/api/teams/${teamId}/members/${steamId}?steamIdRequester=${user.steamId}`, {
-                method: "DELETE"
-            });
+            const res = await fetch(
+                `/api/teams/${team.id}/owner/${member.steamId}`,
+                { method: "PUT" }
+            );
             if (!res.ok) throw new Error();
-            setMembers(prev => prev.filter(m => m.steamId !== steamId));
-            if (steamId === user.steamId) {
-                await loadMembership(teamId, user.steamId, true);
-            }
-            await fetchMembers(true);
-            toast.success(t("management.remove_success"));
+            toast.success(t("management.owner_transferred"));
         } catch {
-            toast.error(t("management.remove_error"));
+            toast.error(t("common.error"));
         }
     };
 
     const handleLeaveTeam = async () => {
-        if (!user?.steamId || !teamId) return;
-        if (!confirm(t("management.leave_confirm"))) return;
-
-        try {
-            const res = await fetch(`/api/teams/${teamId}/leave?steamId=${user.steamId}`, {
-                method: "DELETE"
-            });
-
-            if (!res.ok) {
-                const errorText = await res.text();
-                if (errorText.includes("OWNER")) {
-                    toast.error(t("management.leave_owner_error"));
-                } else {
-                    toast.error(t("management.leave_error"));
-                }
-                return;
-            }
-            toast.success(t("management.leave_success"));
-            await loadMembership(teamId, user.steamId, true);
-            navigate("/home");
-        } catch {
-            toast.error(t("management.leave_network_error"));
+        if (membership.isOwner) {
+            toast.error(t("management.owner_must_transfer"));
+            return;
         }
-    };
 
-    const handleRoleChange = async (steamId: string, newRole: string) => {
-        if (!teamId || !user?.steamId) return;
+        const confirmed = window.confirm(t("management.confirm_leave"));
+        if (!confirmed) return;
 
         try {
             const res = await fetch(
-                `/api/teams/${teamId}/members/${steamId}?updatedBy=${user.steamId}&newRole=${newRole}`,
-                { method: "PATCH" }
+                `/api/teams/${team.id}/members/${user.steamId}`,
+                { method: "DELETE" }
             );
-
-            if (!res.ok) {
-                const msg = await res.text();
-                toast.error(msg || t("management.role_change_error"));
-                return;
-            }
-
-            setMembers(prev =>
-                prev.map(m => m.steamId === steamId ? { ...m, role: newRole } : m)
-            );
-            await loadMembership(teamId, user.steamId, true);
-            await fetchMembers(true);
-            toast.success(t("management.role_change_success", { role: newRole }));
+            if (!res.ok) throw new Error();
+            window.location.href = "/select-team";
         } catch {
-            toast.error(t("management.role_change_error"));
+            toast.error(t("common.error"));
         }
     };
 
-    const handleToggleOwner = async (steamId: string, currentlyOwner: boolean) => {
-        if (!teamId || !user?.steamId) return;
-
-        try {
-            const res = await fetch(
-                `/api/teams/${teamId}/owner?steamId=${steamId}&updatedBy=${user.steamId}`,
-                { method: currentlyOwner ? "DELETE" : "POST" }
-            );
-
-            if (!res.ok) {
-                const msg = await res.text();
-                toast.error(msg || t("management.owner_toggle_error"));
-                return;
-            }
-
-            setMembers(prev =>
-                prev.map(m => m.steamId === steamId ? { ...m, isOwner: !currentlyOwner } : m)
-            );
-            await loadMembership(teamId, user.steamId, true);
-            await fetchMembers(true);
-            toast.success(
-                currentlyOwner
-                    ? t("management.owner_remove_success")
-                    : t("management.owner_toggle_success")
-            );
-        } catch {
-            toast.error(t("management.owner_toggle_network"));
-        }
-    };
-
-    if (isLoading || !currentMembership) {
-        return <Loader />;
-    }
+    /* ======================
+       RENDER
+       ====================== */
 
     return (
-        <div className="text-white px-6 pt-12">
-            <div className="max-w-7xl mx-auto">
-                <TeamTabs
-                    tabs={TABS}
-                    activeTab={activeTab}
-                    onTabChange={(tabKey: string) => setActiveTab(tabKey as TabKey)}
+        <div className="max-w-6xl mx-auto space-y-8">
+            <ManagementHeader
+                title={t("management.title")}
+                subtitle={t("management.subtitle")}
+                roleLabel={t(`roles.${membership.role.toLowerCase()}`)}
+                isOwner={membership.isOwner}
+            />
+
+            {/* Tabs */}
+            <div className="flex gap-2 border-b border-neutral-700">
+                <TabButton
+                    active={activeTab === "team"}
+                    label={t("management.tab_team")}
+                    onClick={() => {
+                        setActiveTab("team");
+                        setSelection(null);
+                    }}
                 />
+                <TabButton
+                    active={activeTab === "members"}
+                    label={t("management.tab_members")}
+                    onClick={() => {
+                        setActiveTab("members");
+                        setSelection(null);
+                    }}
+                />
+            </div>
 
-                {activeTab === "MEMBRES" && (
-                    <>
+            {/* TEAM TAB */}
+            {activeTab === "team" && (
+                <div className="space-y-6">
+                    <TeamCard
+                        team={team}
+                        ownerNickname={ownerMember?.nickname}
+                        selected={isTeamSelected}
+                        onSelect={() => {
+                            if (!permissions.canEditTeam()) return;
+                            setSelection(
+                                isTeamSelected ? null : { type: "team" }
+                            );
+                        }}
+                    />
 
-                        {isLoadingMembers ? (
-                            <div className="flex justify-center mt-10">
-                                <Loader />
-                            </div>
-                        ) : (
-                            <MembersList
-                                members={members}
-                                roles={roles}
-                                currentUserSteamId={user.steamId}
-                                isCurrentUserStaff={isCurrentUserStaff}
-                                isCurrentUserOwner={currentIsOwner}
-                                roleOrder={roleOrder}
-                                openMenu={openMenu}
-                                setOpenMenu={setOpenMenu}
-                                menuRefs={menuRefs}
-                                onMemberRoleChange={handleRoleChange}
-                                onOwnerToggle={handleToggleOwner}
-                                onMemberRemove={handleRemove}
-                                onSelfLeave={handleLeaveTeam}
-                            />
-                        )}
-                    </>
-                )}
+                    {isTeamSelected && permissions.canEditTeam() && (
+                        <>
+                            <TeamEditPanel team={team} />
+                            <InviteLinkPanel />
+                        </>
+                    )}
 
-                {activeTab === "TEAM" && (
-                    <div className="flex flex-col gap-4 justify-start mt-10">
+                    {!permissions.canEditTeam() && (
+                        <p className="text-sm text-gray-400">
+                            {t("management.read_only")}
+                        </p>
+                    )}
+                </div>
+            )}
 
-                        <TeamEditForm
-                            isStaff={isCurrentUserStaff}
-                            isOwner={currentIsOwner}
-                            teamId={teamId}
-                            onSuccess={() => navigate(`/app/team/${teamId}/profile`)}
-                        />
-                        <GenerateInviteButton
-                            teamId={teamId}
-                            isStaff={isCurrentUserStaff}
-                            isOwner={currentIsOwner}
-                        />
-                        <ExportTeamButton />
-                        <DeleteTeamButton
-                            isOwner={currentIsOwner}
-                            onClick={() => setShowDeleteConfirm(true)}
-                        />
-                        <DeleteTeamModal
-                            isOpen={showDeleteConfirm}
-                            teamId={teamId}
-                            onClose={() => setShowDeleteConfirm(false)}
+            {/* MEMBERS TAB */}
+            {activeTab === "members" && (
+                <>
+                    <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                        <MembersGrid
+                            members={members}
+                            selectedMember={selectedMember}
+                            permissions={permissions}
+                            onSelect={(member) =>
+                                setSelection({ type: "member", member })
+                            }
+                            onKick={handleKick}
+                            onPromoteOwner={handlePromoteOwner}
+                            onLeaveTeam={handleLeaveTeam}
                         />
                     </div>
-                )}
-            </div>
+
+                    {selectedMember && (
+                        <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                            <MemberEditPanel
+                                member={selectedMember}
+                                canEditProfile={permissions.canEditMemberProfile(
+                                    selectedMember
+                                )}
+                                canEditRole={permissions.canEditMemberRole(
+                                    selectedMember
+                                )}
+                            />
+                        </div>
+                    )}
+                </>
+            )}
         </div>
+    );
+}
+
+/* ======================
+   UI
+   ====================== */
+
+function TabButton({
+                       active,
+                       label,
+                       onClick,
+                   }: {
+    active: boolean;
+    label: string;
+    onClick(): void;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
+                active
+                    ? "border-indigo-500 text-indigo-400"
+                    : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+        >
+            {label}
+        </button>
     );
 }

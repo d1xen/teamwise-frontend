@@ -1,163 +1,226 @@
-import {  useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Loader from "../../components/ui/Loader";
-import { TeamPlayersSection } from "./Profile/TeamPlayersSection.tsx";
-import { FaTwitter} from "react-icons/fa";
-import hltvIcon from "../../assets/hltv.png";
-import faceitIcon from "../../assets/faceit.svg";
-import i18n from "i18next";
 
-interface Player {
-    id: number;
-    nickname: string;
-    playerPictureUrl: string;
-    nationality: string;
-    age: number;
-}
+import Loader from "@/components/ui/Loader";
+import { useTeam, TeamMember } from "@/contexts/TeamContext";
 
-interface TeamData {
-    id: number;
-    name: string;
-    tag: string;
-    logoUrl?: string;
-    game: string;
-    faceitUrl?: string;
-    hltvUrl?: string;
-    twitterUrl?: string;
-    players: Player[];
-}
+import MemberProfileModal from "@/pages/team/MemberProfileModal";
+import TeamProfileModal from "@/pages/team/TeamProfileModal";
 
 export default function TeamPage() {
-    const { teamId } = useParams();
     const { t } = useTranslation();
+    const { team, players, staff, isLoading } = useTeam();
 
-    const [team, setTeam] = useState<TeamData | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [selectedMember, setSelectedMember] =
+        useState<TeamMember | null>(null);
+    const [isTeamSelected, setIsTeamSelected] =
+        useState(false);
 
-    useEffect(() => {
-        if (!teamId) return;
+    if (isLoading) {
+        return <Loader />;
+    }
 
-        const loadTeamData = async () => {
-            try {
-                const [teamRes, playersRes] = await Promise.all([
-                    fetch(`/api/teams/${teamId}`),
-                    fetch(`/api/teams/${teamId}/players`)
-                ]);
+    if (!team) {
+        return (
+            <div className="text-center text-gray-400 mt-16">
+                {t("team.unable_to_load")}
+            </div>
+        );
+    }
 
-                const teamData = await teamRes.json();
-                const playersData = await playersRes.json();
-
-                setTeam({ ...teamData, players: playersData });
-            } catch (err) {
-                console.error("Erreur de chargement :", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadTeamData();
-    }, [teamId]);
-
-    if (loading || !team) return <Loader />;
-
-    const averageAge = team.players.length > 0
-        ? team.players.reduce((sum, p) => sum + (p.age || 0), 0) / team.players.length
-        : null;
-
-    const formattedAverageAge = averageAge !== null
-        ? new Intl.NumberFormat(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(averageAge)
-        : null;
+    const totalMembers = players.length + staff.length;
 
     return (
-        <div className="max-w-5xl mx-auto mt-16 px-4 text-white">
-            <div className="bg-neutral-800 rounded-xl shadow-lg p-6 relative">
-
-                {/* Line-up */}
-                <TeamPlayersSection players={team.players}/>
-
-                {/* Logo + nom & tag */}
-                <div className="flex items-center gap-4 mb-6">
-                    {team.logoUrl && (
+        <>
+            <div className="max-w-6xl mx-auto space-y-8">
+                {/* ======================
+                   HEADER ÉQUIPE (PRIORITAIRE)
+                   ====================== */}
+                <section
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setIsTeamSelected(true)}
+                    className={`
+                        flex items-center gap-6 p-8 rounded-xl cursor-pointer
+                        border transition-colors
+                        ${
+                        isTeamSelected
+                            ? "bg-neutral-800 border-indigo-500 ring-1 ring-indigo-500/40"
+                            : "bg-neutral-800 border-neutral-700 hover:border-indigo-500"
+                    }
+                    `}
+                >
+                    {team.logoUrl ? (
                         <img
-                            src={`http://localhost:8080${team.logoUrl}`}
+                            src={team.logoUrl}
                             alt={`${team.name} logo`}
-                            className="w-28 h-28 object-contain rounded-md "
+                            className="w-24 h-24 object-contain rounded-md bg-neutral-900"
                         />
+                    ) : (
+                        <div className="w-24 h-24 rounded-md bg-neutral-700" />
                     )}
-                    <div>
-                        <h1 className="text-3xl font-bold text-white">{team.name}</h1>
-                        <p className="text-indigo-400 font-medium text-lg">{team.tag}</p>
-                        {/* Icônes sociales */}
-                        <div className="flex items-center gap-4 mt-2">
-                            {team.faceitUrl && (
-                                <a
-                                    href={team.faceitUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title="FACEIT"
-                                    className="w-4 h-4 transition-transform transform hover:scale-110 text-white hover:text-indigo-400"
-                                >
-                                    <img
-                                        src={faceitIcon}
-                                        alt="FaceIt"
-                                        className="w-4 h-4 rounded-sm"
-                                    />
-                                </a>
-                            )}
 
-                            {team.hltvUrl && (
-                                <a
-                                    href={team.hltvUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title="HLTV"
-                                    className="w-4 h-4 transition-transform transform hover:scale-110"
-                                >
-                                    <img
-                                        src={hltvIcon}
-                                        alt="HLTV"
-                                        className="w-4 h-4 rounded-sm"
-                                    />
-                                </a>
-                            )}
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-3xl font-bold text-white truncate">
+                            {team.name}
+                        </h1>
 
-                            {team.twitterUrl && (
-                                <a
-                                    href={team.twitterUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title="Twitter"
-                                    className="w-4 h-4 text-white transition-transform transform hover:scale-110"
-                                >
-                                    <FaTwitter/>
-                                </a>
-                            )}
-                        </div>
+                        <p className="text-sm text-gray-400 mt-1">
+                            {totalMembers} {t("team.members")} •{" "}
+                            {staff.length} {t("team.staff")} •{" "}
+                            {players.length} {t("team.players")}
+                        </p>
+
+                        <p className="text-xs text-indigo-400 mt-1">
+                            {t("team.id")}: {team.id}
+                        </p>
                     </div>
+                </section>
 
+                {/* ======================
+                   STAFF
+                   ====================== */}
+                <section className="bg-neutral-800 rounded-xl p-6">
+                    <h2 className="text-xl font-semibold mb-4">
+                        {t("team.staff")} ({staff.length})
+                    </h2>
+
+                    {staff.length === 0 ? (
+                        <p className="text-gray-400">
+                            {t("common.coming_soon")}
+                        </p>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {staff.map((member) => (
+                                <MemberTile
+                                    key={member.steamId}
+                                    member={member}
+                                    selected={
+                                        selectedMember?.steamId ===
+                                        member.steamId
+                                    }
+                                    onClick={() =>
+                                        setSelectedMember(member)
+                                    }
+                                />
+                            ))}
+                        </div>
+                    )}
+                </section>
+
+                {/* ======================
+                   JOUEURS
+                   ====================== */}
+                <section className="bg-neutral-800 rounded-xl p-6">
+                    <h2 className="text-xl font-semibold mb-4">
+                        {t("team.players")} ({players.length})
+                    </h2>
+
+                    {players.length === 0 ? (
+                        <p className="text-gray-400">
+                            {t("common.coming_soon")}
+                        </p>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {players.map((member) => (
+                                <MemberTile
+                                    key={member.steamId}
+                                    member={member}
+                                    selected={
+                                        selectedMember?.steamId ===
+                                        member.steamId
+                                    }
+                                    onClick={() =>
+                                        setSelectedMember(member)
+                                    }
+                                />
+                            ))}
+                        </div>
+                    )}
+                </section>
+            </div>
+
+            {/* ======================
+               MODALS
+               ====================== */}
+
+            {selectedMember && (
+                <MemberProfileModal
+                    member={selectedMember}
+                    onClose={() =>
+                        setSelectedMember(null)
+                    }
+                />
+            )}
+
+            {isTeamSelected && (
+                <TeamProfileModal
+                    team={team}
+                    onClose={() =>
+                        setIsTeamSelected(false)
+                    }
+                />
+            )}
+        </>
+    );
+}
+
+/* ======================
+   MEMBER TILE
+   ====================== */
+
+function MemberTile({
+                        member,
+                        selected,
+                        onClick,
+                    }: {
+    member: TeamMember;
+    selected: boolean;
+    onClick(): void;
+}) {
+    const { t } = useTranslation();
+
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`
+                w-full text-left flex items-center gap-4 p-4 rounded-lg
+                border transition
+                ${
+                selected
+                    ? "bg-neutral-800 border-indigo-500 ring-1 ring-indigo-500/40"
+                    : "bg-neutral-900 border-neutral-700 hover:border-indigo-500 hover:ring-1 hover:ring-neutral-500/30"
+            }
+            `}
+        >
+            {member.avatarUrl ? (
+                <img
+                    src={member.avatarUrl}
+                    alt={member.nickname}
+                    className="w-12 h-12 rounded-full"
+                />
+            ) : (
+                <div className="w-12 h-12 rounded-full bg-neutral-700" />
+            )}
+
+            <div className="min-w-0 flex-1">
+                <div className="font-medium text-white truncate">
+                    {member.nickname}
                 </div>
 
-                {/* Informations générales */}
-                <div
-                    className="divide-y divide-neutral-700 rounded-md overflow-hidden text-sm text-gray-300 bg-neutral-800"
-                >
-                    <div className="flex justify-between px-4 py-3">
-                        <span className="font-medium">Coach</span>
-                        <span className="italic text-gray-500">{t("team.coach_coming_soon")}</span>
-                    </div>
-                    {formattedAverageAge && (
-                        <div className="flex justify-between px-4 py-3">
-                            <span className="font-medium">{t("team.average_age")}</span>
-                            <span>{t("common.age_display", {age: formattedAverageAge})}</span>
-                        </div>
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                    {member.isOwner && (
+                        <span className="px-2 py-0.5 rounded bg-indigo-600/20 text-indigo-400 text-xs">
+                            {t("team.owner")}
+                        </span>
                     )}
-                    <div className="flex justify-between px-4 py-3">
-                        <span className="font-medium">{t("team.game")}</span>
-                        <span>{team.game}</span>
-                    </div>
+
+                    {!member.isOwner && (
+                        <span>{member.role}</span>
+                    )}
                 </div>
             </div>
-        </div>
+        </button>
     );
 }
