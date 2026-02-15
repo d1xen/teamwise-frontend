@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import Loader from "@/components/ui/Loader";
-import { useTeam, TeamMember } from "@/contexts/TeamContext";
+import Loader from "@/shared/components/Loader";
+import { useTeam } from "@/contexts/team/useTeam.ts";
+import { useTeamMembersSplit } from "@/features/team/hooks/useTeamMembersSplit";
+import type { TeamMember } from "@/contexts/team/team.types.ts";
 
-import MemberProfileModal from "@/pages/team/MemberProfileModal";
-import TeamProfileModal from "@/pages/team/TeamProfileModal";
+import MemberProfileModal from "@/features/team/components/MemberProfileModal";
+import TeamProfileModal from "@/features/team/components/TeamProfileModal";
 
 export default function TeamPage() {
     const { t } = useTranslation();
-    const { team, players, staff, isLoading } = useTeam();
+    const { team, members, isLoading } = useTeam();
+    const { players, staff } = useTeamMembersSplit(members);
 
     const [selectedMember, setSelectedMember] =
         useState<TeamMember | null>(null);

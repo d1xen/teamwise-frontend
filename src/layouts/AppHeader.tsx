@@ -4,10 +4,10 @@ import { useTranslation } from "react-i18next";
 import Flag from "react-world-flags";
 
 import i18n from "@/i18n";
-import teamwiseLogo from "@/assets/teamwise-logo.png";
+import teamwiseLogo from "@/shared/assets/teamwise-logo.png";
 
-import { useAuth } from "@/contexts/AuthContext";
-import { useOptionalTeam } from "@/contexts/TeamContext";
+import { useAuth } from "@/contexts/auth/useAuth.ts";
+import { useOptionalTeam } from "@/contexts/team/useOptionalTeam.ts";
 
 export function AppHeader() {
     const { user, logout, isAuthenticated } = useAuth();

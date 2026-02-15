@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createTeam } from "@/api/endpoints/team.api";
+import type { CreateTeamRequest } from "@/api/types/team";
 
 export default function CreateTeamPage() {
     const navigate = useNavigate();
@@ -21,27 +23,17 @@ export default function CreateTeamPage() {
         setError(null);
 
         try {
-            const res = await fetch("/api/teams", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    name: name.trim(),
-                    tag: tag.trim(),
-                    game: "CS2", // V1 hardcodé
-                }),
-            });
+            const payload: CreateTeamRequest = {
+                name: name.trim(),
+                tag: tag.trim(),
+                game: "CS2",
+            };
 
-            if (!res.ok) {
-                throw new Error("Failed to create team");
-            }
-
-            const team = await res.json();
+            const team = await createTeam(payload);
 
             // 🔁 redirection EXPLICITE après création
             navigate(`/team/${team.id}/management`);
-        } catch (err) {
+        } catch {
             setError("An error occurred while creating the team");
         } finally {
             setLoading(false);

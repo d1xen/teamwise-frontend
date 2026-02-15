@@ -10,10 +10,10 @@ import {
     LogOut,
 } from "lucide-react";
 
-import teamwiseLogo from "@/assets/teamwise-logo.png";
-import { useTeam } from "@/contexts/TeamContext";
-import { AgendaProvider } from "@/contexts/AgendaContext";
-import Loader from "@/components/ui/Loader";
+import teamwiseLogo from "@/shared/assets/teamwise-logo.png";
+import { useTeam } from "@/contexts/team/useTeam.ts";
+import { AgendaProvider } from "@/contexts/agenda/AgendaContext.tsx";
+import Loader from "@/shared/components/Loader";
 
 /* ------------------------------------------------------------------ */
 /* Sidebar                                                             */

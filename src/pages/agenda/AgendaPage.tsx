@@ -1,4 +1,5 @@
-import { useAgenda } from "@/contexts/AgendaContext";
+import { useAgenda } from "@/contexts/agenda/useAgenda.ts";
+import type { AgendaEvent } from "@/contexts/agenda/agenda.types.ts";
 
 export default function AgendaPage() {
     const { events, isLoading } = useAgenda();
@@ -17,7 +18,7 @@ export default function AgendaPage() {
 
     return (
         <div className="space-y-4">
-            {events.map((event) => (
+            {events.map((event: AgendaEvent) => (
                 <div
                     key={event.id}
                     className="bg-neutral-800 rounded-lg p-4 border border-neutral-700"

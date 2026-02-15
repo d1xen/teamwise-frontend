@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "react-hot-toast";
 
-import { useAuth } from "@/contexts/AuthContext";
-import { useTeam, TeamMember, TeamMembership } from "@/contexts/TeamContext";
-import { useManagementPermissions } from "@/pages/team/management/hook/useManagementPermissions";
+import { useAuth } from "@/contexts/auth/useAuth";
+import { useTeam } from "@/contexts/team/useTeam";
+import type { TeamMember, TeamMembership } from "@/contexts/team/team.types";
+import { useManagementPermissions } from "@/features/team/hooks/useManagementPermissions";
+import { useTeamActions } from "@/features/team/hooks/useTeamActions";
 
-import ManagementHeader from "@/pages/team/management/component/ManagementHeader";
-import TeamCard from "@/pages/team/management/component/TeamCard";
-import TeamEditPanel from "@/pages/team/management/component/TeamEditPanel";
-import InviteLinkPanel from "@/pages/team/management/component/InviteLinkPanel";
-import MembersGrid from "@/pages/team/management/component/MembersGrid";
-import MemberEditPanel from "@/pages/team/management/component/MemberEditPanel";
+import ManagementHeader from "@/features/team/components/management/ManagementHeader";
+import TeamCard from "@/features/team/components/management/TeamCard";
+import TeamEditPanel from "@/features/team/components/management/TeamEditPanel";
+import InviteLinkPanel from "@/features/team/components/management/InviteLinkPanel";
+import MembersGrid from "@/features/team/components/management/MembersGrid";
+import MemberEditPanel from "@/features/team/components/management/MemberEditPanel";
 
 type Tab = "team" | "members";
 type Selection =
@@ -27,6 +28,17 @@ export default function ManagementPage() {
     const [activeTab, setActiveTab] = useState<Tab>("team");
     const [selection, setSelection] = useState<Selection>(null);
 
+    const permissions = useManagementPermissions({
+        currentSteamId: user?.steamId ?? "",
+        membership: membership as TeamMembership,
+    });
+
+    const { kickMember, promoteToOwner, leaveTeam } = useTeamActions({
+        teamId: team?.id ?? "",
+        currentUserSteamId: user?.steamId ?? "",
+        isOwner: membership?.isOwner ?? false,
+    });
+
     if (isLoading) {
         return <div className="text-gray-400">{t("common.loading")}</div>;
     }
@@ -35,82 +47,12 @@ export default function ManagementPage() {
         return <div className="text-gray-400">{t("management.no_team")}</div>;
     }
 
-    const permissions = useManagementPermissions({
-        currentSteamId: user.steamId,
-        membership: membership as TeamMembership,
-    });
 
-    const ownerMember = members.find((m) => m.isOwner);
+    const ownerMember = members.find((m: TeamMember) => m.isOwner);
     const selectedMember =
         selection?.type === "member" ? selection.member : null;
     const isTeamSelected = selection?.type === "team";
 
-    /* ======================
-       ACTIONS MEMBRES
-       ====================== */
-
-    const handleKick = async (member: TeamMember) => {
-        if (!permissions.canKickMember(member)) return;
-
-        const confirmed = window.confirm(
-            t("management.confirm_kick", { nickname: member.nickname })
-        );
-        if (!confirmed) return;
-
-        try {
-            const res = await fetch(
-                `/api/teams/${team.id}/members/${member.steamId}`,
-                { method: "DELETE" }
-            );
-            if (!res.ok) throw new Error();
-            toast.success(t("management.member_kicked"));
-        } catch {
-            toast.error(t("common.error"));
-        }
-    };
-
-    const handlePromoteOwner = async (member: TeamMember) => {
-        if (!permissions.canPromoteOwner(member)) return;
-
-        const confirmed = window.confirm(
-            t("management.confirm_transfer_owner", {
-                nickname: member.nickname,
-            })
-        );
-        if (!confirmed) return;
-
-        try {
-            const res = await fetch(
-                `/api/teams/${team.id}/owner/${member.steamId}`,
-                { method: "PUT" }
-            );
-            if (!res.ok) throw new Error();
-            toast.success(t("management.owner_transferred"));
-        } catch {
-            toast.error(t("common.error"));
-        }
-    };
-
-    const handleLeaveTeam = async () => {
-        if (membership.isOwner) {
-            toast.error(t("management.owner_must_transfer"));
-            return;
-        }
-
-        const confirmed = window.confirm(t("management.confirm_leave"));
-        if (!confirmed) return;
-
-        try {
-            const res = await fetch(
-                `/api/teams/${team.id}/members/${user.steamId}`,
-                { method: "DELETE" }
-            );
-            if (!res.ok) throw new Error();
-            window.location.href = "/select-team";
-        } catch {
-            toast.error(t("common.error"));
-        }
-    };
 
     /* ======================
        RENDER
@@ -186,9 +128,15 @@ export default function ManagementPage() {
                             onSelect={(member) =>
                                 setSelection({ type: "member", member })
                             }
-                            onKick={handleKick}
-                            onPromoteOwner={handlePromoteOwner}
-                            onLeaveTeam={handleLeaveTeam}
+                            onKick={(member) => {
+                                if (!permissions.canKickMember(member)) return;
+                                kickMember(member);
+                            }}
+                            onPromoteOwner={(member) => {
+                                if (!permissions.canPromoteOwner(member)) return;
+                                promoteToOwner(member);
+                            }}
+                            onLeaveTeam={leaveTeam}
                         />
                     </div>
 

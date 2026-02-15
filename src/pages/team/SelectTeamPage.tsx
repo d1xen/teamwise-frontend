@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { fetchMyTeams } from "@/api/team.api";
-import Loader from "@/components/ui/Loader";
+import { useAuth } from "@/contexts/auth/useAuth";
+import { getMyTeams } from "@/api/endpoints/team.api";
+import type { TeamDto } from "@/api/types/team";
+import Loader from "@/shared/components/Loader";
 
 type Team = {
     id: number;
@@ -42,10 +43,16 @@ export default function SelectTeamPage() {
         setIsLoading(true);
         setError(null);
 
-        fetchMyTeams()
-            .then((teams) => {
+        getMyTeams()
+            .then((teams: TeamDto[]) => {
                 if (!cancelled) {
-                    setTeams(teams);
+                    setTeams(
+                        teams.map((team) => ({
+                            id: team.id,
+                            name: team.name,
+                            tag: team.tag ?? "",
+                        }))
+                    );
                 }
             })
             .catch(() => {

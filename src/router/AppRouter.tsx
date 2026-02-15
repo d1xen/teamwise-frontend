@@ -7,10 +7,10 @@ import AppLayout from "@/layouts/AppLayout";
 import TeamLayout from "@/layouts/TeamLayout";
 import TeamProviderLayout from "@/layouts/TeamProviderLayout";
 
-import LoginPage from "@/pages/auth/LoginPage";
-import LoginSuccessPage from "@/pages/auth/LoginSuccessPage";
+import LoginPage from "@/features/auth/components/LoginPage";
+import LoginSuccessPage from "@/features/auth/components/LoginSuccessPage";
 import SelectTeamPage from "@/pages/team/SelectTeamPage";
-import CompleteProfilePage from "@/pages/user/CompleteProfilePage";
+import CompleteProfilePage from "@/features/profile/components/CompleteProfilePage";
 
 import AgendaPage from "@/pages/agenda/AgendaPage";
 import TeamPage from "@/pages/team/TeamPage";

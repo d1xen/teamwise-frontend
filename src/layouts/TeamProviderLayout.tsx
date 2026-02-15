@@ -1,8 +1,8 @@
 // src/layouts/TeamProviderLayout.tsx
 
 import { Outlet, Navigate, useLocation, useParams } from "react-router-dom";
-import { TeamProvider } from "@/contexts/TeamContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { TeamProvider } from "@/contexts/team/TeamContext.tsx";
+import { useAuth } from "@/contexts/auth/useAuth.ts";
 
 export default function TeamProviderLayout() {
     const { user, isLoading } = useAuth();
