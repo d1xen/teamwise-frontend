@@ -1,0 +1,172 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur est survenue",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "submit": "Valider",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "success": "Succès",
+    "saved": "Enregistré",
+    "copied": "Copié",
+    "years_old": "{{count}} ans",
+    "network_error": "Erreur réseau",
+    "unknown_error": "Erreur inconnue"
+  },
+
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "logout_confirm": "Se déconnecter ?",
+    "login_with_steam": "Se connecter avec Steam",
+    "welcome": "Bienvenue sur TeamWise",
+    "platform_tagline": "La plateforme de management d'équipe esport",
+    "features_title": "Fonctionnalités",
+    "feature_manage_team": "Gérez votre équipe facilement",
+    "feature_secure": "Sécurisé et professionnel",
+    "feature_modern": "Interface moderne et rapide",
+    "accept_terms": "En vous connectant, vous acceptez nos",
+    "terms_of_service": "conditions d'utilisation",
+    "redirecting": "Redirection en cours...",
+    "logging_in": "Connexion en cours..."
+  },
+
+  "team": {
+    "select_title": "Sélectionnez votre équipe",
+    "welcome": "Bienvenue {{nickname}} 👋",
+    "no_teams_title": "Aucune équipe",
+    "no_teams_message": "Vous ne faites partie d'aucune équipe pour le moment",
+    "create_team": "Créer une équipe",
+    "create_new_team": "Créer une nouvelle équipe",
+    "create_title": "Créer une équipe",
+    "team_name": "Nom de l'équipe",
+    "team_tag": "Tag",
+    "team_tag_placeholder": "ex: G2, NAVI",
+    "team_game": "Jeu",
+    "team_logo": "Logo d'équipe",
+    "hltv_link": "Lien HLTV",
+    "hltv_placeholder": "Lien HLTV (facultatif)",
+    "faceit_link": "Lien Faceit",
+    "faceit_placeholder": "Lien Faceit (facultatif)",
+    "twitter_link": "Twitter",
+    "twitter_placeholder": "Twitter de l'équipe (facultatif)",
+    "load_error": "Impossible de charger vos équipes",
+    "create_error": "Erreur lors de la création de l'équipe",
+    "update_success": "Équipe mise à jour avec succès",
+    "update_error": "Erreur lors de la mise à jour de l'équipe",
+    "staff": "Staff",
+    "players": "Joueurs",
+    "members": "Membres",
+    "game_cs2": "Counter-Strike 2",
+    "game_valorant": "Valorant",
+    "game_lol": "League of Legends",
+    "game_coming_soon": "Bientôt disponible"
+  },
+
+  "profile": {
+    "complete_title": "Complétez votre profil",
+    "first_name": "Prénom",
+    "last_name": "Nom",
+    "email": "Adresse email",
+    "birth_date": "Date de naissance",
+    "country": "Pays",
+    "username": "Pseudo officiel",
+    "twitter": "Lien Twitter",
+    "twitter_placeholder": "Lien Twitter (facultatif)",
+    "discord": "Pseudo Discord",
+    "discord_placeholder": "Pseudo Discord (facultatif)",
+    "discord_copied": "Pseudo Discord copié",
+    "copy_discord": "Copier le pseudo Discord",
+    "missing_fields": "Merci de remplir tous les champs obligatoires",
+    "update_error": "Erreur lors de la mise à jour du profil",
+    "edit_profile": "Modifier le profil",
+    "save_profile": "Enregistrer le profil"
+  },
+
+  "management": {
+    "title": "Management",
+    "overview": "Vue d'ensemble",
+    "staff": "Staff",
+    "players": "Joueurs",
+    "settings": "Paramètres",
+    "team_settings": "Paramètres de l'équipe",
+    "members_management": "Gestion des membres",
+    "invite_member": "Inviter un membre",
+    "invite_link": "Lien d'invitation",
+    "generate_invite": "Générer une invitation",
+    "regenerate_invite": "Régénérer le lien",
+    "copy_invite": "Copier le lien",
+    "invite_copied": "Lien d'invitation copié",
+    "role_updated": "Rôle mis à jour",
+    "member_kicked": "Membre exclu",
+    "member_left": "Vous avez quitté l'équipe",
+    "ownership_transferred": "Propriété transférée",
+    "kick_member": "Exclure le membre",
+    "kick_confirm": "Êtes-vous sûr de vouloir exclure ce membre ?",
+    "leave_team": "Quitter l'équipe",
+    "leave_confirm": "Êtes-vous sûr de vouloir quitter cette équipe ?",
+    "transfer_ownership": "Transférer la propriété",
+    "transfer_confirm": "Êtes-vous sûr de vouloir transférer la propriété à ce membre ?",
+    "owner_badge": "Propriétaire",
+    "manager_role": "Manager",
+    "coach_role": "Coach",
+    "analyst_role": "Analyste",
+    "player_role": "Joueur"
+  },
+
+  "nav": {
+    "team": "Équipe",
+    "agenda": "Planning",
+    "management": "Management",
+    "scrims": "Scrims",
+    "results": "Résultats",
+    "stratbook": "Stratbook",
+    "stats": "Statistiques"
+  },
+
+  "sidebar": {
+    "collapse": "Réduire",
+    "expand": "Ouvrir la barre latérale",
+    "switch_team": "Changer d'équipe",
+    "powered_by": "TeamWise App propulsée par {{name}}"
+  },
+
+  "create_team": {
+    "title": "Créer votre équipe",
+    "subtitle": "Configurez votre équipe esport en quelques étapes",
+    "step_1": "Informations",
+    "step_2": "Identité",
+    "step_3": "Réseaux",
+    "team_info": "Informations de l'équipe",
+    "team_identity": "Identité visuelle",
+    "social_networks": "Réseaux sociaux",
+    "complete_profile": "Profil complet",
+    "creating": "Création en cours...",
+    "success": "Équipe créée avec succès !",
+    "redirecting": "Redirection vers votre équipe..."
+  },
+
+  "coming_soon": {
+    "title": "Bientôt disponible",
+    "subtitle": "Cette fonctionnalité sera bientôt disponible",
+    "stay_tuned": "Restez connectés !"
+  },
+
+  "errors": {
+    "not_found": "Page non trouvée",
+    "unauthorized": "Non autorisé",
+    "forbidden": "Accès refusé",
+    "internal_error": "Erreur interne du serveur",
+    "network_error": "Erreur réseau",
+    "try_again": "Veuillez réessayer"
+  }
+}
+

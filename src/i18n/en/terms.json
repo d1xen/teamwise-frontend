@@ -1,0 +1,141 @@
+{
+  "terms": {
+    "title": "Terms of Service",
+    "lastUpdate": "Last updated: {{date}}",
+    "backToHome": "Back to Home",
+    "sections": {
+      "introduction": {
+        "title": "1. Introduction",
+        "content": "Welcome to TeamWise. By accessing our platform, you agree to be bound by these Terms of Service. If you do not accept these terms, please do not use our services."
+      },
+      "definitions": {
+        "title": "2. Definitions",
+        "platform": "\"Platform\": refers to the TeamWise web application accessible via teamwise.gg",
+        "user": "\"User\": any person using the Platform",
+        "team": "\"Team\": group of users organized around an esport activity",
+        "content": "\"Content\": any data, information or media shared on the Platform"
+      },
+      "services": {
+        "title": "3. Service Description",
+        "intro": "TeamWise is an esports team management platform offering the following features:",
+        "features": {
+          "management": "Team and member management",
+          "agenda": "Event and match scheduling",
+          "scrims": "Scrim and training organization",
+          "stratbook": "Strategy creation and sharing",
+          "stats": "Statistics and performance tracking"
+        }
+      },
+      "account": {
+        "title": "4. User Account",
+        "registration": {
+          "title": "4.1 Registration",
+          "content": "Registration is done via Steam. You must be at least 13 years old to use the Platform. You are responsible for the confidentiality of your credentials."
+        },
+        "obligations": {
+          "title": "4.2 Obligations",
+          "content": "You agree to provide accurate information and keep it up to date. Any fraudulent or abusive use of your account is prohibited."
+        },
+        "termination": {
+          "title": "4.3 Suspension and Termination",
+          "content": "We reserve the right to suspend or delete your account in case of violation of these terms."
+        }
+      },
+      "usage": {
+        "title": "5. Platform Usage",
+        "acceptable": {
+          "title": "5.1 Acceptable Use",
+          "content": "You agree to use the Platform in a legal and respectful manner. Any unauthorized commercial use is prohibited."
+        },
+        "prohibited": {
+          "title": "5.2 Prohibited Conduct",
+          "intro": "It is strictly forbidden to:",
+          "items": {
+            "harassment": "Harass, threaten or intimidate other users",
+            "spam": "Post spam or unsolicited content",
+            "malware": "Distribute viruses, malware or malicious code",
+            "impersonation": "Impersonate others",
+            "cheating": "Use exploits or bypass security systems",
+            "illegal": "Share illegal, hateful or discriminatory content"
+          }
+        }
+      },
+      "content": {
+        "title": "6. User Content",
+        "ownership": {
+          "title": "6.1 Ownership",
+          "content": "You retain ownership of the content you post. By posting on TeamWise, you grant us a non-exclusive license to display and process it."
+        },
+        "responsibility": {
+          "title": "6.2 Responsibility",
+          "content": "You are solely responsible for the content you post. TeamWise reserves the right to moderate or remove any inappropriate content."
+        }
+      },
+      "teams": {
+        "title": "7. Team Management",
+        "roles": {
+          "title": "7.1 Roles and Permissions",
+          "content": "Teams have three roles: Owner, Manager and Player. Each role has specific permissions defined in the application."
+        },
+        "ownership": {
+          "title": "7.2 Team Ownership",
+          "content": "The Owner can transfer ownership or dissolve the team. Dissolution results in permanent deletion of team data."
+        }
+      },
+      "data": {
+        "title": "8. Data Protection",
+        "collection": {
+          "title": "8.1 Data Collected",
+          "content": "We collect Steam data (ID, username, avatar) and data you enter (team information, events, etc.)."
+        },
+        "usage": {
+          "title": "8.2 Usage",
+          "content": "Your data is used only to provide TeamWise services. See our Privacy Policy for more details."
+        },
+        "security": {
+          "title": "8.3 Security",
+          "content": "We implement security measures to protect your data, but cannot guarantee absolute security."
+        }
+      },
+      "intellectual": {
+        "title": "9. Intellectual Property",
+        "platform": {
+          "title": "9.1 Platform",
+          "content": "TeamWise, its logo, design and features are protected by copyright. Any unauthorized reproduction is prohibited."
+        },
+        "thirdParty": {
+          "title": "9.2 Third Party Content",
+          "content": "Game logos (CS2, Valorant, etc.) belong to their respective owners. TeamWise is not affiliated with these publishers."
+        }
+      },
+      "liability": {
+        "title": "10. Limitation of Liability",
+        "service": {
+          "title": "10.1 Service Provided \"As Is\"",
+          "content": "TeamWise is provided without warranty. We do not guarantee uninterrupted or error-free service."
+        },
+        "damages": {
+          "title": "10.2 Damages",
+          "content": "TeamWise cannot be held responsible for indirect damages, data loss or loss of profits."
+        }
+      },
+      "modifications": {
+        "title": "11. Modifications to Terms",
+        "content": "We reserve the right to modify these terms at any time. Changes will be notified via the Platform. Your continued use constitutes acceptance of the new terms."
+      },
+      "termination": {
+        "title": "12. Termination",
+        "content": "You can delete your account at any time. We may terminate your access in case of violation of these terms."
+      },
+      "law": {
+        "title": "13. Applicable Law",
+        "content": "These terms are governed by French law. Any dispute will be submitted to the competent courts of Paris."
+      },
+      "contact": {
+        "title": "14. Contact",
+        "content": "For any questions regarding these terms, contact us at: support@teamwise.gg"
+      }
+    }
+  }
+}
+

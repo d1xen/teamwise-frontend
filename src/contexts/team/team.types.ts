@@ -1,20 +1,31 @@
+export type TeamRole = "PLAYER" | "COACH" | "ANALYST" | "MANAGER";
+
 export interface Team {
     id: string;
     name: string;
-    logoUrl?: string | undefined;
+    tag?: string;
+    game?: string;
+    logoUrl?: string;
+    hltvUrl?: string;
+    faceitUrl?: string;
+    twitterUrl?: string;
+    invitationToken?: string;
 }
 
 export interface TeamMembership {
-    role: string;
+    role: TeamRole;
     isOwner: boolean;
 }
 
 export interface TeamMember {
     steamId: string;
     nickname: string;
-    role: string;
+    role: TeamRole;
     isOwner: boolean;
-    avatarUrl?: string | undefined;
+    avatarUrl?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
 }
 
 export interface TeamContextType {

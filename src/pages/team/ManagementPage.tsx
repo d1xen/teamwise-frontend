@@ -1,187 +1,188 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { useAuth } from "@/contexts/auth/useAuth";
 import { useTeam } from "@/contexts/team/useTeam";
-import type { TeamMember, TeamMembership } from "@/contexts/team/team.types";
+import type { TeamMember } from "@/contexts/team/team.types";
 import { useManagementPermissions } from "@/features/team/hooks/useManagementPermissions";
 import { useTeamActions } from "@/features/team/hooks/useTeamActions";
+import { LayoutDashboard, Users, Settings, Shield } from "lucide-react";
+import { cn } from "@/design-system";
 
-import ManagementHeader from "@/features/team/components/management/ManagementHeader";
-import TeamCard from "@/features/team/components/management/TeamCard";
-import TeamEditPanel from "@/features/team/components/management/TeamEditPanel";
-import InviteLinkPanel from "@/features/team/components/management/InviteLinkPanel";
-import MembersGrid from "@/features/team/components/management/MembersGrid";
-import MemberEditPanel from "@/features/team/components/management/MemberEditPanel";
+// Premium components
+import TeamOverviewPanel from "@/features/team/components/management/panels/TeamOverviewPanel";
+import MembersPanel from "@/features/team/components/management/panels/MembersPanel";
+import TeamSettingsPanel from "@/features/team/components/management/panels/TeamSettingsPanel";
+import MemberDetailPanel from "@/features/team/components/management/panels/MemberDetailPanel";
 
-type Tab = "team" | "members";
-type Selection =
-    | { type: "team" }
-    | { type: "member"; member: TeamMember }
-    | null;
+type View = "overview" | "staff" | "players" | "settings";
 
+/**
+ * ManagementPage – Intégré dans TeamLayout
+ * Navigation par tabs + detail panel
+ */
 export default function ManagementPage() {
-    const { t } = useTranslation();
-    const { user } = useAuth();
-    const { team, membership, members, isLoading } = useTeam();
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const { team, membership, members, isLoading } = useTeam();
 
-    const [activeTab, setActiveTab] = useState<Tab>("team");
-    const [selection, setSelection] = useState<Selection>(null);
+  const [activeView, setActiveView] = useState<View>("overview");
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
 
-    const permissions = useManagementPermissions({
-        currentSteamId: user?.steamId ?? "",
-        membership: membership as TeamMembership,
-    });
+  // Appeler les hooks de manière inconditionnelle (règle React)
+  const permissions = useManagementPermissions({
+    currentSteamId: user?.steamId ?? "",
+    membership: membership ?? { role: 'PLAYER', isOwner: false },
+  });
 
-    const { kickMember, promoteToOwner, leaveTeam } = useTeamActions({
-        teamId: team?.id ?? "",
-        currentUserSteamId: user?.steamId ?? "",
-        isOwner: membership?.isOwner ?? false,
-    });
+  const actions = useTeamActions({
+    teamId: team?.id ?? "",
+    currentUserSteamId: user?.steamId ?? "",
+    isOwner: membership?.isOwner ?? false,
+  });
 
-    if (isLoading) {
-        return <div className="text-gray-400">{t("common.loading")}</div>;
-    }
-
-    if (!team || !membership || !user) {
-        return <div className="text-gray-400">{t("management.no_team")}</div>;
-    }
-
-
-    const ownerMember = members.find((m: TeamMember) => m.isOwner);
-    const selectedMember =
-        selection?.type === "member" ? selection.member : null;
-    const isTeamSelected = selection?.type === "team";
-
-
-    /* ======================
-       RENDER
-       ====================== */
-
+  // Vérifier après les hooks
+  if (isLoading || !team || !membership || !user) {
     return (
-        <div className="max-w-6xl mx-auto space-y-8">
-            <ManagementHeader
-                title={t("management.title")}
-                subtitle={t("management.subtitle")}
-                roleLabel={t(`roles.${membership.role.toLowerCase()}`)}
-                isOwner={membership.isOwner}
-            />
+      <div className="flex items-center justify-center h-full">
+        <div className="text-sm text-neutral-400">{t("common.loading")}</div>
+      </div>
+    );
+  }
 
-            {/* Tabs */}
-            <div className="flex gap-2 border-b border-neutral-700">
-                <TabButton
-                    active={activeTab === "team"}
-                    label={t("management.tab_team")}
-                    onClick={() => {
-                        setActiveTab("team");
-                        setSelection(null);
-                    }}
-                />
-                <TabButton
-                    active={activeTab === "members"}
-                    label={t("management.tab_members")}
-                    onClick={() => {
-                        setActiveTab("members");
-                        setSelection(null);
-                    }}
-                />
-            </div>
+  const staffMembers = members.filter((m) => m.role !== "PLAYER");
+  const playerMembers = members.filter((m) => m.role === "PLAYER");
 
-            {/* TEAM TAB */}
-            {activeTab === "team" && (
-                <div className="space-y-6">
-                    <TeamCard
-                        team={team}
-                        ownerNickname={ownerMember?.nickname}
-                        selected={isTeamSelected}
-                        onSelect={() => {
-                            if (!permissions.canEditTeam()) return;
-                            setSelection(
-                                isTeamSelected ? null : { type: "team" }
-                            );
-                        }}
-                    />
+  const tabs = [
+    { id: "overview" as View, label: t("management.overview"), icon: LayoutDashboard },
+    { id: "staff" as View, label: t("management.staff"), icon: Shield, count: staffMembers.length },
+    { id: "players" as View, label: t("management.players"), icon: Users, count: playerMembers.length },
+    { id: "settings" as View, label: t("management.settings"), icon: Settings },
+  ];
 
-                    {isTeamSelected && permissions.canEditTeam() && (
-                        <>
-                            <TeamEditPanel team={team} />
-                            <InviteLinkPanel />
-                        </>
-                    )}
+  const handleSelectMember = (member: TeamMember) => {
+    setSelectedMember(member);
+  };
 
-                    {!permissions.canEditTeam() && (
-                        <p className="text-sm text-gray-400">
-                            {t("management.read_only")}
-                        </p>
-                    )}
-                </div>
-            )}
+  const handleCloseDetail = () => {
+    setSelectedMember(null);
+  };
 
-            {/* MEMBERS TAB */}
-            {activeTab === "members" && (
-                <>
-                    <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                        <MembersGrid
-                            members={members}
-                            selectedMember={selectedMember}
-                            permissions={permissions}
-                            onSelect={(member) =>
-                                setSelection({ type: "member", member })
-                            }
-                            onKick={(member) => {
-                                if (!permissions.canKickMember(member)) return;
-                                kickMember(member);
-                            }}
-                            onPromoteOwner={(member) => {
-                                if (!permissions.canPromoteOwner(member)) return;
-                                promoteToOwner(member);
-                            }}
-                            onLeaveTeam={leaveTeam}
-                        />
-                    </div>
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header avec navigation tabs */}
+      <div className="flex-shrink-0 border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-sm">
+        <div className="px-8 py-6">
+          <h1 className="text-3xl font-semibold text-white mb-6">
+            {t("nav.management")}
+          </h1>
 
-                    {selectedMember && (
-                        <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                            <MemberEditPanel
-                                member={selectedMember}
-                                canEditProfile={permissions.canEditMemberProfile(
-                                    selectedMember
-                                )}
-                                canEditRole={permissions.canEditMemberRole(
-                                    selectedMember
-                                )}
-                            />
-                        </div>
-                    )}
-                </>
-            )}
+          {/* Tabs Navigation */}
+          <div className="flex items-center gap-2">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveView(tab.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all",
+                    activeView === tab.id
+                      ? "bg-neutral-800 text-white"
+                      : "text-neutral-400 hover:text-white hover:bg-neutral-800/50"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                  {tab.count !== undefined && (
+                    <span className={cn(
+                      "ml-1 px-2 py-0.5 rounded-full text-xs",
+                      activeView === tab.id
+                        ? "bg-neutral-700 text-white"
+                        : "bg-neutral-800 text-neutral-400"
+                    )}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-    );
-}
+      </div>
 
-/* ======================
-   UI
-   ====================== */
-
-function TabButton({
-                       active,
-                       label,
-                       onClick,
-                   }: {
-    active: boolean;
-    label: string;
-    onClick(): void;
-}) {
-    return (
-        <button
-            onClick={onClick}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
-                active
-                    ? "border-indigo-500 text-indigo-400"
-                    : "border-transparent text-gray-400 hover:text-gray-200"
-            }`}
+      {/* Main content + Detail panel */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Content */}
+        <div
+          className={cn(
+            "transition-all duration-300 ease-out overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent",
+            selectedMember ? 'flex-1' : 'w-full'
+          )}
         >
-            {label}
-        </button>
-    );
+          <div className="max-w-5xl mx-auto px-8 py-8">
+            {activeView === "overview" && (
+              <TeamOverviewPanel
+                team={team}
+                membership={membership}
+                members={members}
+                staffCount={staffMembers.length}
+                playerCount={playerMembers.length}
+                permissions={permissions}
+                onNavigate={setActiveView}
+              />
+            )}
+
+            {activeView === "staff" && (
+              <MembersPanel
+                members={staffMembers}
+                staffMembers={staffMembers}
+                playerMembers={[]}
+                permissions={permissions}
+                onSelectMember={handleSelectMember}
+                selectedMemberId={selectedMember?.steamId}
+              />
+            )}
+
+            {activeView === "players" && (
+              <MembersPanel
+                members={playerMembers}
+                staffMembers={[]}
+                playerMembers={playerMembers}
+                permissions={permissions}
+                onSelectMember={handleSelectMember}
+                selectedMemberId={selectedMember?.steamId}
+              />
+            )}
+
+            {activeView === "settings" && (
+              <TeamSettingsPanel
+                team={team}
+                canEdit={permissions.canEditTeam()}
+                canInvite={permissions.canInvite()}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Detail Panel */}
+        <div
+          className={cn(
+            "transition-all duration-300 ease-out border-l border-neutral-800 bg-neutral-900 overflow-hidden",
+            selectedMember ? 'w-96' : 'w-0'
+          )}
+        >
+          {selectedMember && (
+            <MemberDetailPanel
+              member={selectedMember}
+              teamId={team.id}
+              permissions={permissions}
+              actions={actions}
+              onClose={handleCloseDetail}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
+

@@ -1,0 +1,141 @@
+{
+  "terms": {
+    "title": "Conditions Générales d'Utilisation",
+    "lastUpdate": "Dernière mise à jour : {{date}}",
+    "backToHome": "Retour à l'accueil",
+    "sections": {
+      "introduction": {
+        "title": "1. Introduction",
+        "content": "Bienvenue sur TeamWise. En accédant à notre plateforme, vous acceptez d'être lié par les présentes Conditions Générales d'Utilisation. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser nos services."
+      },
+      "definitions": {
+        "title": "2. Définitions",
+        "platform": "« Plateforme » : désigne l'application web TeamWise accessible via teamwise.gg",
+        "user": "« Utilisateur » : toute personne utilisant la Plateforme",
+        "team": "« Équipe » : groupe d'utilisateurs organisé autour d'une activité esport",
+        "content": "« Contenu » : toute donnée, information ou média partagé sur la Plateforme"
+      },
+      "services": {
+        "title": "3. Description des Services",
+        "intro": "TeamWise est une plateforme de gestion d'équipes esport offrant les fonctionnalités suivantes :",
+        "features": {
+          "management": "Gestion d'équipes et de membres",
+          "agenda": "Planification d'événements et matchs",
+          "scrims": "Organisation de scrims et entraînements",
+          "stratbook": "Création et partage de stratégies",
+          "stats": "Suivi des statistiques et performances"
+        }
+      },
+      "account": {
+        "title": "4. Compte Utilisateur",
+        "registration": {
+          "title": "4.1 Inscription",
+          "content": "L'inscription se fait via Steam. Vous devez avoir au moins 13 ans pour utiliser la Plateforme. Vous êtes responsable de la confidentialité de vos identifiants."
+        },
+        "obligations": {
+          "title": "4.2 Obligations",
+          "content": "Vous vous engagez à fournir des informations exactes et à les maintenir à jour. Toute utilisation frauduleuse ou abusive de votre compte est interdite."
+        },
+        "termination": {
+          "title": "4.3 Suspension et Résiliation",
+          "content": "Nous nous réservons le droit de suspendre ou supprimer votre compte en cas de violation des présentes conditions."
+        }
+      },
+      "usage": {
+        "title": "5. Utilisation de la Plateforme",
+        "acceptable": {
+          "title": "5.1 Utilisation Acceptable",
+          "content": "Vous vous engagez à utiliser la Plateforme de manière légale et respectueuse. Toute utilisation commerciale non autorisée est interdite."
+        },
+        "prohibited": {
+          "title": "5.2 Comportements Interdits",
+          "intro": "Il est strictement interdit de :",
+          "items": {
+            "harassment": "Harceler, menacer ou intimider d'autres utilisateurs",
+            "spam": "Publier du spam ou du contenu non sollicité",
+            "malware": "Diffuser des virus, malwares ou code malveillant",
+            "impersonation": "Usurper l'identité d'autrui",
+            "cheating": "Utiliser des exploits ou contourner les systèmes de sécurité",
+            "illegal": "Partager du contenu illégal, haineux ou discriminatoire"
+          }
+        }
+      },
+      "content": {
+        "title": "6. Contenu Utilisateur",
+        "ownership": {
+          "title": "6.1 Propriété",
+          "content": "Vous conservez la propriété du contenu que vous publiez. En publiant sur TeamWise, vous nous accordez une licence non exclusive pour l'afficher et le traiter."
+        },
+        "responsibility": {
+          "title": "6.2 Responsabilité",
+          "content": "Vous êtes seul responsable du contenu que vous publiez. TeamWise se réserve le droit de modérer ou supprimer tout contenu inapproprié."
+        }
+      },
+      "teams": {
+        "title": "7. Gestion des Équipes",
+        "roles": {
+          "title": "7.1 Rôles et Permissions",
+          "content": "Les équipes disposent de trois rôles : Owner (propriétaire), Manager et Player (joueur). Chaque rôle dispose de permissions spécifiques définies dans l'application."
+        },
+        "ownership": {
+          "title": "7.2 Propriété d'Équipe",
+          "content": "Le Owner peut transférer la propriété ou dissoudre l'équipe. La dissolution entraîne la suppression définitive des données de l'équipe."
+        }
+      },
+      "data": {
+        "title": "8. Protection des Données",
+        "collection": {
+          "title": "8.1 Données Collectées",
+          "content": "Nous collectons les données Steam (ID, pseudo, avatar) et les données que vous saisissez (informations d'équipe, événements, etc.)."
+        },
+        "usage": {
+          "title": "8.2 Utilisation",
+          "content": "Vos données sont utilisées uniquement pour fournir les services TeamWise. Consultez notre Politique de Confidentialité pour plus de détails."
+        },
+        "security": {
+          "title": "8.3 Sécurité",
+          "content": "Nous mettons en œuvre des mesures de sécurité pour protéger vos données, mais ne pouvons garantir une sécurité absolue."
+        }
+      },
+      "intellectual": {
+        "title": "9. Propriété Intellectuelle",
+        "platform": {
+          "title": "9.1 Plateforme",
+          "content": "TeamWise, son logo, son design et ses fonctionnalités sont protégés par le droit d'auteur. Toute reproduction non autorisée est interdite."
+        },
+        "thirdParty": {
+          "title": "9.2 Contenus Tiers",
+          "content": "Les logos de jeux (CS2, Valorant, etc.) appartiennent à leurs propriétaires respectifs. TeamWise n'est pas affilié à ces éditeurs."
+        }
+      },
+      "liability": {
+        "title": "10. Limitation de Responsabilité",
+        "service": {
+          "title": "10.1 Service Fourni « En l'État »",
+          "content": "TeamWise est fourni sans garantie. Nous ne garantissons pas un service ininterrompu ou exempt d'erreurs."
+        },
+        "damages": {
+          "title": "10.2 Dommages",
+          "content": "TeamWise ne peut être tenu responsable des dommages indirects, pertes de données ou manques à gagner."
+        }
+      },
+      "modifications": {
+        "title": "11. Modifications des Conditions",
+        "content": "Nous nous réservons le droit de modifier ces conditions à tout moment. Les modifications seront notifiées via la Plateforme. Votre utilisation continue vaut acceptation des nouvelles conditions."
+      },
+      "termination": {
+        "title": "12. Résiliation",
+        "content": "Vous pouvez supprimer votre compte à tout moment. Nous pouvons résilier votre accès en cas de violation des présentes conditions."
+      },
+      "law": {
+        "title": "13. Droit Applicable",
+        "content": "Les présentes conditions sont régies par le droit français. Tout litige sera soumis aux juridictions compétentes de Paris."
+      },
+      "contact": {
+        "title": "14. Contact",
+        "content": "Pour toute question concernant ces conditions, contactez-nous à : support@teamwise.gg"
+      }
+    }
+  }
+}
+

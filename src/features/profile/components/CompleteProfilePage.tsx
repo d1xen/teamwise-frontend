@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Flag from "react-world-flags";
 import { getCountries } from "libphonenumber-js";
 
@@ -8,7 +9,7 @@ import {
     getMyProfile,
     updateMyProfile,
     type UserProfileUpdateDto,
-} from "@/api/profile.api";
+} from "@/api/endpoints/profile.api";
 import Loader from "@/shared/components/Loader";
 
 /* ======================
@@ -59,6 +60,7 @@ function normalizeOptional(value?: string): string | null {
    ====================== */
 
 export default function CompleteProfilePage() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
     const { user, isLoading: isAuthLoading, updateUser } = useAuth();
@@ -152,36 +154,35 @@ export default function CompleteProfilePage() {
         const newErrors: FormErrors = {};
 
         if (!form.firstName.trim())
-            newErrors.firstName = "First name is required";
+            newErrors.firstName = t("profile.first_name_required");
 
         if (!form.lastName.trim())
-            newErrors.lastName = "Last name is required";
+            newErrors.lastName = t("profile.last_name_required");
 
         if (!form.email.trim())
-            newErrors.email = "Email is required";
+            newErrors.email = t("profile.email_required");
         else if (!EMAIL_REGEX.test(form.email))
-            newErrors.email = "Invalid email format";
+            newErrors.email = t("profile.email_invalid");
 
         if (!form.birthDate)
-            newErrors.birthDate = "Birth date is required";
+            newErrors.birthDate = t("profile.birth_date_required");
 
         if (!form.countryCode)
-            newErrors.countryCode = "Country is required";
+            newErrors.countryCode = t("profile.country_required");
 
         if (!form.address.trim())
-            newErrors.address = "Address is required";
+            newErrors.address = t("profile.address_required");
 
         if (!form.zipCode.trim())
-            newErrors.zipCode = "Zip code is required";
+            newErrors.zipCode = t("profile.zip_code_required");
 
         if (!form.city.trim())
-            newErrors.city = "City is required";
+            newErrors.city = t("profile.city_required");
 
         if (!form.phone.trim())
-            newErrors.phone = "Phone number is required";
+            newErrors.phone = t("profile.phone_required");
         else if (!form.phone.startsWith("+"))
-            newErrors.phone =
-                "Phone must be in international format (+33…)";
+            newErrors.phone = t("profile.phone_invalid_format");
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -237,7 +238,7 @@ export default function CompleteProfilePage() {
         <div className="min-h-screen flex items-center justify-center bg-neutral-900 px-4">
             <div className="form-card space-y-6">
                 <h1 className="text-2xl font-semibold text-center">
-                    Complete your profile
+                    {t("profile.complete_title")}
                 </h1>
 
                 {/* STEP 1 */}
@@ -246,7 +247,7 @@ export default function CompleteProfilePage() {
                         <div className="form-grid-2">
                             <input
                                 className="input"
-                                placeholder="First name"
+                                placeholder={t("profile.first_name_placeholder")}
                                 value={form.firstName}
                                 onChange={(e) =>
                                     updateField(
@@ -257,7 +258,7 @@ export default function CompleteProfilePage() {
                             />
                             <input
                                 className="input"
-                                placeholder="Last name"
+                                placeholder={t("profile.last_name_placeholder")}
                                 value={form.lastName}
                                 onChange={(e) =>
                                     updateField(
@@ -271,7 +272,7 @@ export default function CompleteProfilePage() {
                         <input
                             className="input"
                             type="email"
-                            placeholder="Email"
+                            placeholder={t("profile.email")}
                             value={form.email}
                             onChange={(e) =>
                                 updateField("email", e.target.value)
@@ -325,7 +326,7 @@ export default function CompleteProfilePage() {
 
                         <input
                             className="input"
-                            placeholder="Address"
+                            placeholder={t("profile.address_placeholder")}
                             value={form.address}
                             onChange={(e) =>
                                 updateField(
@@ -338,7 +339,7 @@ export default function CompleteProfilePage() {
                         <div className="form-grid-2">
                             <input
                                 className="input"
-                                placeholder="Zip code"
+                                placeholder={t("profile.zip_code_placeholder")}
                                 value={form.zipCode}
                                 onChange={(e) =>
                                     updateField(
@@ -349,7 +350,7 @@ export default function CompleteProfilePage() {
                             />
                             <input
                                 className="input"
-                                placeholder="City"
+                                placeholder={t("profile.city_placeholder")}
                                 value={form.city}
                                 onChange={(e) =>
                                     updateField(
@@ -380,7 +381,7 @@ export default function CompleteProfilePage() {
                                 }
                             }}
                         >
-                            Next
+                            {t("profile.next")}
                         </button>
                     </div>
                 )}
@@ -401,7 +402,7 @@ export default function CompleteProfilePage() {
                         />
                         <input
                             className="input"
-                            placeholder="Twitter handle (e.g. @nickname)"
+                            placeholder={t("profile.twitter_placeholder")}
                             value={form.twitter}
                             onChange={(e) =>
                                 updateField(
@@ -412,7 +413,7 @@ export default function CompleteProfilePage() {
                         />
                         <input
                             className="input"
-                            placeholder="HLTV nickname or profile (optional)"
+                            placeholder={t("profile.hltv_placeholder")}
                             value={form.hltv}
                             onChange={(e) =>
                                 updateField("hltv", e.target.value)
@@ -424,14 +425,14 @@ export default function CompleteProfilePage() {
                                 className="btn-secondary w-full"
                                 onClick={() => setStep(1)}
                             >
-                                Back
+                                {t("profile.back")}
                             </button>
                             <button
                                 className="btn-primary w-full"
                                 onClick={handleSubmit}
                                 disabled={isSaving}
                             >
-                                Save profile
+                                {t("profile.save_profile")}
                             </button>
                         </div>
                     </div>

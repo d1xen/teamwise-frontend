@@ -50,7 +50,12 @@ export function TeamProvider({
                 setTeam({
                     id: String(teamData.id),
                     name: teamData.name,
-                    logoUrl: teamData.logoUrl ?? undefined,
+                    ...(teamData.logoUrl && { logoUrl: teamData.logoUrl }),
+                    ...(teamData.tag && { tag: teamData.tag }),
+                    ...(teamData.game && { game: teamData.game }),
+                    ...(teamData.hltvUrl && { hltvUrl: teamData.hltvUrl }),
+                    ...(teamData.faceitUrl && { faceitUrl: teamData.faceitUrl }),
+                    ...(teamData.twitterUrl && { twitterUrl: teamData.twitterUrl }),
                 });
 
                 setMembership(
@@ -68,7 +73,7 @@ export function TeamProvider({
                         nickname: m.nickname,
                         role: m.role,
                         isOwner: m.isOwner,
-                        avatarUrl: m.avatarUrl ?? undefined,
+                        ...(m.avatarUrl && { avatarUrl: m.avatarUrl }),
                     }))
                 );
             })

@@ -2,6 +2,7 @@
 
 import { Outlet, Navigate, useLocation, useParams } from "react-router-dom";
 import { TeamProvider } from "@/contexts/team/TeamContext.tsx";
+import { AgendaProvider } from "@/contexts/agenda/AgendaContext.tsx";
 import { useAuth } from "@/contexts/auth/useAuth.ts";
 
 export default function TeamProviderLayout() {
@@ -32,7 +33,9 @@ export default function TeamProviderLayout() {
 
     return (
         <TeamProvider>
-            <Outlet />
+            <AgendaProvider>
+                <Outlet />
+            </AgendaProvider>
         </TeamProvider>
     );
 }
