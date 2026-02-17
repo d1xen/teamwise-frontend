@@ -47,6 +47,8 @@
   "team": {
     "select_title": "Select your team",
     "welcome": "Welcome {{nickname}} 👋",
+    "loading_context": "Loading team...",
+    "loading_teams": "Loading teams...",
     "no_teams_title": "No teams",
     "no_teams_message": "You are not part of any team yet",
     "create_team": "Create a team",
@@ -81,6 +83,16 @@
     "average_age": "Average age",
     "total_members": "Total members",
     "staff_members": "Staff",
+    "roster": "Roster",
+    "team_overview": "Overview",
+    "established": "Established",
+    "member_since": "Member since",
+    "age": "Age",
+    "nationality": "Nationality",
+    "full_name": "Full name",
+    "view_profile": "View profile",
+    "social_links": "Social links",
+    "team_stats": "Team statistics",
     "game_cs2": "Counter-Strike 2",
     "game_valorant": "Valorant",
     "game_lol": "League of Legends",
@@ -173,6 +185,17 @@
     "title": "Management",
     "overview": "Overview",
     "overview_subtitle": "General overview of your team",
+    "total_members": "Total members",
+    "staff_members": "Staff",
+    "team_information": "Team information",
+    "team_name": "Team name",
+    "team_tag": "Tag",
+    "game": "Game",
+    "owner": "Owner",
+    "team_identity": "Team identity",
+    "team_logo": "Team logo",
+    "team_name_placeholder": "Team name...",
+    "team_tag_placeholder": "Tag (e.g.: G2, NAVI)...",
     "staff": "Staff",
     "players": "Players",
     "members": "Members",
@@ -273,9 +296,14 @@
 
   "sidebar": {
     "collapse": "Collapse",
-    "expand": "Expand sidebar",
+    "expand": "Open sidebar",
     "switch_team": "Switch team",
     "powered_by": "TeamWise App powered by {{name}}"
+  },
+
+  "donate": {
+    "label": "Donate",
+    "cta": "Support TeamWise"
   },
 
   "header": {
@@ -404,4 +432,3 @@
     "try_again": "Please try again"
   }
 }
-

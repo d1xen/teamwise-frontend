@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Clock } from 'lucide-react';
+import FeatureHeader from '@/shared/components/FeatureHeader';
 
 interface ComingSoonPageProps {
   title: string;
@@ -17,12 +18,7 @@ export default function ComingSoonPage({ title, subtitle, icon }: ComingSoonPage
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-sm">
-        <div className="px-8 py-6">
-          <h1 className="text-3xl font-semibold text-white">{title}</h1>
-          {subtitle && <p className="text-sm text-neutral-400 mt-2">{subtitle}</p>}
-        </div>
-      </div>
+      <FeatureHeader title={title} {...(subtitle ? { subtitle } : {})} />
 
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md">
@@ -40,4 +36,3 @@ export default function ComingSoonPage({ title, subtitle, icon }: ComingSoonPage
     </div>
   );
 }
-

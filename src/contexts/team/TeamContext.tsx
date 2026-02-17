@@ -9,6 +9,7 @@ import { getMembers, getTeam } from "@/api/endpoints/team.api";
 import type { TeamDto, TeamMemberDto } from "@/api/types/team";
 import type { Team, TeamMember, TeamMembership } from "@/contexts/team/team.types";
 import { TeamContext } from "@/contexts/team/team.context";
+import { appStorage } from "@/shared/utils/storage/appStorage";
 
 /* ======================
    PROVIDER
@@ -28,6 +29,12 @@ export function TeamProvider({
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isReady, setIsReady] = useState(false);
+
+    useEffect(() => {
+        if (teamId) {
+            appStorage.setLastTeamId(teamId);
+        }
+    }, [teamId]);
 
     useEffect(() => {
         if (!user || !teamId) {
@@ -56,6 +63,10 @@ export function TeamProvider({
                     ...(teamData.hltvUrl && { hltvUrl: teamData.hltvUrl }),
                     ...(teamData.faceitUrl && { faceitUrl: teamData.faceitUrl }),
                     ...(teamData.twitterUrl && { twitterUrl: teamData.twitterUrl }),
+                    // Nouveaux champs enrichis depuis backend
+                    ...(teamData.createdAt && { createdAt: teamData.createdAt }),
+                    ...(teamData.updatedAt && { updatedAt: teamData.updatedAt }),
+                    ...(teamData.description && { description: teamData.description }),
                 });
 
                 setMembership(
@@ -74,6 +85,12 @@ export function TeamProvider({
                         role: m.role,
                         isOwner: m.isOwner,
                         ...(m.avatarUrl && { avatarUrl: m.avatarUrl }),
+                        // Nouveaux champs enrichis depuis backend
+                        ...(m.firstName && { firstName: m.firstName }),
+                        ...(m.lastName && { lastName: m.lastName }),
+                        ...(m.birthDate && { birthDate: m.birthDate }),
+                        ...(m.countryCode && { countryCode: m.countryCode }),
+                        ...(m.customUsername && { customUsername: m.customUsername }),
                     }))
                 );
             })

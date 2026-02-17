@@ -47,6 +47,8 @@
   "team": {
     "select_title": "Sélectionnez votre équipe",
     "welcome": "Bienvenue {{nickname}} 👋",
+    "loading_context": "Chargement de l'équipe...",
+    "loading_teams": "Chargement des équipes...",
     "no_teams_title": "Aucune équipe",
     "no_teams_message": "Vous ne faites partie d'aucune équipe pour le moment",
     "create_team": "Créer une équipe",
@@ -81,6 +83,16 @@
     "average_age": "Âge moyen",
     "total_members": "Total membres",
     "staff_members": "Staff",
+    "roster": "Roster",
+    "team_overview": "Vue d'ensemble",
+    "established": "Créée le",
+    "member_since": "Membre depuis",
+    "age": "Âge",
+    "nationality": "Nationalité",
+    "full_name": "Nom complet",
+    "view_profile": "Voir le profil",
+    "social_links": "Liens sociaux",
+    "team_stats": "Statistiques de l'équipe",
     "game_cs2": "Counter-Strike 2",
     "game_valorant": "Valorant",
     "game_lol": "League of Legends",
@@ -173,6 +185,17 @@
     "title": "Management",
     "overview": "Vue d'ensemble",
     "overview_subtitle": "Aperçu général de votre équipe",
+    "total_members": "Total membres",
+    "staff_members": "Staff",
+    "team_information": "Informations de l'équipe",
+    "team_name": "Nom de l'équipe",
+    "team_tag": "Tag",
+    "game": "Jeu",
+    "owner": "Propriétaire",
+    "team_identity": "Identité de l'équipe",
+    "team_logo": "Logo de l'équipe",
+    "team_name_placeholder": "Nom de l'équipe...",
+    "team_tag_placeholder": "Tag (ex: G2, NAVI)...",
     "staff": "Staff",
     "players": "Joueurs",
     "members": "Membres",
@@ -276,6 +299,11 @@
     "expand": "Ouvrir la barre latérale",
     "switch_team": "Changer d'équipe",
     "powered_by": "TeamWise App propulsée par {{name}}"
+  },
+
+  "donate": {
+    "label": "Faire un don",
+    "cta": "Soutenir TeamWise"
   },
 
   "header": {
@@ -404,4 +432,3 @@
     "try_again": "Veuillez réessayer"
   }
 }
-

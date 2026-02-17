@@ -5,8 +5,9 @@ import fr from "./fr/translation.json";
 import en from "./en/translation.json";
 import frTerms from "./fr/terms.json";
 import enTerms from "./en/terms.json";
+import { appStorage } from "@/shared/utils/storage/appStorage";
 
-const savedLanguage = localStorage.getItem("language") || "en";
+const savedLanguage = appStorage.getLanguage() || "en";
 
 i18n
     .use(initReactI18next)
@@ -27,5 +28,9 @@ i18n
             escapeValue: false,
         },
     });
+
+i18n.on("languageChanged", (lng) => {
+    appStorage.setLanguage(lng);
+});
 
 export default i18n;

@@ -1,15 +1,18 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth/useAuth.ts";
-import Loader from "@/shared/components/Loader";
+import { useTranslation } from "react-i18next";
+import FullScreenLoader from "@/shared/components/FullScreenLoader";
 
 export default function RootRedirect() {
+    const { t } = useTranslation();
     const { user, isLoading } = useAuth();
 
     if (isLoading) {
         return (
-            <div className="h-screen flex items-center justify-center text-white">
-                <Loader />
-            </div>
+            <FullScreenLoader
+                title={t("common.loading")}
+                subtitle={t("auth.redirecting")}
+            />
         );
     }
 

@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/auth/useAuth";
 import { setToken } from "@/shared/utils/storage/tokenStorage";
 import { CheckCircle2 } from "lucide-react";
-import teamwiseLogo from "@/shared/assets/teamwise-logo.png";
 
 export default function LoginSuccessPage() {
     const { t } = useTranslation();
@@ -36,12 +35,6 @@ export default function LoginSuccessPage() {
 
             {/* Content */}
             <div className="relative z-10 text-center space-y-6">
-                <img
-                    src={teamwiseLogo}
-                    alt="TeamWise"
-                    className="mx-auto w-32 h-auto mb-4 opacity-90"
-                />
-
                 {/* Success Icon */}
                 <div className="flex justify-center">
                     <div className="relative">

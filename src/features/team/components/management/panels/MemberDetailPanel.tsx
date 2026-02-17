@@ -101,7 +101,7 @@ export default function MemberDetailPanel({
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-gutter-stable p-6 space-y-6">
         {/* Member Header */}
         <div className="flex flex-col items-center text-center pb-6 border-b border-neutral-800">
           <img
@@ -319,4 +319,3 @@ function Field({
     </div>
   );
 }
-

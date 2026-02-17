@@ -3,6 +3,7 @@ import { getMe, type AuthResponseDto } from "@/api/endpoints/auth.api";
 import { setUnauthorizedHandler } from "@/api/client/apiClient";
 import appRouter from "@/router/AppRouter";
 import { clearToken, getToken, setToken } from "@/shared/utils/storage/tokenStorage";
+import { appStorage } from "@/shared/utils/storage/appStorage";
 import { AuthContext } from "@/contexts/auth/auth.context";
 import type { AuthUser } from "@/contexts/auth/auth.types";
 
@@ -12,6 +13,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const doLogout = useCallback(() => {
         clearToken();
+        appStorage.clearLastTeamId();
         setUser(null);
         setIsLoading(false);
     }, []);

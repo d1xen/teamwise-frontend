@@ -1,13 +1,11 @@
 import { useTranslation } from "react-i18next";
 import type { Team, TeamMember, TeamMembership } from "@/contexts/team/team.types";
-import type { useManagementPermissions } from "@/features/team/hooks/useManagementPermissions";
+import { calculateAverageAge, formatDateShort } from "@/shared/utils/dateUtils";
 import {
   Users,
   Shield,
   Crown,
   TrendingUp,
-  Settings,
-  ArrowRight,
 } from "lucide-react";
 
 interface TeamOverviewPanelProps {
@@ -16,8 +14,6 @@ interface TeamOverviewPanelProps {
   members: TeamMember[];
   staffCount: number;
   playerCount: number;
-  permissions: ReturnType<typeof useManagementPermissions>;
-  onNavigate: (view: "overview" | "staff" | "players" | "settings") => void;
 }
 
 export default function TeamOverviewPanel({
@@ -26,12 +22,12 @@ export default function TeamOverviewPanel({
   members,
   staffCount,
   playerCount,
-  permissions,
-  onNavigate,
 }: TeamOverviewPanelProps) {
   const { t } = useTranslation();
 
   const owner = members.find((m) => m.isOwner);
+  const averageAge = calculateAverageAge(members.filter((m) => m.role === "PLAYER"));
+  const establishedDate = team.createdAt ? formatDateShort(team.createdAt) : null;
 
   return (
     <div className="space-y-6">
@@ -80,6 +76,18 @@ export default function TeamOverviewPanel({
               <InfoRow label={t("management.team_name")} value={team.name} />
               <InfoRow label={t("management.team_tag")} value={team.tag} />
               <InfoRow label={t("management.game")} value={team.game} />
+              {establishedDate && (
+                <InfoRow
+                  label={t("team.established")}
+                  value={establishedDate}
+                />
+              )}
+              {averageAge && (
+                <InfoRow
+                  label={t("team.average_age")}
+                  value={averageAge}
+                />
+              )}
               {owner && (
                 <InfoRow
                   label={t("management.owner")}
@@ -92,15 +100,6 @@ export default function TeamOverviewPanel({
                 />
               )}
             </div>
-            {permissions.canEditTeam() && (
-              <button
-                onClick={() => onNavigate("settings")}
-                className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                <Settings className="w-4 h-4" />
-                {t("management.edit_team_settings")}
-              </button>
-            )}
           </div>
 
           {/* Your Role Card */}
@@ -126,34 +125,6 @@ export default function TeamOverviewPanel({
                   ? t("management.manager_description")
                   : t("management.member_description")}
             </p>
-          </div>
-        </div>
-
-        {/* Colonne droite - Quick Actions */}
-        <div>
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6">
-            <h3 className="text-sm font-semibold text-white mb-4">
-              {t("management.quick_actions")}
-            </h3>
-            <div className="space-y-2">
-              <ActionButton
-                onClick={() => onNavigate("staff")}
-                icon={Shield}
-                label={t("management.staff")}
-              />
-              <ActionButton
-                onClick={() => onNavigate("players")}
-                icon={Users}
-                label={t("management.players")}
-              />
-              {permissions.canEditTeam() && (
-                <ActionButton
-                  onClick={() => onNavigate("settings")}
-                  icon={Settings}
-                  label={t("management.team_settings")}
-                />
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -203,27 +174,3 @@ function InfoRow({
     </div>
   );
 }
-
-function ActionButton({
-  onClick,
-  icon: Icon,
-  label,
-}: {
-  onClick: () => void;
-  icon: React.ElementType;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-neutral-800/50 hover:bg-neutral-800 text-white text-sm font-medium rounded-lg transition-all group"
-    >
-      <div className="flex items-center gap-3">
-        <Icon className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
-        <span>{label}</span>
-      </div>
-      <ArrowRight className="w-4 h-4 text-neutral-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
-    </button>
-  );
-}
-

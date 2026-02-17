@@ -4,7 +4,6 @@ import { useTeam } from '@/contexts/team/useTeam';
 import { useAuth } from '@/contexts/auth/useAuth';
 import {
   Calendar,
-  Target,
   BarChart3,
   BookOpen,
   Trophy,
@@ -14,8 +13,12 @@ import {
   Globe,
   Home,
   ArrowLeftRight,
+  Heart,
 } from 'lucide-react';
 import { cn } from '@/design-system';
+import { appConfig } from '@/config/appConfig';
+import { useMinimumLoader } from '@/shared/hooks/useMinimumLoader';
+import { appStorage } from '@/shared/utils/storage/appStorage';
 
 interface NavItem {
   id: string;
@@ -34,14 +37,19 @@ export default function TeamSidebar() {
   const location = useLocation();
   const { team, isLoading } = useTeam();
   const { user, logout } = useAuth();
+  const kofiUrl = appConfig.externalLinks.kofi;
+  const showLoader = useMinimumLoader(isLoading || !team, 800);
 
-  // Afficher un loader pendant le chargement
-  if (isLoading || !team) {
+  if (showLoader) {
     return (
       <div className="w-60 flex-shrink-0 bg-neutral-900/50 border-r border-neutral-800 flex items-center justify-center">
         <div className="text-sm text-neutral-400">{t("common.loading")}</div>
       </div>
     );
+  }
+
+  if (!team) {
+    return null;
   }
 
   const navItems: NavItem[] = [
@@ -101,6 +109,7 @@ export default function TeamSidebar() {
 
   const handleChangeTeam = () => {
     // Changer d'équipe : garde l'auth mais change de contexte team
+    appStorage.clearLastTeamId();
     navigate('/select-team');
   };
 
@@ -111,28 +120,49 @@ export default function TeamSidebar() {
 
   return (
     <div className="w-60 flex-shrink-0 bg-neutral-900/50 border-r border-neutral-800 flex flex-col">
-      {/* Header - Team Info */}
-      <div className="flex-shrink-0 p-4 border-b border-neutral-800">
-        <div className="flex items-center gap-3">
-          {team.logoUrl ? (
-            <img
-              src={team.logoUrl}
-              alt={team.name}
-              className="w-10 h-10 rounded-lg object-cover"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center">
-              <Target className="w-5 h-5 text-neutral-400" />
+      {/* Header - Team Info + User */}
+      <div className="flex-shrink-0 border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+        <div className="p-4 h-[152px] flex flex-col justify-between">
+          <div className="flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg font-bold text-white truncate">
+                  {team.name}
+                </h2>
+                {team.tag && (
+                  <span className="px-2 py-0.5 bg-neutral-800 text-neutral-400 rounded text-xs font-bold border border-neutral-700 flex-shrink-0">
+                    {team.tag}
+                  </span>
+                )}
+              </div>
+              {team.game && (
+                <div className="text-xs text-neutral-500 mt-1 truncate">
+                  {team.game}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {user && (
+            <div className="flex items-center gap-3">
+              <img
+                src={user.avatarUrl ?? ''}
+                alt={user.nickname}
+                className="w-8 h-8 rounded-lg object-cover"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-white truncate">
+                    {user.nickname}
+                  </p>
+                  <span className="inline-flex w-2 h-2 rounded-full bg-emerald-400" aria-label="Online" />
+                </div>
+                <p className="text-xs text-neutral-500 truncate">
+                  {user.steamId}
+                </p>
+              </div>
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-white truncate">
-              {team.name}
-            </h2>
-            {team.tag && (
-              <p className="text-xs text-neutral-500 truncate">{team.tag}</p>
-            )}
-          </div>
         </div>
       </div>
 
@@ -163,29 +193,22 @@ export default function TeamSidebar() {
 
       {/* Footer - User & Actions */}
       <div className="flex-shrink-0 border-t border-neutral-800">
-        {/* User Profile */}
-        {user && (
-          <div className="p-4 border-b border-neutral-800">
-            <div className="flex items-center gap-3 mb-3">
-              <img
-                src={user.avatarUrl ?? ''}
-                alt={user.nickname}
-                className="w-8 h-8 rounded-lg object-cover"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
-                  {user.nickname}
-                </p>
-                <p className="text-xs text-neutral-500 truncate">
-                  {user.steamId}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Actions */}
         <div className="p-3 space-y-1">
+          {/* Donate */}
+          <button
+            onClick={() => window.open(kofiUrl, '_blank', 'noopener,noreferrer')}
+            className={cn(
+              'w-full flex items-center gap-3 px-3 py-2 rounded-lg border',
+              'text-sm font-medium text-emerald-300 border-emerald-500/30',
+              'bg-emerald-500/10 hover:bg-emerald-500/20 hover:text-emerald-200',
+              'transition-all duration-150'
+            )}
+          >
+            <Heart className="w-4 h-4 flex-shrink-0" />
+            <span className="text-xs">{t('donate.label')}</span>
+          </button>
+
           {/* Change Team */}
           <button
             onClick={handleChangeTeam}
@@ -234,4 +257,3 @@ export default function TeamSidebar() {
     </div>
   );
 }
-

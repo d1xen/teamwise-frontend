@@ -1,6 +1,7 @@
 import type { ApiError } from "@/api/types/errors";
 import { normalizeApiError } from "@/shared/utils/error/normalizeApiError";
 import { getToken } from "@/shared/utils/storage/tokenStorage";
+import { buildApiUrl } from '@/config/appConfig';
 
 type UnauthorizedHandler = (error: ApiError) => void;
 
@@ -50,7 +51,7 @@ export async function apiClient<T>(
         headers.set("Content-Type", "application/json");
     }
 
-    const response = await fetch(url, {
+    const response = await fetch(buildApiUrl(url), {
         ...init,
         headers,
     });
@@ -69,4 +70,3 @@ export async function apiClient<T>(
     const payload = await safeParseJson(response);
     return payload as T;
 }
-

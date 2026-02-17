@@ -13,6 +13,9 @@ import TeamOverviewPanel from "@/features/team/components/management/panels/Team
 import MembersPanel from "@/features/team/components/management/panels/MembersPanel";
 import TeamSettingsPanel from "@/features/team/components/management/panels/TeamSettingsPanel";
 import MemberDetailPanel from "@/features/team/components/management/panels/MemberDetailPanel";
+import FeatureHeader from '@/shared/components/FeatureHeader';
+import FeatureBody from '@/shared/components/FeatureBody';
+import { useMinimumLoader } from '@/shared/hooks/useMinimumLoader';
 
 type View = "overview" | "staff" | "players" | "settings";
 
@@ -24,6 +27,7 @@ export default function ManagementPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { team, membership, members, isLoading } = useTeam();
+  const showLoader = useMinimumLoader(isLoading || !team || !membership || !user, 800);
 
   const [activeView, setActiveView] = useState<View>("overview");
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
@@ -41,7 +45,7 @@ export default function ManagementPage() {
   });
 
   // Vérifier après les hooks
-  if (isLoading || !team || !membership || !user) {
+  if (showLoader) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-sm text-neutral-400">{t("common.loading")}</div>
@@ -70,56 +74,51 @@ export default function ManagementPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header avec navigation tabs */}
-      <div className="flex-shrink-0 border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-sm">
-        <div className="px-8 py-6">
-          <h1 className="text-3xl font-semibold text-white mb-6">
-            {t("nav.management")}
-          </h1>
-
-          {/* Tabs Navigation */}
-          <div className="flex items-center gap-2">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveView(tab.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all",
+      <FeatureHeader
+        title={t("nav.management")}
+      >
+        <div className="flex items-center gap-2">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveView(tab.id)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all",
+                  activeView === tab.id
+                    ? "bg-neutral-800 text-white"
+                    : "text-neutral-400 hover:text-white hover:bg-neutral-800/50"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className={cn(
+                    "ml-1 px-2 py-0.5 rounded-full text-xs",
                     activeView === tab.id
-                      ? "bg-neutral-800 text-white"
-                      : "text-neutral-400 hover:text-white hover:bg-neutral-800/50"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                  {tab.count !== undefined && (
-                    <span className={cn(
-                      "ml-1 px-2 py-0.5 rounded-full text-xs",
-                      activeView === tab.id
-                        ? "bg-neutral-700 text-white"
-                        : "bg-neutral-800 text-neutral-400"
-                    )}>
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                      ? "bg-neutral-700 text-white"
+                      : "bg-neutral-800 text-neutral-400"
+                  )}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </FeatureHeader>
 
       {/* Main content + Detail panel */}
       <div className="flex-1 flex overflow-hidden">
         {/* Content */}
         <div
           className={cn(
-            "transition-all duration-300 ease-out overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent",
+            "transition-all duration-300 ease-out overflow-y-auto custom-scrollbar scrollbar-gutter-stable",
             selectedMember ? 'flex-1' : 'w-full'
           )}
         >
-          <div className="max-w-5xl mx-auto px-8 py-8">
+          <FeatureBody className="max-w-5xl">
             {activeView === "overview" && (
               <TeamOverviewPanel
                 team={team}
@@ -127,8 +126,6 @@ export default function ManagementPage() {
                 members={members}
                 staffCount={staffMembers.length}
                 playerCount={playerMembers.length}
-                permissions={permissions}
-                onNavigate={setActiveView}
               />
             )}
 
@@ -161,7 +158,7 @@ export default function ManagementPage() {
                 canInvite={permissions.canInvite()}
               />
             )}
-          </div>
+          </FeatureBody>
         </div>
 
         {/* Detail Panel */}
@@ -185,4 +182,3 @@ export default function ManagementPage() {
     </div>
   );
 }
-

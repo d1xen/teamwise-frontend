@@ -15,6 +15,9 @@ export type TeamDto = {
     faceitUrl?: string | null;
     twitterUrl?: string | null;
     membership?: TeamMembershipDto;
+    createdAt?: string | null; // ISO 8601 date-time
+    updatedAt?: string | null; // ISO 8601 date-time
+    description?: string | null;
 };
 
 export type TeamMemberDto = {
@@ -23,6 +26,11 @@ export type TeamMemberDto = {
     role: TeamRole;
     isOwner: boolean;
     avatarUrl?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    birthDate?: string | null; // ISO 8601 date (YYYY-MM-DD)
+    countryCode?: string | null; // ISO 2 letters (FR, US, GB...)
+    customUsername?: string | null;
 };
 
 export type CreateTeamRequest = {

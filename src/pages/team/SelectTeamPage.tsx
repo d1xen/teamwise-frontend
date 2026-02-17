@@ -4,8 +4,10 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/auth/useAuth";
 import { getMyTeams } from "@/api/endpoints/team.api";
 import type { TeamDto } from "@/api/types/team";
-import { Users, Plus, ChevronRight, Shield, LogOut } from "lucide-react";
-import teamwiseLogo from "@/shared/assets/teamwise-logo.png";
+import { Users, Plus, ChevronRight, Shield, LogOut, Heart } from "lucide-react";
+import { appConfig } from '@/config/appConfig';
+import { useMinimumLoader } from '@/shared/hooks/useMinimumLoader';
+import FullScreenLoader from "@/shared/components/FullScreenLoader";
 
 type Team = {
     id: number;
@@ -18,10 +20,13 @@ export default function SelectTeamPage() {
     const { t } = useTranslation();
     const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
     const navigate = useNavigate();
+    const kofiUrl = appConfig.externalLinks.kofi;
 
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const showLoader = useMinimumLoader(isAuthLoading || isLoading, 800);
 
     useEffect(() => {
         if (!isAuthLoading && !isAuthenticated) {
@@ -60,16 +65,14 @@ export default function SelectTeamPage() {
             });
 
         return () => { cancelled = true; };
-    }, [isAuthLoading, isAuthenticated]);
+    }, [isAuthLoading, isAuthenticated, t]);
 
-    if (isAuthLoading || isLoading) {
+    if (showLoader) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
-                <div className="text-center space-y-4">
-                    <div className="w-12 h-12 border-2 border-neutral-700 border-t-indigo-500 rounded-full animate-spin mx-auto" />
-                    <p className="text-neutral-400">{t("common.loading")}</p>
-                </div>
-            </div>
+            <FullScreenLoader
+                title={t("common.loading")}
+                subtitle={t("team.loading_teams")}
+            />
         );
     }
 
@@ -100,8 +103,34 @@ export default function SelectTeamPage() {
 
             <div className="relative z-10 w-full max-w-2xl">
                 <div className="text-center mb-12">
-                    <img src={teamwiseLogo} alt="TeamWise" className="mx-auto w-32 h-auto mb-6" />
-                    <h1 className="text-3xl font-bold text-white mb-2">{t("team.select_title")}</h1>
+                    <style>{`
+                        @keyframes fadeColor {
+                            0%, 100% { opacity: 0.75; }
+                            50% { opacity: 1; }
+                        }
+                        .animate-fade-color {
+                            animation: fadeColor 4s ease-in-out infinite;
+                        }
+                        @keyframes waveGradient {
+                            0% { background-position: 0% 50%; }
+                            50% { background-position: 100% 50%; }
+                            100% { background-position: 0% 50%; }
+                        }
+                        .animate-wave-gradient {
+                            background-size: 200% 200%;
+                            animation: waveGradient 4s ease-in-out infinite;
+                        }
+                    `}</style>
+                    <div className="mb-8">
+                        <h1 className="text-6xl font-black text-white mb-4 leading-tight">
+                            TEAM
+                            <span className="animate-fade-color animate-wave-gradient inline-block text-transparent bg-clip-text bg-gradient-to-b from-indigo-500 via-purple-500 to-indigo-400">
+                                WISE
+                            </span>
+                        </h1>
+                    </div>
+                    <div className="h-1.5 w-32 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mx-auto mb-6" />
+                    <h2 className="text-xl font-semibold text-neutral-200 mb-2">{t("team.select_title")}</h2>
                     <p className="text-neutral-400">{t("team.welcome", { nickname: user?.nickname })}</p>
                 </div>
 
@@ -151,6 +180,16 @@ export default function SelectTeamPage() {
                                 <Plus className="w-5 h-5" />
                                 <span className="font-medium">{t("team.create_new_team")}</span>
                             </button>
+
+                            <a
+                                href={kofiUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/20 transition-all duration-200"
+                            >
+                                <Heart className="w-5 h-5" />
+                                <span className="font-medium">{t("donate.cta")}</span>
+                            </a>
                         </div>
                     )}
                 </div>
@@ -168,5 +207,3 @@ export default function SelectTeamPage() {
         </div>
     );
 }
-
-
