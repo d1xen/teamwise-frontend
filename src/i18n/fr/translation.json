@@ -1,7 +1,9 @@
 {
   "common": {
+    "id": "ID",
     "loading": "Chargement...",
     "saving": "Enregistrement...",
+    "joining": "Connexion en cours...",
     "error": "Une erreur est survenue",
     "network_error": "Erreur réseau",
     "unknown_error": "Erreur inconnue",
@@ -117,7 +119,22 @@
     "logo_url_placeholder": "URL du logo...",
     "team_name_placeholder": "Nom de l'équipe...",
     "team_tag_placeholder": "Tag (ex: G2, NAVI)...",
-    "team_updated": "Équipe mise à jour avec succès"
+    "team_updated": "Équipe mise à jour avec succès",
+    "join": {
+      "title": "Rejoindre une équipe",
+      "subtitle": "Vous avez reçu une invitation ? Collez le lien ci-dessous pour rejoindre l'équipe",
+      "subtitle_modal": "Collez votre lien d'invitation",
+      "invitation_link": "Lien d'invitation",
+      "link_help": "Collez l'URL complète reçue",
+      "info_modal": "Exemple : https://teamwise.app/invite/abc123def456",
+      "enter_link": "Veuillez entrer un lien d'invitation",
+      "invalid_link_format": "Format de lien invalide",
+      "success": "Équipe rejointe avec succès ! 🎉",
+      "error": "Impossible de rejoindre l'équipe",
+      "join_button": "Rejoindre",
+      "dont_have_link": "Vous n'avez pas de lien ?",
+      "ask_team_owner": "Demandez au propriétaire de l'équipe"
+    }
   },
 
   "profile": {
@@ -162,16 +179,22 @@
     "copy_discord": "Copier le pseudo Discord",
     "next": "Suivant",
     "submit": "Enregistrer et continuer",
+    "edit": "Modifier",
+    "save_profile": "Enregistrer le profil",
     "back": "Retour",
     "loading": "Chargement...",
     "missing_fields": "Merci de remplir tous les champs obligatoires",
     "update_error": "Erreur lors de la mise à jour du profil",
     "load_error": "Erreur de chargement du profil",
-    "edit": "Modifier",
+    "verified": "Profil vérifié",
+    "not_verified": "Profil incomplet",
+    "completion_tooltip": "Profil complété avec succès",
+    "user_profile": "Profil utilisateur",
     "edit_profile": "Modifier le profil",
-    "save_profile": "Enregistrer le profil",
+    "custom_username": "Pseudo personnalisé",
     "edit_soon": "Fonction de modification à venir",
     "remove": "Exclure",
+    "no_links_available": "Aucun lien disponible pour ce jeu",
     "remove_confirm": "Es-tu sûr de vouloir retirer ce membre ?",
     "remove_error": "Erreur lors du retrait du membre",
     "removed": "Membre retiré",
@@ -196,12 +219,22 @@
     "team_logo": "Logo de l'équipe",
     "team_name_placeholder": "Nom de l'équipe...",
     "team_tag_placeholder": "Tag (ex: G2, NAVI)...",
+    "team_description": "Description",
+    "team_description_placeholder": "Décrivez votre équipe...",
+    "team_id": "Identifiant équipe",
+    "created_at": "Créée le",
+    "updated_at": "Dernière mise à jour",
+    "verified_profiles": "Profils vérifiés",
     "staff": "Staff",
     "players": "Joueurs",
     "members": "Membres",
     "members_subtitle": "Gérer les membres de l'équipe",
     "settings": "Paramètres",
     "settings_subtitle": "Configuration de l'équipe",
+    "teams": "Équipe",
+    "teams_subtitle": "Informations et réglages de l'équipe",
+    "profile": "Profil",
+    "profile_subtitle": "Gérer votre profil utilisateur",
     "team_settings": "Paramètres de l'équipe",
     "edit_team_settings": "Modifier les paramètres",
     "members_management": "Gestion des membres",
@@ -218,6 +251,8 @@
     "link_copied": "Lien copié dans le presse-papiers",
     "invite_copied": "Lien d'invitation copié !",
     "invite_success": "Lien d'invitation copié !",
+    "steam_id": "Steam ID",
+    "change": "Changer",
     "invite_error": "Identifiants manquants pour générer l'invitation",
     "role_updated": "Rôle mis à jour",
     "role_change_success": "Rôle modifié en {{role}}",
@@ -254,6 +289,30 @@
     "player_role": "Joueur",
     "tab_members": "MEMBRES",
     "tab_team": "ÉQUIPE",
+    "roster_status": "Statut Roster",
+    "roster_active": "Actif",
+    "roster_inactive": "Inactif",
+    "player_activated": "Joueur activé",
+    "player_deactivated": "Joueur désactivé",
+    "player_status_error": "Erreur lors de la mise à jour du statut du joueur",
+    "max_active_players_reached": "Impossible d'ajouter un autre joueur actif. Limite de {{max}} joueurs actifs atteinte. Actuellement {{current}} joueurs actifs. Veuillez en désactiver un en premier.",
+    "overview": "Aperçu",
+    "management": "Gestion",
+    "contact": "Contact",
+    "username": "Pseudo",
+    "in_game_role": "Rôle in-game",
+    "team_role": "Rôle dans l'équipe",
+    "phone": "Téléphone",
+    "view_details": "Voir détails",
+    "edit_information": "Modifier profil",
+    "information": "Information",
+    "details": "Détails",
+    "load_profile": "Charger profil",
+    "active": "Actif",
+    "role": "Rôle",
+    "view_only": "Lecture seule",
+    "in_game_role_placeholder": "ex. Sniper, Rifler...",
+    "profile_incomplete": "Profil Incomplet",
     "not_in_team": "Tu ne fais plus partie de cette équipe",
     "delete_success": "Équipe supprimée avec succès",
     "delete_error": "Erreur lors de la suppression de l'équipe",
@@ -278,7 +337,9 @@
     "danger_zone_description": "Actions irréversibles",
     "quick_actions": "Actions rapides",
     "manage_members": "Gérer les membres",
-    "feature_coming_soon": "Fonctionnalité bientôt disponible"
+    "feature_coming_soon": "Fonctionnalité bientôt disponible",
+    "team_updated": "Équipe mise à jour avec succès",
+    "logo_url_placeholder": "URL du logo..."
   },
 
   "nav": {
@@ -287,9 +348,12 @@
     "schedule": "Planning",
     "management": "Management",
     "scrims": "Scrims",
+    "matches": "Matchs",
+    "tournaments": "Tournois",
     "results": "Résultats",
     "stratbook": "Stratbook",
     "stats": "Statistiques",
+    "messaging": "Messagerie",
     "players": "Joueurs",
     "staff": "Staff"
   },
@@ -389,9 +453,21 @@
       "title": "Scrims",
       "subtitle": "Organisez et suivez vos matchs d'entraînement"
     },
+    "matches": {
+      "title": "Matchs",
+      "subtitle": "Planifiez et suivez vos matchs à venir ou passés"
+    },
+    "tournaments": {
+      "title": "Tournaments",
+      "subtitle": "Centralisez vos tournois et événements compétitifs"
+    },
     "results": {
       "title": "Résultats",
       "subtitle": "Consultez les résultats et performances de votre équipe"
+    },
+    "messaging": {
+      "title": "Messagerie",
+      "subtitle": "Discutez et coordonnez votre équipe en temps réel"
     },
     "planning": {
       "title": "Planning"
@@ -421,6 +497,15 @@
     "remove": "Supprimer",
     "hint": "PNG recommandé",
     "logo_invalid_format": "Le logo doit être au format PNG"
+  },
+
+  "continents": {
+    "europe": "Europe",
+    "north_america": "Amérique du Nord",
+    "south_america": "Amérique du Sud",
+    "asia": "Asie",
+    "africa": "Afrique",
+    "oceania": "Océanie"
   },
 
   "errors": {

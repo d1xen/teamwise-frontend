@@ -4,6 +4,7 @@ import type {
     TeamDto,
     TeamMemberDto,
     UpdateMemberRoleRequest,
+    UpdateMemberRosterRequest,
     UpdateTeamRequest,
 } from "@/api/types/team";
 
@@ -12,10 +13,8 @@ function buildTeamUpdateBody(payload: UpdateTeamRequest): BodyInit {
         const body = new FormData();
         if (typeof payload.name !== "undefined") body.append("name", payload.name);
         if (typeof payload.tag !== "undefined") body.append("tag", payload.tag);
-        if (typeof payload.game !== "undefined") body.append("game", payload.game);
-        if (typeof payload.hltvUrl !== "undefined") body.append("hltvUrl", payload.hltvUrl ?? "");
-        if (typeof payload.faceitUrl !== "undefined") body.append("faceitUrl", payload.faceitUrl ?? "");
-        if (typeof payload.twitterUrl !== "undefined") body.append("twitterUrl", payload.twitterUrl ?? "");
+        if (typeof payload.logoUrl !== "undefined") body.append("logoUrl", payload.logoUrl ?? "");
+        if (typeof payload.links !== "undefined") body.append("links", JSON.stringify(payload.links ?? []));
         body.append("logo", payload.logo);
         return body;
     }
@@ -69,6 +68,17 @@ export function updateMemberRole(
     });
 }
 
+export function updateMemberRoster(
+    teamId: string | number,
+    steamId: string,
+    payload: UpdateMemberRosterRequest
+): Promise<void> {
+    return apiClient<void>(`/api/teams/${teamId}/members/${steamId}/roster`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+    });
+}
+
 export function transferOwnership(
     teamId: string | number,
     steamId: string
@@ -87,3 +97,8 @@ export function removeMember(
     });
 }
 
+export function joinTeamByInvitation(invitationToken: string): Promise<TeamDto> {
+    return apiClient<TeamDto>(`/api/teams/join/${invitationToken}`, {
+        method: "POST",
+    });
+}

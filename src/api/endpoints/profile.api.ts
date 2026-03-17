@@ -6,7 +6,8 @@ import type {
 
 export type { UserProfileDto, UserProfileUpdateDto };
 
-function buildTeamQuery(teamId: string | number): string {
+function buildTeamQuery(teamId?: string | number): string {
+    if (!teamId) return "";
     const params = new URLSearchParams({ teamId: String(teamId) });
     return `?${params.toString()}`;
 }
@@ -17,7 +18,7 @@ export function getMyProfile(): Promise<UserProfileDto> {
 
 export function getUserProfile(
     steamId: string,
-    teamId: string | number
+    teamId?: string | number
 ): Promise<UserProfileDto> {
     return apiClient<UserProfileDto>(
         `/api/users/${steamId}/profile${buildTeamQuery(teamId)}`
@@ -25,18 +26,22 @@ export function getUserProfile(
 }
 
 export function updateMyProfile(
-    payload: UserProfileUpdateDto
+    payload: UserProfileUpdateDto,
+    teamId?: string | number
 ): Promise<UserProfileDto> {
-    return apiClient<UserProfileDto>("/api/users/me/profile", {
-        method: "PUT",
-        body: JSON.stringify(payload),
-    });
+    return apiClient<UserProfileDto>(
+        `/api/users/me/profile${buildTeamQuery(teamId)}`,
+        {
+            method: "PUT",
+            body: JSON.stringify(payload),
+        }
+    );
 }
 
 export function updateUserProfile(
     steamId: string,
-    teamId: string | number,
-    payload: UserProfileUpdateDto
+    payload: UserProfileUpdateDto,
+    teamId?: string | number
 ): Promise<UserProfileDto> {
     return apiClient<UserProfileDto>(
         `/api/users/${steamId}/profile${buildTeamQuery(teamId)}`,

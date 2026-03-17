@@ -10,8 +10,8 @@ import TeamProviderLayout from "@/layouts/TeamProviderLayout";
 import LoginPage from "@/features/auth/components/LoginPage";
 import LoginSuccessPage from "@/features/auth/components/LoginSuccessPage";
 import SelectTeamPage from "@/pages/team/SelectTeamPage";
-import CompleteProfilePage from "@/features/profile/components/CompleteProfilePage";
 import CreateTeamPage from "@/pages/team/CreateTeamPage";
+import InvitationPage from "@/pages/team/InvitationPage";
 import { TermsOfServicePage } from "@/pages/legal/TermsOfServicePage";
 
 import AgendaPage from "@/pages/agenda/AgendaPage";
@@ -21,6 +21,9 @@ import ScrimsPage from "@/pages/team/ScrimsPage";
 import ResultsPage from "@/pages/team/ResultsPage";
 import StratbookPage from "@/pages/team/StratbookPage";
 import StatsPage from "@/pages/team/StatsPage";
+import MatchesPage from "@/pages/team/MatchesPage";
+import TournamentsPage from "@/pages/team/TournamentsPage";
+import MessagingPage from "@/pages/team/MessagingPage";
 
 const appRouter = createBrowserRouter([
     // ROOT
@@ -29,35 +32,28 @@ const appRouter = createBrowserRouter([
     // PUBLIC
     { path: "/login", element: <LoginPage /> },
     { path: "/login-success", element: <LoginSuccessPage /> },
-    { path: "/terms", element: <TermsOfServicePage /> }, // Accessible publiquement aussi
+    { path: "/invite/:token", element: <InvitationPage /> },
+    { path: "/terms", element: <TermsOfServicePage /> },
 
     // AUTH REQUIRED
     {
         element: <RequireAuth />,
         children: [
-            // Terms accessible depuis les pages protégées
-            {
-                path: "/terms-auth",
-                element: <TermsOfServicePage />,
-            },
             {
                 element: <AppLayout />,
                 children: [
                     {
-                        path: "/complete-profile",
-                        element: <CompleteProfilePage />,
+                        path: "/terms-auth",
+                        element: <TermsOfServicePage />,
                     },
                     {
                         path: "/select-team",
                         element: <SelectTeamPage />,
                     },
-                    // CREATE TEAM - Must be BEFORE /team/:teamId
                     {
                         path: "/team/create",
                         element: <CreateTeamPage />,
                     },
-
-                    // TEAM ROUTES with :teamId
                     {
                         path: "/team/:teamId",
                         element: <TeamProviderLayout />,
@@ -82,6 +78,14 @@ const appRouter = createBrowserRouter([
                                         element: <ScrimsPage />,
                                     },
                                     {
+                                        path: "matches",
+                                        element: <MatchesPage />,
+                                    },
+                                    {
+                                        path: "tournaments",
+                                        element: <TournamentsPage />,
+                                    },
+                                    {
                                         path: "results",
                                         element: <ResultsPage />,
                                     },
@@ -92,6 +96,10 @@ const appRouter = createBrowserRouter([
                                     {
                                         path: "stats",
                                         element: <StatsPage />,
+                                    },
+                                    {
+                                        path: "messaging",
+                                        element: <MessagingPage />,
                                     },
                                 ],
                             },
@@ -106,4 +114,3 @@ const appRouter = createBrowserRouter([
 ]);
 
 export default appRouter;
-

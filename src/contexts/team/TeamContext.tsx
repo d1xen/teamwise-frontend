@@ -1,6 +1,8 @@
 import {
     useEffect,
+    useRef,
     useState,
+    useCallback,
 } from "react";
 import { useParams } from "react-router-dom";
 
@@ -10,6 +12,7 @@ import type { TeamDto, TeamMemberDto } from "@/api/types/team";
 import type { Team, TeamMember, TeamMembership } from "@/contexts/team/team.types";
 import { TeamContext } from "@/contexts/team/team.context";
 import { appStorage } from "@/shared/utils/storage/appStorage";
+import { calculateTeamNationality } from "@/shared/utils/countryUtils";
 
 /* ======================
    PROVIDER
@@ -29,6 +32,7 @@ export function TeamProvider({
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isReady, setIsReady] = useState(false);
+    const isCancelledRef = useRef(false);
 
     useEffect(() => {
         if (teamId) {
@@ -36,84 +40,120 @@ export function TeamProvider({
         }
     }, [teamId]);
 
-    useEffect(() => {
+    const loadTeam = useCallback(async () => {
         if (!user || !teamId) {
             setIsReady(true);
             return;
         }
 
-        let cancelled = false;
-
         setIsLoading(true);
         setIsReady(false);
 
-        Promise.all([
-            getTeam(teamId),
-            getMembers(teamId),
-        ])
-            .then(([teamData, membersData]: [TeamDto, TeamMemberDto[]]) => {
-                if (cancelled) return;
+        try {
+            const [teamData, membersData]: [TeamDto, TeamMemberDto[]] = await Promise.all([
+                getTeam(teamId),
+                getMembers(teamId),
+            ]);
+            if (isCancelledRef.current) return;
 
-                setTeam({
-                    id: String(teamData.id),
-                    name: teamData.name,
-                    ...(teamData.logoUrl && { logoUrl: teamData.logoUrl }),
-                    ...(teamData.tag && { tag: teamData.tag }),
-                    ...(teamData.game && { game: teamData.game }),
-                    ...(teamData.hltvUrl && { hltvUrl: teamData.hltvUrl }),
-                    ...(teamData.faceitUrl && { faceitUrl: teamData.faceitUrl }),
-                    ...(teamData.twitterUrl && { twitterUrl: teamData.twitterUrl }),
-                    // Nouveaux champs enrichis depuis backend
-                    ...(teamData.createdAt && { createdAt: teamData.createdAt }),
-                    ...(teamData.updatedAt && { updatedAt: teamData.updatedAt }),
-                    ...(teamData.description && { description: teamData.description }),
-                });
+            // Convertir les données des membres
+            const convertedMembers = membersData.map((m) => ({
+                steamId: m.steamId,
+                nickname: m.nickname,
+                role: m.role,
+                isOwner: m.isOwner,
+                ...(m.avatarUrl && { avatarUrl: m.avatarUrl }),
+                ...(m.profileCompleted !== undefined ? { profileCompleted: m.profileCompleted } : {}),
+                ...(m.discord && { discord: m.discord }),
+                ...(m.twitter && { twitter: m.twitter }),
+                ...(m.inGameRole && { inGameRole: m.inGameRole }),
+                ...(m.activePlayer !== undefined ? { activePlayer: m.activePlayer } : {}),
+                ...(m.links && { links: m.links }),
+                ...(m.firstName && { firstName: m.firstName }),
+                ...(m.lastName && { lastName: m.lastName }),
+                ...(m.birthDate && { birthDate: m.birthDate }),
+                ...(m.countryCode && { countryCode: m.countryCode }),
+                ...(m.customUsername && { customUsername: m.customUsername }),
+            }));
 
-                setMembership(
-                    teamData.membership
-                        ? {
-                              role: teamData.membership.role,
-                              isOwner: teamData.membership.isOwner,
-                          }
-                        : null
-                );
+            // Calculer la nationalité de l'équipe basée sur les joueurs
+            const teamNationality = calculateTeamNationality(convertedMembers);
 
-                setMembers(
-                    membersData.map((m) => ({
-                        steamId: m.steamId,
-                        nickname: m.nickname,
-                        role: m.role,
-                        isOwner: m.isOwner,
-                        ...(m.avatarUrl && { avatarUrl: m.avatarUrl }),
-                        // Nouveaux champs enrichis depuis backend
-                        ...(m.firstName && { firstName: m.firstName }),
-                        ...(m.lastName && { lastName: m.lastName }),
-                        ...(m.birthDate && { birthDate: m.birthDate }),
-                        ...(m.countryCode && { countryCode: m.countryCode }),
-                        ...(m.customUsername && { customUsername: m.customUsername }),
-                    }))
-                );
-            })
-            .catch((err) => {
-                console.error("Failed to load team context", err);
-            })
-            .finally(() => {
-                if (!cancelled) {
-                    setIsLoading(false);
-                    setIsReady(true);
-                }
+            setTeam({
+                id: String(teamData.id),
+                name: teamData.name,
+                ...(teamData.logoUrl && { logoUrl: teamData.logoUrl }),
+                ...(teamData.tag && { tag: teamData.tag }),
+                ...(teamData.game && { game: teamData.game }),
+                ...(teamData.links && { links: teamData.links }),
+                ...(teamData.membersOverview && { membersOverview: teamData.membersOverview }),
+                // Nouveaux champs enrichis depuis backend
+                ...(teamData.createdAt && { createdAt: teamData.createdAt }),
+                ...(teamData.updatedAt && { updatedAt: teamData.updatedAt }),
+                ...(teamData.description && { description: teamData.description }),
+                // Nationalité calculée
+                nationality: teamNationality,
             });
 
-        return () => {
-            cancelled = true;
-        };
+            setMembership(
+                teamData.membership
+                    ? {
+                          role: teamData.membership.role,
+                          isOwner: teamData.membership.isOwner,
+                      }
+                    : null
+            );
+
+            setMembers(convertedMembers);
+        } catch (err) {
+            console.error("Failed to load team context", err);
+        } finally {
+            if (!isCancelledRef.current) {
+                setIsLoading(false);
+                setIsReady(true);
+            }
+        }
     }, [user, teamId]);
+
+    useEffect(() => {
+        isCancelledRef.current = false;
+        loadTeam();
+        return () => {
+            isCancelledRef.current = true;
+        };
+    }, [loadTeam]);
 
     const resetTeam = () => {
         setTeam(null);
         setMembership(null);
         setMembers([]);
         setIsReady(false);
+    };
+
+    const refreshTeam = async () => {
+        await loadTeam();
+    };
+
+    // Mise à jour locale du statut actif d'un joueur (optimistic update)
+    const updateMemberActiveStatus = (steamId: string, activePlayer: boolean) => {
+        // Mettre à jour les membres localement
+        const updatedMembers = members.map((m) =>
+            m.steamId === steamId ? { ...m, activePlayer } : m
+        );
+
+        setMembers(updatedMembers);
+
+        // Recalculer la nationalité avec les membres mis à jour
+        const teamNationality = calculateTeamNationality(updatedMembers);
+
+        // Mettre à jour la nationalité de l'équipe
+        setTeam((prevTeam) => {
+            if (!prevTeam) return prevTeam;
+            return {
+                ...prevTeam,
+                nationality: teamNationality,
+            };
+        });
     };
 
     return (
@@ -125,6 +165,8 @@ export function TeamProvider({
                 isLoading,
                 isReady,
                 resetTeam,
+                refreshTeam,
+                updateMemberActiveStatus,
             }}
         >
             {children}

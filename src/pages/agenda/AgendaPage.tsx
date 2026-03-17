@@ -19,12 +19,6 @@ export default function AgendaPage() {
             <FeatureHeader
                 title={t("pages.planning.title")}
                 subtitle="Gérez vos événements, scrims et compétitions"
-                actions={(
-                    <Button variant="primary">
-                        <Plus className="w-4 h-4" />
-                        Nouvel événement
-                    </Button>
-                )}
             />
 
             <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-gutter-stable">

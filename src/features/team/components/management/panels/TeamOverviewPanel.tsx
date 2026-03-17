@@ -1,11 +1,15 @@
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useTeam } from "@/contexts/team/useTeam";
 import type { Team, TeamMember, TeamMembership } from "@/contexts/team/team.types";
 import { calculateAverageAge, formatDateShort } from "@/shared/utils/dateUtils";
+import { NationalityBadge } from "@/shared/components/NationalityBadge";
 import {
   Users,
   Shield,
   Crown,
   TrendingUp,
+  CheckCircle,
 } from "lucide-react";
 
 interface TeamOverviewPanelProps {
@@ -24,10 +28,21 @@ export default function TeamOverviewPanel({
   playerCount,
 }: TeamOverviewPanelProps) {
   const { t } = useTranslation();
+  const { refreshTeam } = useTeam();
+  const hasRefreshedRef = useRef(false);
 
   const owner = members.find((m) => m.isOwner);
   const averageAge = calculateAverageAge(members.filter((m) => m.role === "PLAYER"));
   const establishedDate = team.createdAt ? formatDateShort(team.createdAt) : null;
+  const verifiedProfiles = team.membersOverview?.verifiedProfilesCount ?? 0;
+  const totalMembersFromOverview = team.membersOverview?.totalMembers ?? members.length;
+
+  useEffect(() => {
+    if (!hasRefreshedRef.current && !team.membersOverview) {
+      hasRefreshedRef.current = true;
+      void refreshTeam();
+    }
+  }, [refreshTeam, team.membersOverview]);
 
   return (
     <div className="space-y-6">
@@ -41,32 +56,10 @@ export default function TeamOverviewPanel({
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard
-          icon={Users}
-          label={t("management.total_members")}
-          value={members.length}
-          color="text-blue-400"
-        />
-        <StatCard
-          icon={Shield}
-          label={t("management.staff_members")}
-          value={staffCount}
-          color="text-purple-400"
-        />
-        <StatCard
-          icon={TrendingUp}
-          label={t("management.players")}
-          value={playerCount}
-          color="text-green-400"
-        />
-      </div>
-
-      {/* Main Content - 2 colonnes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Colonne gauche */}
-        <div className="space-y-6">
+      {/* Main Layout - Content Left + Stats Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Contenu à gauche (2 colonnes) */}
+        <div className="lg:col-span-2 space-y-6">
           {/* Team Info Card */}
           <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6">
             <h3 className="text-sm font-semibold text-white mb-4">
@@ -76,6 +69,12 @@ export default function TeamOverviewPanel({
               <InfoRow label={t("management.team_name")} value={team.name} />
               <InfoRow label={t("management.team_tag")} value={team.tag} />
               <InfoRow label={t("management.game")} value={team.game} />
+              {team.nationality && (
+                <InfoRow
+                  label={t("team.nationality")}
+                  value={<NationalityBadge nationality={team.nationality} size="md" />}
+                />
+              )}
               {establishedDate && (
                 <InfoRow
                   label={t("team.established")}
@@ -127,6 +126,39 @@ export default function TeamOverviewPanel({
             </p>
           </div>
         </div>
+
+        {/* Stats à droite (1 colonne) - Colonne */}
+        <div className="lg:col-span-1 flex flex-col gap-3">
+          <StatCard
+            icon={Users}
+            label={t("management.total_members")}
+            value={members.length}
+            color="text-blue-400"
+            compact
+          />
+          <StatCard
+            icon={Shield}
+            label={t("management.staff_members")}
+            value={staffCount}
+            color="text-purple-400"
+            compact
+          />
+          <StatCard
+            icon={TrendingUp}
+            label={t("management.players")}
+            value={playerCount}
+            color="text-green-400"
+            compact
+          />
+          <StatCard
+            icon={CheckCircle}
+            label={t("profile.verified")}
+            value={verifiedProfiles}
+            subtitle={`/ ${totalMembersFromOverview}`}
+            color="text-blue-400"
+            compact
+          />
+        </div>
       </div>
     </div>
   );
@@ -137,12 +169,37 @@ function StatCard({
   label,
   value,
   color,
+  compact,
+  subtitle,
 }: {
   icon: React.ElementType;
   label: string;
   value: number;
   color: string;
+  compact?: boolean;
+  subtitle?: string;
 }) {
+  if (compact) {
+    return (
+      <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">
+              {label}
+            </p>
+            <div className="flex items-baseline gap-1">
+              <p className="text-2xl font-semibold text-white">{value}</p>
+              {subtitle && <p className="text-xs text-neutral-500">{subtitle}</p>}
+            </div>
+          </div>
+          <div className={`p-2 rounded-lg bg-neutral-800 ${color} flex-shrink-0`}>
+            <Icon className="w-4 h-4" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6">
       <div className="flex items-center justify-between">

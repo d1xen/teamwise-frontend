@@ -1,16 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import type { TeamMember, TeamRole } from "@/contexts/team/team.types";
+import type { TeamMember, TeamRole, Team } from "@/contexts/team/team.types";
 import type { useManagementPermissions } from "@/features/team/hooks/useManagementPermissions";
 import type { useTeamActions } from "@/features/team/hooks/useTeamActions";
-import {
-  X,
-  Crown,
-  Edit3,
-  Trash2,
-  LogOut,
-  AlertTriangle,
-} from "lucide-react";
+import type { InGameRole } from "@/api/types/team";
+import { MemberProfileEditForm } from "./MemberProfileEditForm";
+import { getUserProfile } from "@/api/endpoints/profile.api";
+import { updateMemberRole, updateMemberRoster } from "@/api/endpoints/team.api";
+import type { UserProfileDto } from "@/api/endpoints/profile.api";
+import { useTeam } from "@/contexts/team/useTeam";
+import { useAuth } from "@/contexts/auth/useAuth";
+import { Toggle } from "@/shared/components/Toggle";
+import { MAX_ACTIVE_PLAYERS } from "@/shared/constants/teamConstants";
+import { getAvailableInGameRoles, IN_GAME_ROLE_LABELS } from "@/shared/utils/inGameRoles";
+import { ROLE_COLORS } from "@/shared/constants/roleStyles";
+import { Crown, X, Loader, LogOut } from "lucide-react";
 
 interface MemberDetailPanelProps {
   member: TeamMember;
@@ -18,62 +22,125 @@ interface MemberDetailPanelProps {
   permissions: ReturnType<typeof useManagementPermissions>;
   actions: ReturnType<typeof useTeamActions>;
   onClose: () => void;
+  team?: Team;
 }
 
-const ROLE_OPTIONS = ["PLAYER", "COACH", "ANALYST", "MANAGER"] as const;
+type TabId = "information" | "role" | "details";
 
-const ROLE_COLORS: Record<TeamRole, string> = {
-  PLAYER: "text-green-400 bg-green-500/10 border-green-500/20",
-  COACH: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-  ANALYST: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-  MANAGER: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
-};
+const ROLE_OPTIONS: TeamRole[] = ["PLAYER", "COACH", "ANALYST", "MANAGER"];
 
 export default function MemberDetailPanel({
   member,
+  teamId,
   permissions,
   actions,
   onClose,
+  team,
 }: MemberDetailPanelProps) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const { refreshTeam, members } = useTeam();
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: member.firstName ?? "",
-    lastName: member.lastName ?? "",
-    email: member.email ?? "",
-    role: member.role,
-  });
+  const [activeTab, setActiveTab] = useState<TabId>("information");
+  const [memberProfile, setMemberProfile] = useState<UserProfileDto | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isTogglingActive, setIsTogglingActive] = useState(false);
+  const [isChangingRole, setIsChangingRole] = useState(false);
+  const [isChangingInGameRole, setIsChangingInGameRole] = useState(false);
+  const [activePlayerState, setActivePlayerState] = useState<boolean | undefined>(member.activePlayer);
+  const [inGameRole, setInGameRole] = useState<InGameRole | null | undefined>(member.inGameRole);
 
-  const canEditProfile = permissions.canEditMemberProfile(member);
   const canEditRole = permissions.canEditMemberRole();
   const canKick = permissions.canKickMember(member);
   const canTransfer = permissions.canTransferOwnership(member);
   const canLeave = permissions.canLeave(member);
 
-  const handleSave = async () => {
-    // TODO: Implement save logic with actions
-    setIsEditing(false);
+  // Vérifier si c'est le joueur lui-même
+  const isCurrentUser = user?.steamId === member.steamId;
+
+  // Details tab accessible si Manager/Owner OU joueur lui-même
+  const canAccessDetails = canEditRole || isCurrentUser;
+
+  // Charger le profil au mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await getUserProfile(member.steamId, teamId);
+        setMemberProfile(profile);
+      } catch (error) {
+        console.error("Failed to load profile:", error);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+  }, [member.steamId, teamId]);
+
+  const handleToggleActivePlayer = async () => {
+    const newActiveState = !activePlayerState;
+
+    if (newActiveState) {
+      const activeCount = members.filter((m) => m.activePlayer !== false).length;
+      if (activeCount >= MAX_ACTIVE_PLAYERS) {
+        alert(t("management.max_active_players_reached", { max: 5, current: activeCount }));
+        return;
+      }
+    }
+
+    setActivePlayerState(newActiveState);
+    setIsTogglingActive(true);
+
+    try {
+      await updateMemberRoster(teamId, member.steamId, { activePlayer: newActiveState });
+    } catch (error) {
+      console.error("Failed to update player active status:", error);
+      setActivePlayerState(!newActiveState);
+    } finally {
+      setIsTogglingActive(false);
+    }
   };
 
-  const handleKick = () => {
-    if (
-      confirm(
-        t("management.confirm_kick", { nickname: member.nickname })
-      )
-    ) {
-      actions.kickMember(member);
-      onClose();
+  const handleChangeRole = async (role: TeamRole) => {
+    if (role === member.role) return;
+    setIsChangingRole(true);
+    try {
+      await updateMemberRole(teamId, member.steamId, { role });
+      await refreshTeam();
+    } catch (error) {
+      console.error("Failed to update role:", error);
+    } finally {
+      setIsChangingRole(false);
+    }
+  };
+
+  const handleChangeInGameRole = async (newInGameRole: InGameRole | null) => {
+    if (newInGameRole === inGameRole) return;
+    setIsChangingInGameRole(true);
+    try {
+      await updateMemberRoster(teamId, member.steamId, { inGameRole: newInGameRole });
+      setInGameRole(newInGameRole);
+      await refreshTeam();
+    } catch (error) {
+      console.error("Failed to update in-game role:", error);
+      setInGameRole(member.inGameRole);
+    } finally {
+      setIsChangingInGameRole(false);
     }
   };
 
   const handleTransfer = () => {
-    if (
-      confirm(
-        t("management.confirm_transfer", { nickname: member.nickname })
-      )
-    ) {
+    if (confirm(t("management.confirm_transfer", { nickname: member.nickname }))) {
       actions.promoteToOwner(member);
+      onClose();
+    }
+  };
+
+  const handleKick = () => {
+    if (confirm(t("management.confirm_kick", { nickname: member.nickname }))) {
+      actions.kickMember(member);
       onClose();
     }
   };
@@ -85,237 +152,381 @@ export default function MemberDetailPanel({
     }
   };
 
-  return (
-    <div className="h-full flex flex-col bg-neutral-900">
-      {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-neutral-800">
-        <h2 className="text-lg font-semibold text-white">
-          {t("management.member_details")}
-        </h2>
-        <button
-          onClick={onClose}
-          className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
-        >
-          <X className="w-5 h-5 text-neutral-400" />
-        </button>
-      </div>
+  const handleSaveProfile = async (updatedData: Partial<UserProfileDto>) => {
+    setIsSavingProfile(true);
+    try {
+      // TODO: Implement profile update API call
+      // await updateMemberProfile(teamId, member.steamId, updatedData);
+      setMemberProfile((prev) => (prev ? { ...prev, ...updatedData } : null));
+      setIsEditingProfile(false);
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      throw error;
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-gutter-stable p-6 space-y-6">
-        {/* Member Header */}
-        <div className="flex flex-col items-center text-center pb-6 border-b border-neutral-800">
-          <img
-            src={member.avatarUrl}
-            alt={member.nickname}
-            className="w-20 h-20 rounded-2xl object-cover mb-4"
-          />
-          <h3 className="text-xl font-semibold text-white mb-2">
-            {member.nickname}
-          </h3>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {member.isOwner && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 text-sm font-medium">
-                <Crown className="w-4 h-4" />
-                Owner
-              </span>
+  return (
+    <div className="h-full flex flex-col bg-neutral-900 overflow-hidden">
+      {/* Header */}
+      <div className="sticky top-0 bg-neutral-900/95 backdrop-blur border-b border-neutral-800 px-6 py-5 z-10">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1" />
+          <div className="flex gap-2 items-center">
+            {canKick && (
+              <button
+                onClick={handleKick}
+                className="p-1.5 hover:bg-red-500/10 rounded transition-colors"
+                title={t("management.kick_member")}
+              >
+                <LogOut className="w-5 h-5 text-red-400" />
+              </button>
             )}
-            <span
-              className={`inline-flex items-center px-3 py-1.5 rounded-lg border text-sm font-medium ${ROLE_COLORS[member.role as TeamRole]}`}
+            {canLeave && (
+              <button
+                onClick={handleLeave}
+                className="p-1.5 hover:bg-red-500/10 rounded transition-colors"
+                title={t("management.leave_team")}
+              >
+                <LogOut className="w-5 h-5 text-red-400" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 hover:bg-neutral-800 rounded transition-colors"
             >
-              {member.role}
-            </span>
+              <X className="w-5 h-5 text-neutral-400" />
+            </button>
           </div>
         </div>
 
-        {/* Personal Information */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-white">
-              {t("management.personal_information")}
-            </h3>
-            {canEditProfile && !isEditing && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
-              >
-                <Edit3 className="w-3 h-3" />
-                {t("common.edit")}
-              </button>
-            )}
+        <div className="flex items-start gap-4">
+          <img
+            src={member.avatarUrl || "https://via.placeholder.com/60"}
+            alt={member.nickname}
+            className="w-14 h-14 rounded border border-neutral-700 object-cover flex-shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-semibold text-white">{member.nickname}</h1>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {/* Profil incomplet */}
+              {!member.profileCompleted && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/10 text-yellow-300 border border-yellow-500/20">
+                  {t("management.profile_incomplete")}
+                </span>
+              )}
+              {/* Rôle */}
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-current border-opacity-20 ${ROLE_COLORS[member.role]}`}>
+                {member.role}
+              </span>
+              {/* Statut Actif */}
+              {activePlayerState && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                  {t("management.roster_active")}
+                </span>
+              )}
+              {/* Rôle in-game */}
+              {member.inGameRole && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-800 text-neutral-300 border border-neutral-700">
+                  {member.inGameRole}
+                </span>
+              )}
+            </div>
           </div>
+        </div>
+      </div>
 
-          <div className="space-y-3">
-            <Field
-              label={t("management.first_name")}
-              value={formData.firstName}
-              onChange={(v) => setFormData({ ...formData, firstName: v })}
-              editable={isEditing && canEditProfile}
-            />
-            <Field
-              label={t("management.last_name")}
-              value={formData.lastName}
-              onChange={(v) => setFormData({ ...formData, lastName: v })}
-              editable={isEditing && canEditProfile}
-            />
-            <Field
-              label={t("management.email")}
-              value={formData.email}
-              onChange={(v) => setFormData({ ...formData, email: v })}
-              editable={isEditing && canEditProfile}
-              type="email"
-            />
-          </div>
+      {/* Tabs */}
+      <div className="border-b border-neutral-800 flex bg-neutral-900/50">
+        <button
+          onClick={() => setActiveTab("information")}
+          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+            activeTab === "information"
+              ? "text-white border-neutral-400 bg-neutral-800/50"
+              : "text-neutral-400 border-transparent hover:text-neutral-300"
+          }`}
+        >
+          {t("management.information")}
+        </button>
+        <button
+          onClick={() => setActiveTab("role")}
+          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+            activeTab === "role"
+              ? "text-white border-neutral-400 bg-neutral-800/50"
+              : "text-neutral-400 border-transparent hover:text-neutral-300"
+          }`}
+        >
+          {t("management.role")}
+        </button>
+        {canAccessDetails && (
+          <button
+            onClick={() => setActiveTab("details")}
+            className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === "details"
+                ? "text-white border-neutral-400 bg-neutral-800/50"
+                : "text-neutral-400 border-transparent hover:text-neutral-300"
+            }`}
+          >
+            {t("management.details")}
+          </button>
+        )}
+      </div>
 
-          {isEditing && (
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={handleSave}
-                className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                {t("common.save")}
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditing(false);
-                  setFormData({
-                    firstName: member.firstName ?? "",
-                    lastName: member.lastName ?? "",
-                    email: member.email ?? "",
-                    role: member.role,
-                  });
-                }}
-                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                {t("common.cancel")}
-              </button>
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="p-6 space-y-6">
+          {/* Information Tab */}
+          {activeTab === "information" && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                  <div className="text-xs text-neutral-500 mb-1">SteamID</div>
+                  <div className="text-sm text-white font-mono">{member.steamId}</div>
+                </div>
+                <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                  <div className="text-xs text-neutral-500 mb-1">{t("management.username")}</div>
+                  <div className="text-sm text-white">{member.customUsername || "—"}</div>
+                </div>
+                <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                  <div className="text-xs text-neutral-500 mb-1">Discord</div>
+                  <div className="text-sm text-white">{member.discord || "—"}</div>
+                </div>
+                <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                  <div className="text-xs text-neutral-500 mb-1">Twitter/X</div>
+                  <div className="text-sm text-white">{member.twitter || "—"}</div>
+                </div>
+                {isLoadingProfile ? (
+                  <>
+                    <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                      <div className="text-xs text-neutral-500 mb-1">{t("profile.first_name")}</div>
+                      <div className="text-sm text-neutral-400">{t("common.loading")}</div>
+                    </div>
+                    <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                      <div className="text-xs text-neutral-500 mb-1">{t("profile.last_name")}</div>
+                      <div className="text-sm text-neutral-400">{t("common.loading")}</div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                      <div className="text-xs text-neutral-500 mb-1">{t("profile.first_name")}</div>
+                      <div className="text-sm text-white">{memberProfile?.firstName || "—"}</div>
+                    </div>
+                    <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                      <div className="text-xs text-neutral-500 mb-1">{t("profile.last_name")}</div>
+                      <div className="text-sm text-white">{memberProfile?.lastName || "—"}</div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           )}
-        </section>
 
-        {/* Role Management */}
-        {canEditRole && (
-          <section>
-            <h3 className="text-sm font-semibold text-white mb-4">
-              {t("management.role")}
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {ROLE_OPTIONS.map((role) => (
-                <button
-                  key={role}
-                  onClick={() => {
-                    // TODO: Implement role change
-                    setFormData({ ...formData, role });
-                  }}
-                  className={`
-                    px-4 py-2.5 rounded-lg text-sm font-medium transition-all
-                    ${
-                      formData.role === role
-                        ? ROLE_COLORS[role]
-                        : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white"
-                    }
-                  `}
-                >
-                  {role}
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Ownership Transfer */}
-        {canTransfer && (
-          <section className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
-            <div className="flex items-start gap-3 mb-3">
-              <Crown className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-semibold text-amber-400 mb-1">
-                  {t("management.transfer_ownership")}
-                </h3>
-                <p className="text-xs text-amber-400/70">
-                  {t("management.transfer_ownership_description")}
-                </p>
+          {/* Role Tab */}
+          {activeTab === "role" && (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-white">{t("management.team_role")}</h3>
+                  {!canEditRole && (
+                    <span className="text-xs text-neutral-500">{t("management.view_only")}</span>
+                  )}
+                </div>
+                {canEditRole ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {ROLE_OPTIONS.map((role) => (
+                      <button
+                        key={role}
+                        onClick={() => handleChangeRole(role)}
+                        disabled={isChangingRole}
+                        className={`px-3 py-2 rounded text-sm font-medium transition-colors border ${
+                          role === member.role
+                            ? `${ROLE_COLORS[role]} border-current border-opacity-20`
+                            : "text-neutral-400 bg-neutral-800/50 border-neutral-700 hover:bg-neutral-800"
+                        } disabled:opacity-50`}
+                      >
+                        {role}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                    <div className="text-sm text-white">{member.role}</div>
+                  </div>
+                )}
               </div>
-            </div>
-            <button
-              onClick={handleTransfer}
-              className="w-full px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-sm font-medium rounded-lg transition-colors"
-            >
-              {t("management.transfer_to_member")}
-            </button>
-          </section>
-        )}
 
-        {/* Danger Zone */}
-        {(canKick || canLeave) && (
-          <section className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
-            <div className="flex items-start gap-3 mb-3">
-              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-semibold text-red-400 mb-1">
-                  {t("management.danger_zone")}
-                </h3>
-                <p className="text-xs text-red-400/70">
-                  {t("management.danger_zone_description")}
-                </p>
+              <div className="px-4 py-3 bg-neutral-800/50 border border-neutral-700 rounded space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-white">{t("management.roster_status")}</p>
+                    <p className="text-xs text-neutral-500">
+                      {activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}
+                    </p>
+                  </div>
+                  {canEditRole && member.role === "PLAYER" ? (
+                    <Toggle
+                      checked={activePlayerState ?? false}
+                      onChange={handleToggleActivePlayer}
+                      disabled={
+                        isTogglingActive ||
+                        (!activePlayerState && members.filter((m) => m.activePlayer !== false).length >= MAX_ACTIVE_PLAYERS)
+                      }
+                    />
+                  ) : (
+                    <div className="text-sm font-medium text-white">
+                      {activePlayerState ? "✓" : "✗"}
+                    </div>
+                  )}
+                </div>
+                {!activePlayerState && canEditRole && members.filter((m) => m.activePlayer !== false).length >= MAX_ACTIVE_PLAYERS && (
+                  <p className="text-xs text-red-400">{MAX_ACTIVE_PLAYERS}/{MAX_ACTIVE_PLAYERS} {t("management.active")}</p>
+                )}
               </div>
-            </div>
-            <div className="space-y-2">
-              {canKick && (
-                <button
-                  onClick={handleKick}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-medium rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  {t("management.kick_member")}
-                </button>
+
+              {activePlayerState && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold text-white">{t("management.in_game_role")}</h3>
+                    {!canEditRole && (
+                      <span className="text-xs text-neutral-500">{t("management.view_only")}</span>
+                    )}
+                  </div>
+                  {canEditRole ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Option pour effacer le rôle */}
+                      <button
+                        onClick={() => handleChangeInGameRole(null)}
+                        disabled={isChangingInGameRole}
+                        className={`px-3 py-2 rounded text-sm font-medium transition-colors border ${
+                          inGameRole === null
+                            ? "bg-neutral-700 text-white border-neutral-600"
+                            : "text-neutral-400 bg-neutral-800/50 border-neutral-700 hover:bg-neutral-800"
+                        } disabled:opacity-50`}
+                      >
+                        —
+                      </button>
+                      {/* Options pour les rôles disponibles */}
+                      {getAvailableInGameRoles(team?.game).map((role) => (
+                        <button
+                          key={role}
+                          onClick={() => handleChangeInGameRole(role)}
+                          disabled={isChangingInGameRole}
+                          className={`px-3 py-2 rounded text-sm font-medium transition-colors border ${
+                            role === inGameRole
+                              ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
+                              : "text-neutral-400 bg-neutral-800/50 border-neutral-700 hover:bg-neutral-800"
+                          } disabled:opacity-50`}
+                        >
+                          {IN_GAME_ROLE_LABELS[role]}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                      <div className="text-sm text-white">{inGameRole ? IN_GAME_ROLE_LABELS[inGameRole] : "—"}</div>
+                    </div>
+                  )}
+                </div>
               )}
-              {canLeave && (
-                <button
-                  onClick={handleLeave}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-medium rounded-lg transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  {t("management.leave_team")}
-                </button>
-              )}
             </div>
-          </section>
-        )}
+          )}
+
+          {/* Details Tab */}
+          {activeTab === "details" && canAccessDetails && (
+            <>
+              {isLoadingProfile ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader className="w-5 h-5 text-neutral-400 animate-spin" />
+                </div>
+              ) : memberProfile ? (
+                isEditingProfile ? (
+                  <MemberProfileEditForm
+                    profile={memberProfile}
+                    onSave={handleSaveProfile}
+                    onCancel={() => setIsEditingProfile(false)}
+                    isSaving={isSavingProfile}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
+                      <h3 className="text-sm font-semibold text-white">{t("profile.profile")}</h3>
+                      {canEditRole && (
+                        <button
+                          onClick={() => setIsEditingProfile(true)}
+                          className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          {t("common.edit")}
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                        <div className="text-xs text-neutral-500 mb-1">{t("profile.first_name")}</div>
+                        <div className="text-sm text-white">{memberProfile.firstName || "—"}</div>
+                      </div>
+                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                        <div className="text-xs text-neutral-500 mb-1">{t("profile.last_name")}</div>
+                        <div className="text-sm text-white">{memberProfile.lastName || "—"}</div>
+                      </div>
+                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                        <div className="text-xs text-neutral-500 mb-1">{t("common.email")}</div>
+                        <div className="text-sm text-white break-all">{memberProfile.email || "—"}</div>
+                      </div>
+                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                        <div className="text-xs text-neutral-500 mb-1">{t("management.phone")}</div>
+                        <div className="text-sm text-white">{memberProfile.phone || "—"}</div>
+                      </div>
+                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                        <div className="text-xs text-neutral-500 mb-1">{t("profile.city")}</div>
+                        <div className="text-sm text-white">{memberProfile.city || "—"}</div>
+                      </div>
+                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
+                        <div className="text-xs text-neutral-500 mb-1">{t("profile.country")}</div>
+                        <div className="text-sm text-white">{memberProfile.countryCode || "—"}</div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              ) : null}
+
+              {canTransfer && (
+                <div className="border-t border-neutral-800 pt-6">
+                  <button
+                    onClick={handleTransfer}
+                    className="w-full px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-sm font-medium rounded transition-colors border border-amber-500/20 flex items-center justify-center gap-2"
+                  >
+                    <Crown className="w-4 h-4" />
+                    {t("management.transfer_to_member")}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  editable,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  editable: boolean;
-  type?: "text" | "email";
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-neutral-500 mb-1.5">
-        {label}
-      </label>
-      {editable ? (
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
-        />
-      ) : (
-        <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-800 rounded-lg text-sm text-neutral-300">
-          {value || <span className="text-neutral-600">—</span>}
-        </div>
-      )}
-    </div>
-  );
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/auth/useAuth";
 import { getMyTeams } from "@/api/endpoints/team.api";
 import type { TeamDto } from "@/api/types/team";
-import { Users, Plus, ChevronRight, Shield, LogOut, Heart } from "lucide-react";
+import { Users, Plus, ChevronRight, Shield, LogOut, Heart, LogIn } from "lucide-react";
 import { appConfig } from '@/config/appConfig';
 import { useMinimumLoader } from '@/shared/hooks/useMinimumLoader';
 import FullScreenLoader from "@/shared/components/FullScreenLoader";
+import JoinTeamModal from "@/features/team/components/JoinTeamModal";
 
 type Team = {
     id: number;
@@ -25,6 +26,7 @@ export default function SelectTeamPage() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
 
     const showLoader = useMinimumLoader(isAuthLoading || isLoading, 800);
 
@@ -78,11 +80,7 @@ export default function SelectTeamPage() {
 
     const handleTeamClick = (teamId: number) => {
         if (!user) return;
-        if (!user.profileCompleted) {
-            navigate("/complete-profile", { state: { fromTeamId: teamId } });
-        } else {
-            navigate(`/team/${teamId}`);
-        }
+        navigate(`/team/${teamId}`);
     };
 
     const handleLogout = () => {
@@ -92,14 +90,53 @@ export default function SelectTeamPage() {
         }
     };
 
+    const handleJoinSuccess = async () => {
+        // Rafraîchir la liste des équipes
+        setIsLoading(true);
+        try {
+            const teamsData = await getMyTeams();
+            setTeams(
+                teamsData.map((team) => ({
+                    id: team.id,
+                    name: team.name,
+                    tag: team.tag ?? "",
+                    ...(team.logoUrl && { logoUrl: team.logoUrl }),
+                }))
+            );
+            setError(null);
+        } catch {
+            setError(t("team.load_error"));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 px-4 py-8">
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
 
-            <button onClick={handleLogout} className="absolute top-6 right-6 flex items-center gap-2 px-4 py-2 rounded-lg border border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/10 transition-all duration-200 z-10">
-                <LogOut className="w-4 h-4" />
-                <span className="text-sm">{t("auth.logout")}</span>
-            </button>
+            {/* Top Right Buttons */}
+            <div className="absolute top-6 right-6 flex items-center gap-3 z-10">
+                {/* Soutenir TeamWise Button */}
+                <a
+                    href={kofiUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/60 hover:bg-emerald-500/20 transition-all duration-200"
+                >
+                    <Heart className="w-4 h-4" />
+                    <span className="text-sm font-medium">{t("donate.cta")}</span>
+                </a>
+
+                {/* Logout Button */}
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/10 transition-all duration-200"
+                >
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-sm">{t("auth.logout")}</span>
+                </button>
+            </div>
 
             <div className="relative z-10 w-full max-w-2xl">
                 <div className="text-center mb-12">
@@ -176,20 +213,26 @@ export default function SelectTeamPage() {
                                 ))}
                             </div>
 
-                            <button onClick={() => navigate("/team/create")} className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-neutral-700 hover:border-indigo-500/50 rounded-xl text-neutral-400 hover:text-indigo-400 transition-all duration-200">
-                                <Plus className="w-5 h-5" />
-                                <span className="font-medium">{t("team.create_new_team")}</span>
-                            </button>
+                            <div className="grid grid-cols-2 gap-3">
+                                {/* Créer une équipe */}
+                                <button
+                                    onClick={() => navigate("/team/create")}
+                                    className="group flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-indigo-500/30 hover:border-indigo-500/60 rounded-xl bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-300 hover:text-indigo-200 transition-all duration-200"
+                                >
+                                    <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                                    <span className="font-semibold text-sm text-center">{t("team.create_new_team")}</span>
+                                </button>
 
-                            <a
-                                href={kofiUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/20 transition-all duration-200"
-                            >
-                                <Heart className="w-5 h-5" />
-                                <span className="font-medium">{t("donate.cta")}</span>
-                            </a>
+                                {/* Rejoindre une équipe */}
+                                <button
+                                    onClick={() => setIsJoinModalOpen(true)}
+                                    className="group flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-cyan-500/30 hover:border-cyan-500/60 rounded-xl bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-300 hover:text-cyan-200 transition-all duration-200"
+                                >
+                                    <LogIn className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                                    <span className="font-semibold text-sm text-center">{t("team.join.title")}</span>
+                                </button>
+                            </div>
+
                         </div>
                     )}
                 </div>
@@ -204,6 +247,13 @@ export default function SelectTeamPage() {
                     </Link>
                 </p>
             </div>
+
+            {/* Join Team Modal */}
+            <JoinTeamModal
+                isOpen={isJoinModalOpen}
+                onClose={() => setIsJoinModalOpen(false)}
+                onSuccess={handleJoinSuccess}
+            />
         </div>
     );
 }

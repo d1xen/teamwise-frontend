@@ -1,3 +1,5 @@
+import type { TeamMemberLink } from "@/api/types/team";
+
 export type UserProfileDto = {
     steamId: string;
     nickname: string;
@@ -18,10 +20,22 @@ export type UserProfileDto = {
     profileCompleted: boolean;
 };
 
-export type UserProfileUpdateDto = Partial<
-    Omit<
-        UserProfileDto,
-        "steamId" | "nickname" | "avatarUrl" | "profileCompleted"
-    >
->;
+export type UserProfileUpdateDto = {
+    customUsername?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    birthDate?: string | null;
+    address?: string | null;
+    zipCode?: string | null;
+    city?: string | null;
+    countryCode?: string | null;
+    phone?: string | null;
+    twitter?: string | null;
+    discord?: string | null;
+    hltv?: string | null;
+    memberLinks?: {
+        links: TeamMemberLink[];
+    } | null;
+};
 

@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { removeMember, transferOwnership } from "@/api/endpoints/team.api";
 import type { TeamMember } from "@/contexts/team/team.types.ts";
+import { useTeam } from "@/contexts/team/useTeam";
 
 type UseTeamActionsParams = {
     teamId: string;
@@ -15,6 +16,7 @@ export function useTeamActions({
     isOwner,
 }: UseTeamActionsParams) {
     const { t } = useTranslation();
+    const { refreshTeam, resetTeam } = useTeam();
 
     const kickMember = async (member: TeamMember) => {
         const confirmed = window.confirm(
@@ -25,7 +27,7 @@ export function useTeamActions({
         try {
             await removeMember(teamId, member.steamId);
             toast.success(t("management.member_kicked"));
-            window.location.reload();
+            await refreshTeam();
         } catch {
             toast.error(t("common.error"));
         }
@@ -42,7 +44,7 @@ export function useTeamActions({
         try {
             await transferOwnership(teamId, member.steamId);
             toast.success(t("management.owner_transferred"));
-            window.location.reload();
+            await refreshTeam();
         } catch {
             toast.error(t("common.error"));
         }
@@ -59,6 +61,7 @@ export function useTeamActions({
 
         try {
             await removeMember(teamId, currentUserSteamId);
+            resetTeam();
             window.location.href = "/select-team";
         } catch {
             toast.error(t("common.error"));

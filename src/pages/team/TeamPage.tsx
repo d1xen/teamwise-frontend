@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
 import { useTeam } from '@/contexts/team/useTeam';
-import { TeamHeader, TeamRosterSection } from '@/features/team/components';
+import { TeamHeader, TeamRosterSection, TeamRosterTabs } from '@/features/team/components';
 import FeatureBody from '@/shared/components/FeatureBody';
 import { useMinimumLoader } from '@/shared/hooks/useMinimumLoader';
 
@@ -17,6 +18,7 @@ export default function TeamPage() {
   const { t } = useTranslation();
   const { team, membership, members, isLoading } = useTeam();
   const showLoader = useMinimumLoader(isLoading || !team || !membership, 800);
+  const [activeTab, setActiveTab] = useState<'roster' | 'staff'>('roster');
 
   if (showLoader) {
     return (
@@ -32,19 +34,31 @@ export default function TeamPage() {
   const staffMembers = members.filter((m) => m.role !== 'PLAYER');
   const playerMembers = members.filter((m) => m.role === 'PLAYER');
 
+  const visiblePlayers = activeTab === 'roster' ? playerMembers : [];
+  const visibleStaff = activeTab === 'staff' ? staffMembers : [];
+
   return (
     <div className="flex flex-col h-full bg-neutral-950">
 
       {/* Hero Header Premium */}
-      <TeamHeader team={team} />
+      <TeamHeader team={team!}>
+        <TeamRosterTabs
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          rosterCount={playerMembers.length}
+          staffCount={staffMembers.length}
+          rosterLabel={t('team.roster')}
+          staffLabel={t('team.staff')}
+        />
+      </TeamHeader>
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-gutter-stable">
         <FeatureBody>
           {/* Roster Section */}
           <TeamRosterSection
-            playerMembers={playerMembers}
-            staffMembers={staffMembers}
+            playerMembers={visiblePlayers}
+            staffMembers={visibleStaff}
           />
         </FeatureBody>
       </div>

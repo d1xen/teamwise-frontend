@@ -1,9 +1,18 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { toast } from "react-hot-toast";
-import type { Team } from "@/contexts/team/team.types";
-import { updateTeam as updateTeamApi } from "@/api/endpoints/team.api";
-import { Save, Link as LinkIcon, Copy, RotateCw } from "lucide-react";
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'react-hot-toast';
+import type { Team } from '@/contexts/team/team.types';
+import { updateTeam as updateTeamApi } from '@/api/endpoints/team.api';
+import type { UpdateTeamRequest } from '@/api/types/team';
+import { useTeam } from '@/contexts/team/useTeam';
+import {
+  FormContainer,
+  FormHeader,
+  FormInput,
+  FormTextarea,
+  FormSection,
+  FormActions,
+} from '@/design-system/components/Form';
 
 interface TeamSettingsPanelProps {
   team: Team;
@@ -14,267 +23,183 @@ interface TeamSettingsPanelProps {
 export default function TeamSettingsPanel({
   team,
   canEdit,
-  canInvite,
 }: TeamSettingsPanelProps) {
   const { t } = useTranslation();
+  const { refreshTeam } = useTeam();
+  const [isEditing, setIsEditing] = useState(false);
 
   const [formData, setFormData] = useState({
     name: team.name,
-    tag: team.tag ?? "",
-    game: team.game ?? "",
-    logoUrl: team.logoUrl,
-    hltvUrl: team.hltvUrl ?? "",
-    faceitUrl: team.faceitUrl ?? "",
-    twitterUrl: team.twitterUrl ?? "",
+    tag: team.tag ?? '',
+    logoUrl: team.logoUrl ?? '',
+    description: team.description ?? '',
+    hltv: team.links?.find((l) => l.type === 'HLTV')?.url ?? '',
+    faceit: team.links?.find((l) => l.type === 'FACEIT')?.url ?? '',
+    twitter: team.links?.find((l) => l.type === 'TWITTER')?.url ?? '',
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleChange = (field: keyof typeof formData, value: string) => {
+  const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.name.trim()) newErrors.name = 'Team name required';
+    if (!formData.tag.trim()) newErrors.tag = 'Team tag required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = async () => {
-    if (!canEdit || !isDirty) return;
+    if (!validateForm()) return;
     setIsSaving(true);
     try {
-      await updateTeamApi(team.id, {
+      const links = [
+        formData.hltv && { type: 'HLTV' as const, url: formData.hltv },
+        formData.faceit && { type: 'FACEIT' as const, url: formData.faceit },
+        formData.twitter && { type: 'TWITTER' as const, url: formData.twitter },
+      ].filter(
+        (link): link is { type: 'HLTV' | 'FACEIT' | 'TWITTER'; url: string } => Boolean(link)
+      );
+
+      const payload: UpdateTeamRequest = {
         name: formData.name,
         ...(formData.tag && { tag: formData.tag }),
-        ...(formData.game && { game: formData.game }),
-        hltvUrl: formData.hltvUrl || null,
-        faceitUrl: formData.faceitUrl || null,
-        twitterUrl: formData.twitterUrl || null,
-      });
-      toast.success(t("management.team_updated"));
+        ...(formData.description && { description: formData.description }),
+        links,
+      };
+      await updateTeamApi(team.id, payload);
+      toast.success('Team updated!');
       setIsDirty(false);
-      // Reload pour refléter les changements
-      window.location.reload();
+      setIsEditing(false);
+      await refreshTeam();
     } catch {
-      toast.error(t("common.error"));
+      toast.error('Error saving');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleCopyInviteLink = () => {
-    if (team.invitationToken) {
-      const link = `${window.location.origin}/invite/${team.invitationToken}`;
-      navigator.clipboard.writeText(link);
-      toast.success(t("management.link_copied"));
-    }
-  };
+  if (!isEditing) {
+    return (
+      <FormContainer>
+        <FormHeader
+          title={t('management.teams')}
+          subtitle="Manage your team settings"
+          action={
+            canEdit ? (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+              >
+                Edit
+              </button>
+            ) : undefined
+          }
+        />
 
-  const handleRegenerateLink = async () => {
-    // TODO: Implement regenerate invite link API call
-    toast.success(t("management.feature_coming_soon"));
-  };
-
-  return (
-    <div className="space-y-8">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">
-            {t("management.settings")}
-          </h1>
-          <p className="text-sm text-neutral-400 mt-1">
-            {t("management.settings_subtitle")}
-          </p>
-        </div>
-        {canEdit && isDirty && (
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? t("common.saving") : t("common.save")}
-          </button>
-        )}
-      </div>
-
-      {/* Team Identity */}
-      <section className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6">
-        <h2 className="text-sm font-semibold text-white mb-6">
-          {t("management.team_identity")}
-        </h2>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column */}
-          <div className="space-y-4">
-            <FormField
-              label={t("management.team_logo")}
-              disabled={!canEdit}
-            >
-              <div className="space-y-3">
-                {formData.logoUrl && (
-                  <img
-                    src={formData.logoUrl}
-                    alt="Team logo"
-                    className="w-24 h-24 rounded-lg object-cover"
-                  />
-                )}
-                <input
-                  type="url"
-                  value={formData.logoUrl ?? ""}
-                  onChange={(e) => handleChange("logoUrl", e.target.value)}
-                  disabled={!canEdit}
-                  className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder={t("management.logo_url_placeholder")}
-                />
-              </div>
-            </FormField>
-
-            <FormField
-              label={t("management.team_name")}
-              required
-              disabled={!canEdit}
-            >
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                disabled={!canEdit}
-                className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder={t("management.team_name_placeholder")}
-              />
-            </FormField>
-
-            <FormField
-              label={t("management.team_tag")}
-              required
-              disabled={!canEdit}
-            >
-              <input
-                type="text"
-                value={formData.tag}
-                onChange={(e) => handleChange("tag", e.target.value)}
-                disabled={!canEdit}
-                maxLength={10}
-                className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder={t("management.team_tag_placeholder")}
-              />
-            </FormField>
-
-            <FormField
-              label={t("management.game")}
-              required
-              disabled={!canEdit}
-            >
-              <input
-                type="text"
-                value={formData.game}
-                onChange={(e) => handleChange("game", e.target.value)}
-                disabled={!canEdit}
-                className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder="Counter-Strike 2"
-              />
-            </FormField>
+        <FormSection title="Team Info">
+          <div>
+            <p className="text-xs text-neutral-500 mb-1">Name</p>
+            <p className="text-neutral-100 text-sm font-medium">{team.name}</p>
           </div>
-
-          {/* Right Column */}
-          <div className="space-y-4">
-            <FormField label={t("management.hltv_url")} disabled={!canEdit}>
-              <input
-                type="url"
-                value={formData.hltvUrl ?? ""}
-                onChange={(e) => handleChange("hltvUrl", e.target.value)}
-                disabled={!canEdit}
-                className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder="https://hltv.org/team/..."
-              />
-            </FormField>
-
-            <FormField label={t("management.faceit_url")} disabled={!canEdit}>
-              <input
-                type="url"
-                value={formData.faceitUrl ?? ""}
-                onChange={(e) => handleChange("faceitUrl", e.target.value)}
-                disabled={!canEdit}
-                className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder="https://faceit.com/team/..."
-              />
-            </FormField>
-
-            <FormField label={t("management.twitter_url")} disabled={!canEdit}>
-              <input
-                type="url"
-                value={formData.twitterUrl ?? ""}
-                onChange={(e) => handleChange("twitterUrl", e.target.value)}
-                disabled={!canEdit}
-                className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder="https://twitter.com/..."
-              />
-            </FormField>
+          <div>
+            <p className="text-xs text-neutral-500 mb-1">Tag</p>
+            <p className="text-neutral-100 text-sm font-mono">{team.tag || '-'}</p>
           </div>
-        </div>
-      </section>
-
-      {/* Invitation Link */}
-      {canInvite && (
-        <section className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <LinkIcon className="w-4 h-4 text-neutral-400" />
-            <h2 className="text-sm font-semibold text-white">
-              {t("management.invitation_link")}
-            </h2>
+          <div className="col-span-2">
+            <p className="text-xs text-neutral-500 mb-1">Game</p>
+            <p className="text-neutral-100 text-sm">{team.game || '-'}</p>
           </div>
-          <p className="text-xs text-neutral-500 mb-4">
-            {t("management.invitation_link_description")}
-          </p>
-
-          <div className="flex gap-2">
-            <div className="flex-1 px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-neutral-300 truncate">
-              {team.invitationToken
-                ? `${window.location.origin}/invite/${team.invitationToken}`
-                : t("management.no_invitation_link")}
+          {team.logoUrl && (
+            <div className="col-span-2">
+              <p className="text-xs text-neutral-500 mb-1">Logo</p>
+              <img src={team.logoUrl} alt="Logo" className="w-12 h-12 rounded-lg object-cover" />
             </div>
-            <button
-              onClick={handleCopyInviteLink}
-              disabled={!team.invitationToken}
-              className="px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title={t("management.copy_link")}
-            >
-              <Copy className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleRegenerateLink}
-              className="px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-white rounded-lg transition-colors"
-              title={t("management.regenerate_link")}
-            >
-              <RotateCw className="w-4 h-4" />
-            </button>
-          </div>
-        </section>
-      )}
-    </div>
-  );
-}
+          )}
+        </FormSection>
 
-function FormField({
-  label,
-  required,
-  disabled,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  disabled?: boolean;
-  children: React.ReactNode;
-}) {
+        {team.description && (
+          <FormSection title="Description">
+            <div className="col-span-2">
+              <p className="text-neutral-300 text-sm">{team.description}</p>
+            </div>
+          </FormSection>
+        )}
+
+        {team.links && team.links.length > 0 && (
+          <FormSection title="Links">
+            {team.links.map((link) => (
+              <div key={link.type} className="col-span-2">
+                <p className="text-xs text-neutral-500 mb-1">{link.type}</p>
+                <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 text-sm break-all">
+                  {link.url}
+                </a>
+              </div>
+            ))}
+          </FormSection>
+        )}
+      </FormContainer>
+    );
+  }
+
   return (
-    <div>
-      <label
-        className={`block text-xs font-medium mb-2 ${disabled ? "text-neutral-600" : "text-neutral-400"}`}
-      >
-        {label}
-        {required && <span className="text-red-400 ml-1">*</span>}
-      </label>
-      {children}
-    </div>
+    <FormContainer>
+      <FormHeader title={t('management.teams')} subtitle="Update team settings" />
+
+      <FormSection title="Team Info">
+        <FormInput label="Name" placeholder="Team Vitality" value={formData.name} onChange={(value) => handleChange('name', value)} error={errors.name} required />
+        <FormInput label="Tag" placeholder="VIT" value={formData.tag} onChange={(value) => handleChange('tag', value)} error={errors.tag} required />
+        <div className="col-span-2">
+          <p className="text-xs text-neutral-500 mb-1">Game</p>
+          <p className="text-neutral-400 text-sm">{team.game} (immutable)</p>
+        </div>
+        <div className="col-span-2">
+          <FormInput label="Logo URL" placeholder="https://..." value={formData.logoUrl} onChange={(value) => handleChange('logoUrl', value)} />
+        </div>
+      </FormSection>
+
+      <FormSection title="Description">
+        <div className="col-span-2">
+          <FormTextarea label="Description" placeholder="Describe your team..." value={formData.description} onChange={(value) => handleChange('description', value)} rows={3} />
+        </div>
+      </FormSection>
+
+      <FormSection title="Links">
+        <FormInput label="HLTV" placeholder="https://hltv.org/..." value={formData.hltv} onChange={(value) => handleChange('hltv', value)} />
+        <FormInput label="FACEIT" placeholder="https://faceit.com/..." value={formData.faceit} onChange={(value) => handleChange('faceit', value)} />
+        <div className="col-span-2">
+          <FormInput label="Twitter" placeholder="https://twitter.com/..." value={formData.twitter} onChange={(value) => handleChange('twitter', value)} />
+        </div>
+      </FormSection>
+
+      <FormActions
+        onCancel={() => {
+          setIsEditing(false);
+          setFormData({
+            name: team.name,
+            tag: team.tag ?? '',
+            logoUrl: team.logoUrl ?? '',
+            description: team.description ?? '',
+            hltv: team.links?.find((l) => l.type === 'HLTV')?.url ?? '',
+            faceit: team.links?.find((l) => l.type === 'FACEIT')?.url ?? '',
+            twitter: team.links?.find((l) => l.type === 'TWITTER')?.url ?? '',
+          });
+          setErrors({});
+          setIsDirty(false);
+        }}
+        onSave={handleSave}
+        isDirty={isDirty}
+        isSaving={isSaving}
+      />
+    </FormContainer>
   );
 }
-

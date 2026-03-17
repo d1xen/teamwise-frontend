@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { createTeam } from "@/api/endpoints/team.api";
-import type { CreateTeamRequest } from "@/api/types/team";
+import type { CreateTeamRequest, Game, TeamLink } from "@/api/types/team";
 import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
 import { Input } from "@/design-system/components/Input";
 import { Button } from "@/design-system/components";
@@ -16,10 +16,12 @@ export default function CreateTeamPage() {
     // Form data
     const [name, setName] = useState("");
     const [tag, setTag] = useState("");
-    const [game, setGame] = useState("CS2");
-    const [hltvUrl, setHltvUrl] = useState("");
-    const [faceitUrl, setFaceitUrl] = useState("");
-    const [twitterUrl, setTwitterUrl] = useState("");
+    const [game, setGame] = useState<Game>("CS2");
+    const [links, setLinks] = useState<TeamLink[]>([
+        { type: "HLTV", url: "" },
+        { type: "FACEIT", url: "" },
+        { type: "TWITTER", url: "" },
+    ]);
 
     // UI state
     const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -72,7 +74,8 @@ export default function CreateTeamPage() {
             const payload: CreateTeamRequest = {
                 name: name.trim(),
                 tag: tag.trim(),
-                game: game || "CS2",
+                game,
+                links: links.filter(link => link.url.trim() !== ""),
             };
 
             const team = await createTeam(payload);
@@ -233,8 +236,8 @@ export default function CreateTeamPage() {
 
                                     <div className="grid grid-cols-2 gap-3">
                                         {[
-                                            { name: "CS2", displayName: t("team.game_cs2"), available: true },
-                                            { name: "Valorant", displayName: t("team.game_valorant"), available: false },
+                                            { name: "CS2" as const, displayName: t("team.game_cs2"), available: true },
+                                            { name: "VALORANT", displayName: t("team.game_valorant"), available: false },
                                             { name: "League of Legends", displayName: t("team.game_lol"), available: false },
                                             { name: "Dota 2", displayName: "Dota 2", available: false },
                                             { name: "Rocket League", displayName: t("team.game_rocket_league"), available: false },
@@ -243,7 +246,11 @@ export default function CreateTeamPage() {
                                             <button
                                                 key={gameName}
                                                 type="button"
-                                                onClick={() => available && setGame(gameName)}
+                                                onClick={() => {
+                                                    if (available && (gameName === "CS2" || gameName === "VALORANT")) {
+                                                        setGame(gameName as Game);
+                                                    }
+                                                }}
                                                 disabled={!available}
                                                 className={`p-4 rounded-xl border-2 transition-all duration-200 relative ${
                                                     game === gameName
@@ -278,26 +285,19 @@ export default function CreateTeamPage() {
                                         </p>
                                     </div>
 
-                                    <Input
-                                        label={t("team.hltv_link")}
-                                        value={hltvUrl}
-                                        onChange={(e) => setHltvUrl(e.target.value)}
-                                        placeholder={t("team.hltv_placeholder")}
-                                    />
-
-                                    <Input
-                                        label={t("team.faceit_link")}
-                                        value={faceitUrl}
-                                        onChange={(e) => setFaceitUrl(e.target.value)}
-                                        placeholder={t("team.faceit_placeholder")}
-                                    />
-
-                                    <Input
-                                        label={t("team.twitter_link")}
-                                        value={twitterUrl}
-                                        onChange={(e) => setTwitterUrl(e.target.value)}
-                                        placeholder={t("team.twitter_placeholder")}
-                                    />
+                                    {links.map((link, index) => (
+                                        <Input
+                                            key={link.type}
+                                            label={t(`team.${link.type.toLowerCase()}_link`)}
+                                            value={link.url}
+                                            onChange={(e) => {
+                                                const newLinks = [...links];
+                                                newLinks[index] = { ...link, url: e.target.value };
+                                                setLinks(newLinks);
+                                            }}
+                                            placeholder={t(`team.${link.type.toLowerCase()}_placeholder`)}
+                                        />
+                                    ))}
                                 </div>
                             )}
                         </div>

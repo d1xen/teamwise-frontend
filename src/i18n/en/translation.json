@@ -1,7 +1,9 @@
 {
   "common": {
+    "id": "ID",
     "loading": "Loading...",
     "saving": "Saving...",
+    "joining": "Joining...",
     "error": "An error occurred",
     "network_error": "Network error",
     "unknown_error": "Unknown error",
@@ -117,7 +119,22 @@
     "logo_url_placeholder": "Logo URL...",
     "team_name_placeholder": "Team name...",
     "team_tag_placeholder": "Tag (e.g.: G2, NAVI)...",
-    "team_updated": "Team updated successfully"
+    "team_updated": "Team updated successfully",
+    "join": {
+      "title": "Join a Team",
+      "subtitle": "Got an invitation? Paste the link below to join the team",
+      "subtitle_modal": "Paste your invitation link",
+      "invitation_link": "Invitation link",
+      "link_help": "Paste the full URL",
+      "info_modal": "Example: https://teamwise.app/invite/abc123def456",
+      "enter_link": "Please enter an invitation link",
+      "invalid_link_format": "Invalid link format",
+      "success": "Successfully joined the team! 🎉",
+      "error": "Unable to join team",
+      "join_button": "Join",
+      "dont_have_link": "Don't have a link?",
+      "ask_team_owner": "Ask the team owner"
+    }
   },
 
   "profile": {
@@ -162,16 +179,22 @@
     "copy_discord": "Copy Discord username",
     "next": "Next",
     "submit": "Save and continue",
+    "edit": "Edit",
+    "save_profile": "Save profile",
     "back": "Back",
     "loading": "Loading...",
     "missing_fields": "Please fill in all required fields",
     "update_error": "Error updating profile",
     "load_error": "Error loading profile",
-    "edit": "Edit",
+    "verified": "Profile verified",
+    "not_verified": "Profile incomplete",
+    "completion_tooltip": "Profile successfully completed",
+    "user_profile": "User profile",
     "edit_profile": "Edit profile",
-    "save_profile": "Save profile",
+    "custom_username": "Custom username",
     "edit_soon": "Edit feature coming soon",
     "remove": "Remove",
+    "no_links_available": "No links available for this game",
     "remove_confirm": "Are you sure you want to remove this member?",
     "remove_error": "Error removing member",
     "removed": "Member removed",
@@ -196,12 +219,22 @@
     "team_logo": "Team logo",
     "team_name_placeholder": "Team name...",
     "team_tag_placeholder": "Tag (e.g.: G2, NAVI)...",
+    "team_description": "Description",
+    "team_description_placeholder": "Describe your team...",
+    "team_id": "Team ID",
+    "created_at": "Created at",
+    "updated_at": "Last updated",
+    "verified_profiles": "Verified profiles",
     "staff": "Staff",
     "players": "Players",
     "members": "Members",
     "members_subtitle": "Manage team members",
     "settings": "Settings",
     "settings_subtitle": "Team configuration",
+    "teams": "Team",
+    "teams_subtitle": "Team information and settings",
+    "profile": "Profile",
+    "profile_subtitle": "Manage your user profile",
     "team_settings": "Team settings",
     "edit_team_settings": "Edit settings",
     "members_management": "Members management",
@@ -218,6 +251,8 @@
     "link_copied": "Link copied to clipboard",
     "invite_copied": "Invitation link copied!",
     "invite_success": "Invitation link copied!",
+    "steam_id": "Steam ID",
+    "change": "Change",
     "invite_error": "Missing credentials to generate invitation",
     "role_updated": "Role updated",
     "role_change_success": "Role changed to {{role}}",
@@ -254,6 +289,30 @@
     "player_role": "Player",
     "tab_members": "MEMBERS",
     "tab_team": "TEAM",
+    "roster_status": "Roster Status",
+    "roster_active": "Active",
+    "roster_inactive": "Inactive",
+    "player_activated": "Player activated",
+    "player_deactivated": "Player deactivated",
+    "player_status_error": "Error updating player status",
+    "max_active_players_reached": "Cannot add another active player. Maximum {{max}} active players reached. Currently {{current}} active players. Please deactivate one player first.",
+    "overview": "Overview",
+    "management": "Management",
+    "contact": "Contact",
+    "username": "Username",
+    "in_game_role": "In-game Role",
+    "team_role": "Team Role",
+    "phone": "Phone",
+    "view_details": "View Details",
+    "edit_information": "Edit Information",
+    "information": "Information",
+    "details": "Details",
+    "load_profile": "Load Profile",
+    "active": "Active",
+    "role": "Role",
+    "view_only": "View only",
+    "in_game_role_placeholder": "e.g. Sniper, Rifler...",
+    "profile_incomplete": "Profile Incomplete",
     "not_in_team": "You are no longer part of this team",
     "delete_success": "Team deleted successfully",
     "delete_error": "Error deleting team",
@@ -278,7 +337,9 @@
     "danger_zone_description": "Irreversible actions",
     "quick_actions": "Quick actions",
     "manage_members": "Manage members",
-    "feature_coming_soon": "Feature coming soon"
+    "feature_coming_soon": "Feature coming soon",
+    "team_updated": "Team updated successfully",
+    "logo_url_placeholder": "Logo URL..."
   },
 
   "nav": {
@@ -287,9 +348,12 @@
     "schedule": "Schedule",
     "management": "Management",
     "scrims": "Scrims",
+    "matches": "Matches",
+    "tournaments": "Tournaments",
     "results": "Results",
     "stratbook": "Stratbook",
     "stats": "Statistics",
+    "messaging": "Messaging",
     "players": "Players",
     "staff": "Staff"
   },
@@ -389,9 +453,21 @@
       "title": "Scrims",
       "subtitle": "Organize and track your training matches"
     },
+    "matches": {
+      "title": "Matches",
+      "subtitle": "Plan and track your upcoming or past matches"
+    },
+    "tournaments": {
+      "title": "Tournaments",
+      "subtitle": "Centralize your tournaments and competitive events"
+    },
     "results": {
       "title": "Results",
       "subtitle": "Check your team's results and performance"
+    },
+    "messaging": {
+      "title": "Messaging",
+      "subtitle": "Chat and coordinate with your team in real time"
     },
     "planning": {
       "title": "Schedule"
@@ -421,6 +497,15 @@
     "remove": "Remove",
     "hint": "PNG recommended",
     "logo_invalid_format": "Logo must be in PNG format"
+  },
+
+  "continents": {
+    "europe": "Europe",
+    "north_america": "North America",
+    "south_america": "South America",
+    "asia": "Asia",
+    "africa": "Africa",
+    "oceania": "Oceania"
   },
 
   "errors": {
