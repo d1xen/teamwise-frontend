@@ -186,7 +186,7 @@
     "missing_fields": "Merci de remplir tous les champs obligatoires",
     "update_error": "Erreur lors de la mise à jour du profil",
     "load_error": "Erreur de chargement du profil",
-    "verified": "Profil vérifié",
+    "verified": "Profil complété",
     "not_verified": "Profil incomplet",
     "completion_tooltip": "Profil complété avec succès",
     "user_profile": "Profil utilisateur",
@@ -201,7 +201,13 @@
     "promote_owner": "Promouvoir propriétaire",
     "remove_owner": "Retirer propriétaire",
     "owner_added": "Nouveau propriétaire ajouté",
-    "owner_removed": "Propriétaire retiré"
+    "owner_removed": "Propriétaire retiré",
+    "identity": "Identité",
+    "contact": "Contact",
+    "gaming": "Gaming",
+    "save_error": "Erreur lors de l'enregistrement du profil",
+    "age": "Âge",
+    "years_old": "ans"
   },
 
   "management": {
@@ -335,11 +341,20 @@
     "role": "Rôle",
     "danger_zone": "Zone dangereuse",
     "danger_zone_description": "Actions irréversibles",
+    "team_profile_completion": "Complétion du profil de l'équipe",
+    "team_appearance": "Apparence",
+    "delete_cta": "Supprimer",
+    "delete_team_title": "Supprimer l'équipe",
+    "delete_type_to_confirm": "Saisissez le nom de l'équipe pour confirmer :",
+    "delete_consequence_1": "Tous les membres perdront immédiatement l'accès à l'équipe",
+    "delete_consequence_2": "Toutes les données de l'équipe seront supprimées définitivement",
+    "delete_consequence_3": "Cette action est irréversible",
     "quick_actions": "Actions rapides",
     "manage_members": "Gérer les membres",
     "feature_coming_soon": "Fonctionnalité bientôt disponible",
     "team_updated": "Équipe mise à jour avec succès",
-    "logo_url_placeholder": "URL du logo..."
+    "logo_url_placeholder": "URL du logo...",
+    "links": "Liens"
   },
 
   "nav": {
@@ -362,6 +377,7 @@
     "collapse": "Réduire",
     "expand": "Ouvrir la barre latérale",
     "switch_team": "Changer d'équipe",
+    "language": "Langue",
     "powered_by": "TeamWise App propulsée par {{name}}"
   },
 

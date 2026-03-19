@@ -27,7 +27,7 @@ export default function FeatureHeader({
 }: FeatureHeaderProps) {
   return (
     <div className="flex-shrink-0 border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
-      <div className={`${maxWidthClass} mx-auto px-8 py-3 h-[140px] flex flex-col justify-center`}>
+      <div className={`${maxWidthClass} mx-auto px-8 h-[132px] flex flex-col justify-center`}>
         <div className="flex items-center gap-5">
           <div className="flex-1 min-w-0 overflow-hidden flex flex-col justify-center">
             <div className="flex items-center gap-3 mb-1.5 flex-wrap">

@@ -5,16 +5,18 @@ import type { useManagementPermissions } from "@/features/team/hooks/useManageme
 import type { useTeamActions } from "@/features/team/hooks/useTeamActions";
 import type { InGameRole } from "@/api/types/team";
 import { MemberProfileEditForm } from "./MemberProfileEditForm";
-import { getUserProfile } from "@/api/endpoints/profile.api";
+import { getUserProfile, updateUserProfile } from "@/api/endpoints/profile.api";
 import { updateMemberRole, updateMemberRoster } from "@/api/endpoints/team.api";
-import type { UserProfileDto } from "@/api/endpoints/profile.api";
+import type { UserProfileDto, UserProfileUpdateDto } from "@/api/endpoints/profile.api";
 import { useTeam } from "@/contexts/team/useTeam";
 import { useAuth } from "@/contexts/auth/useAuth";
 import { Toggle } from "@/shared/components/Toggle";
-import { MAX_ACTIVE_PLAYERS } from "@/shared/constants/teamConstants";
-import { getAvailableInGameRoles, IN_GAME_ROLE_LABELS } from "@/shared/utils/inGameRoles";
-import { ROLE_COLORS } from "@/shared/constants/roleStyles";
-import { Crown, X, Loader, LogOut } from "lucide-react";
+import { getAvailableInGameRoles, IN_GAME_ROLE_LABELS, getMaxActivePlayers, getValidLinksForGame } from "@/shared/config/gameConfig";
+import { ROLE_BADGE_STYLES } from "@/shared/constants/roleStyles";
+import { Crown, X, Loader, LogOut, CheckCircle2, Circle } from "lucide-react";
+import { cn } from "@/design-system";
+import { toast } from "react-hot-toast";
+import Flag from "react-world-flags";
 
 interface MemberDetailPanelProps {
   member: TeamMember;
@@ -29,6 +31,68 @@ type TabId = "information" | "role" | "details";
 
 const ROLE_OPTIONS: TeamRole[] = ["PLAYER", "COACH", "ANALYST", "MANAGER"];
 
+const COUNTRY_LABELS: Record<string, string> = {
+  FR: "🇫🇷 France", BE: "🇧🇪 Belgium", CH: "🇨🇭 Switzerland", DE: "🇩🇪 Germany",
+  GB: "🇬🇧 United Kingdom", US: "🇺🇸 United States", CA: "🇨🇦 Canada", ES: "🇪🇸 Spain",
+  IT: "🇮🇹 Italy", NL: "🇳🇱 Netherlands", PT: "🇵🇹 Portugal", PL: "🇵🇱 Poland",
+  SE: "🇸🇪 Sweden", DK: "🇩🇰 Denmark", FI: "🇫🇮 Finland", NO: "🇳🇴 Norway",
+  BR: "🇧🇷 Brazil", RU: "🇷🇺 Russia", TR: "🇹🇷 Turkey", UA: "🇺🇦 Ukraine",
+  CZ: "🇨🇿 Czech Republic", RO: "🇷🇴 Romania", HU: "🇭🇺 Hungary", AU: "🇦🇺 Australia",
+};
+
+function calcAge(birthDate: string | null | undefined): number | null {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
+
+// ── Compact inline field: label left, value right, one line ─────────────────
+
+function Row({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="flex items-center gap-3 py-1.5 border-b border-neutral-800/40 last:border-0">
+      <span className="text-[10px] font-medium text-neutral-600 uppercase tracking-wide w-[90px] shrink-0 truncate">
+        {label}
+      </span>
+      <span className={cn("text-xs flex-1 truncate", value ? "text-neutral-200" : "text-neutral-600 italic")}>
+        {value || "—"}
+      </span>
+    </div>
+  );
+}
+
+function PrivateRow({ label, value }: { label: string; value: string | null | undefined }) {
+  const filled = Boolean(value);
+  return (
+    <div className="flex items-center gap-2 py-1.5 border-b border-neutral-800/40 last:border-0">
+      {filled
+        ? <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
+        : <Circle className="w-3 h-3 text-neutral-700 shrink-0" />}
+      <span className="text-[10px] font-medium text-neutral-600 uppercase tracking-wide w-[86px] shrink-0 truncate">
+        {label}
+      </span>
+      <span className={cn("text-xs flex-1 truncate", filled ? "text-neutral-200" : "text-neutral-600 italic")}>
+        {value || "—"}
+      </span>
+    </div>
+  );
+}
+
+function SectionLabel({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between mb-2">
+      <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-widest">{children}</p>
+      {action}
+    </div>
+  );
+}
+
+// ── Main component ──────────────────────────────────────────────────────────
+
 export default function MemberDetailPanel({
   member,
   teamId,
@@ -39,7 +103,7 @@ export default function MemberDetailPanel({
 }: MemberDetailPanelProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { refreshTeam, members } = useTeam();
+  const { refreshTeam, members, updateMemberActiveStatus } = useTeam();
 
   const [activeTab, setActiveTab] = useState<TabId>("information");
   const [memberProfile, setMemberProfile] = useState<UserProfileDto | null>(null);
@@ -56,48 +120,40 @@ export default function MemberDetailPanel({
   const canKick = permissions.canKickMember(member);
   const canTransfer = permissions.canTransferOwnership(member);
   const canLeave = permissions.canLeave(member);
+  const canAccessDetails = canEditRole;
 
-  // Vérifier si c'est le joueur lui-même
-  const isCurrentUser = user?.steamId === member.steamId;
+  const validLinks = getValidLinksForGame(team?.game);
+  const displayName = member.customUsername || member.nickname;
 
-  // Details tab accessible si Manager/Owner OU joueur lui-même
-  const canAccessDetails = canEditRole || isCurrentUser;
-
-  // Charger le profil au mount
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const profile = await getUserProfile(member.steamId, teamId);
-        setMemberProfile(profile);
-      } catch (error) {
-        console.error("Failed to load profile:", error);
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    };
-
-    loadProfile();
+    let cancelled = false;
+    setIsLoadingProfile(true);
+    getUserProfile(member.steamId, teamId)
+      .then((p) => { if (!cancelled) setMemberProfile(p); })
+      .catch((err) => { console.error("Failed to load profile:", err); })
+      .finally(() => { if (!cancelled) setIsLoadingProfile(false); });
+    return () => { cancelled = true; };
   }, [member.steamId, teamId]);
 
-  const handleToggleActivePlayer = async () => {
-    const newActiveState = !activePlayerState;
+  // ── Handlers ───────────────────────────────────────────────────────────────
 
-    if (newActiveState) {
+  const handleToggleActivePlayer = async () => {
+    const next = !activePlayerState;
+    if (next) {
+      const maxActive = getMaxActivePlayers(team?.game);
       const activeCount = members.filter((m) => m.activePlayer !== false).length;
-      if (activeCount >= MAX_ACTIVE_PLAYERS) {
-        alert(t("management.max_active_players_reached", { max: 5, current: activeCount }));
+      if (activeCount >= maxActive) {
+        alert(t("management.max_active_players_reached", { max: maxActive, current: activeCount }));
         return;
       }
     }
-
-    setActivePlayerState(newActiveState);
+    setActivePlayerState(next);
     setIsTogglingActive(true);
-
     try {
-      await updateMemberRoster(teamId, member.steamId, { activePlayer: newActiveState });
-    } catch (error) {
-      console.error("Failed to update player active status:", error);
-      setActivePlayerState(!newActiveState);
+      await updateMemberRoster(teamId, member.steamId, { activePlayer: next });
+      updateMemberActiveStatus(member.steamId, next);
+    } catch {
+      setActivePlayerState(!next);
     } finally {
       setIsTogglingActive(false);
     }
@@ -109,323 +165,324 @@ export default function MemberDetailPanel({
     try {
       await updateMemberRole(teamId, member.steamId, { role });
       await refreshTeam();
-    } catch (error) {
-      console.error("Failed to update role:", error);
-    } finally {
+    } catch { /* stays unchanged */ } finally {
       setIsChangingRole(false);
     }
   };
 
-  const handleChangeInGameRole = async (newInGameRole: InGameRole | null) => {
-    if (newInGameRole === inGameRole) return;
+  const handleChangeInGameRole = async (r: InGameRole | null) => {
+    if (r === inGameRole) return;
     setIsChangingInGameRole(true);
     try {
-      await updateMemberRoster(teamId, member.steamId, { inGameRole: newInGameRole });
-      setInGameRole(newInGameRole);
+      await updateMemberRoster(teamId, member.steamId, { inGameRole: r });
+      setInGameRole(r);
       await refreshTeam();
-    } catch (error) {
-      console.error("Failed to update in-game role:", error);
+    } catch {
       setInGameRole(member.inGameRole);
     } finally {
       setIsChangingInGameRole(false);
     }
   };
 
-  const handleTransfer = () => {
-    if (confirm(t("management.confirm_transfer", { nickname: member.nickname }))) {
-      actions.promoteToOwner(member);
-      onClose();
-    }
+  const handleTransfer = async () => {
+    const ok = await actions.promoteToOwner(member);
+    if (ok) onClose();
   };
 
-  const handleKick = () => {
-    if (confirm(t("management.confirm_kick", { nickname: member.nickname }))) {
-      actions.kickMember(member);
-      onClose();
-    }
+  const handleKick = async () => {
+    const ok = await actions.kickMember(member);
+    if (ok) onClose();
   };
 
-  const handleLeave = () => {
-    if (confirm(t("management.confirm_leave"))) {
-      actions.leaveTeam();
-      onClose();
-    }
-  };
-
-  const handleSaveProfile = async (updatedData: Partial<UserProfileDto>) => {
+  const handleSaveProfile = async (data: UserProfileUpdateDto) => {
     setIsSavingProfile(true);
     try {
-      // TODO: Implement profile update API call
-      // await updateMemberProfile(teamId, member.steamId, updatedData);
-      setMemberProfile((prev) => (prev ? { ...prev, ...updatedData } : null));
+      const updated = await updateUserProfile(member.steamId, data, teamId);
+      setMemberProfile(updated);
+      toast.success(t("profile.save_profile"));
       setIsEditingProfile(false);
-    } catch (error) {
-      console.error("Failed to save profile:", error);
-      throw error;
+      void refreshTeam();
+    } catch {
+      toast.error(t("profile.save_error"));
+      throw new Error("save failed");
     } finally {
       setIsSavingProfile(false);
     }
   };
 
+  const resolvedFirstName    = memberProfile?.firstName    ?? member.firstName;
+  const resolvedLastName     = memberProfile?.lastName     ?? member.lastName;
+  const resolvedCustomUser   = memberProfile?.customUsername ?? member.customUsername;
+  const resolvedCountryCode  = memberProfile?.countryCode  ?? member.countryCode;
+  const resolvedDiscord      = memberProfile?.discord      ?? member.discord;
+  const resolvedTwitter      = memberProfile?.twitter      ?? member.twitter;
+  const resolvedHltv         = memberProfile?.hltv;
+  const age                  = calcAge(memberProfile?.birthDate ?? member.birthDate);
+
+  const tabs: TabId[] = ["information", "role", ...(canAccessDetails ? ["details" as TabId] : [])];
+  const maxActive = getMaxActivePlayers(team?.game);
+  const activeCount = members.filter((m) => m.activePlayer !== false).length;
+  const atCapacity = activeCount >= maxActive;
+
   return (
     <div className="h-full flex flex-col bg-neutral-900 overflow-hidden">
-      {/* Header */}
-      <div className="sticky top-0 bg-neutral-900/95 backdrop-blur border-b border-neutral-800 px-6 py-5 z-10">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1" />
-          <div className="flex gap-2 items-center">
+
+      {/* ── Compact header ── */}
+      <div className="shrink-0 border-b border-neutral-800 bg-neutral-900 px-5 pt-4 pb-0">
+
+        {/* Row 1: avatar + identity + close */}
+        <div className="flex items-center gap-3 mb-3">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-neutral-800 ring-1 ring-neutral-700/60">
+              {member.avatarUrl ? (
+                <img src={member.avatarUrl} alt={displayName} className="w-full h-full object-cover object-top" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-base font-black text-neutral-500">{displayName[0]?.toUpperCase()}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Name + country */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-bold text-white truncate leading-tight">{member.nickname}</span>
+              {member.countryCode && (
+                <Flag code={member.countryCode} className="w-3.5 h-2.5 rounded-[2px] opacity-70 shrink-0" />
+              )}
+            </div>
+            {resolvedCustomUser && resolvedCustomUser !== member.nickname && (
+              <p className="text-[11px] text-neutral-500 leading-tight mt-0.5">@{resolvedCustomUser}</p>
+            )}
+          </div>
+
+          {/* Right: kick/leave + close */}
+          <div className="flex items-center gap-1 shrink-0">
             {canKick && (
               <button
                 onClick={handleKick}
-                className="p-1.5 hover:bg-red-500/10 rounded transition-colors"
                 title={t("management.kick_member")}
+                className="p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
               >
-                <LogOut className="w-5 h-5 text-red-400" />
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             )}
             {canLeave && (
               <button
-                onClick={handleLeave}
-                className="p-1.5 hover:bg-red-500/10 rounded transition-colors"
+                onClick={() => actions.leaveTeam()}
                 title={t("management.leave_team")}
+                className="p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
               >
-                <LogOut className="w-5 h-5 text-red-400" />
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             )}
-            <button
-              onClick={onClose}
-              className="p-1.5 hover:bg-neutral-800 rounded transition-colors"
-            >
-              <X className="w-5 h-5 text-neutral-400" />
+            <button onClick={onClose} className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-300 hover:bg-neutral-800 transition-colors">
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        <div className="flex items-start gap-4">
-          <img
-            src={member.avatarUrl || "https://via.placeholder.com/60"}
-            alt={member.nickname}
-            className="w-14 h-14 rounded border border-neutral-700 object-cover flex-shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-semibold text-white">{member.nickname}</h1>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {/* Profil incomplet */}
-              {!member.profileCompleted && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/10 text-yellow-300 border border-yellow-500/20">
-                  {t("management.profile_incomplete")}
-                </span>
+        {/* Row 2: badges */}
+        <div className="flex items-center gap-1.5 flex-wrap mb-3">
+          <span className={cn(
+            "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border",
+            ROLE_BADGE_STYLES[member.role]
+          )}>
+            {t(`roles.${member.role}`)}
+          </span>
+          {member.isOwner && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-amber-500/10 text-amber-300 border border-amber-500/20">
+              <Crown className="w-2.5 h-2.5" />Owner
+            </span>
+          )}
+          {activePlayerState && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+              {t("management.roster_active")}
+            </span>
+          )}
+          {inGameRole && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-800 text-neutral-400 border border-neutral-700">
+              {IN_GAME_ROLE_LABELS[inGameRole]}
+            </span>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex -mx-5 px-5 border-t border-neutral-800/60">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "px-3 py-2 text-xs font-medium transition-colors -mb-px border-b-2",
+                activeTab === tab
+                  ? "text-white border-indigo-500"
+                  : "text-neutral-500 hover:text-neutral-300 border-transparent"
               )}
-              {/* Rôle */}
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-current border-opacity-20 ${ROLE_COLORS[member.role]}`}>
-                {member.role}
-              </span>
-              {/* Statut Actif */}
-              {activePlayerState && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                  {t("management.roster_active")}
-                </span>
-              )}
-              {/* Rôle in-game */}
-              {member.inGameRole && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-800 text-neutral-300 border border-neutral-700">
-                  {member.inGameRole}
-                </span>
-              )}
-            </div>
-          </div>
+            >
+              {t(`management.${tab}`)}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-neutral-800 flex bg-neutral-900/50">
-        <button
-          onClick={() => setActiveTab("information")}
-          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === "information"
-              ? "text-white border-neutral-400 bg-neutral-800/50"
-              : "text-neutral-400 border-transparent hover:text-neutral-300"
-          }`}
-        >
-          {t("management.information")}
-        </button>
-        <button
-          onClick={() => setActiveTab("role")}
-          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === "role"
-              ? "text-white border-neutral-400 bg-neutral-800/50"
-              : "text-neutral-400 border-transparent hover:text-neutral-300"
-          }`}
-        >
-          {t("management.role")}
-        </button>
-        {canAccessDetails && (
-          <button
-            onClick={() => setActiveTab("details")}
-            className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === "details"
-                ? "text-white border-neutral-400 bg-neutral-800/50"
-                : "text-neutral-400 border-transparent hover:text-neutral-300"
-            }`}
-          >
-            {t("management.details")}
-          </button>
-        )}
-      </div>
-
-      {/* Content */}
+      {/* ── Content ── */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="p-6 space-y-6">
-          {/* Information Tab */}
+        <div className="p-4">
+
+          {/* ── Information tab ── */}
           {activeTab === "information" && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                  <div className="text-xs text-neutral-500 mb-1">SteamID</div>
-                  <div className="text-sm text-white font-mono">{member.steamId}</div>
+            <div>
+              {isLoadingProfile ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader className="w-4 h-4 text-neutral-600 animate-spin" />
                 </div>
-                <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                  <div className="text-xs text-neutral-500 mb-1">{t("management.username")}</div>
-                  <div className="text-sm text-white">{member.customUsername || "—"}</div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <SectionLabel>{t("profile.identity")}</SectionLabel>
+                    <Row
+                      label={`${t("profile.first_name")} / ${t("profile.last_name")}`}
+                      value={[resolvedFirstName, resolvedLastName].filter(Boolean).join(" ") || null}
+                    />
+                    <Row label={t("management.username")} value={resolvedCustomUser} />
+                    <Row
+                      label={t("profile.country")}
+                      value={resolvedCountryCode ? (COUNTRY_LABELS[resolvedCountryCode] ?? resolvedCountryCode) : null}
+                    />
+                    {age !== null && (
+                      <Row label={t("profile.age")} value={`${age} ${t("profile.years_old")}`} />
+                    )}
+                  </div>
+
+                  <div>
+                    <SectionLabel>{t("profile.gaming")}</SectionLabel>
+                    {validLinks.includes("discord") && <Row label="Discord" value={resolvedDiscord} />}
+                    {validLinks.includes("twitter") && <Row label="Twitter / X" value={resolvedTwitter} />}
+                    {validLinks.includes("hltv")    && <Row label="HLTV" value={resolvedHltv} />}
+                    <Row label="Steam ID" value={member.steamId} />
+                  </div>
                 </div>
-                <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                  <div className="text-xs text-neutral-500 mb-1">Discord</div>
-                  <div className="text-sm text-white">{member.discord || "—"}</div>
-                </div>
-                <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                  <div className="text-xs text-neutral-500 mb-1">Twitter/X</div>
-                  <div className="text-sm text-white">{member.twitter || "—"}</div>
-                </div>
-                {isLoadingProfile ? (
-                  <>
-                    <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                      <div className="text-xs text-neutral-500 mb-1">{t("profile.first_name")}</div>
-                      <div className="text-sm text-neutral-400">{t("common.loading")}</div>
-                    </div>
-                    <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                      <div className="text-xs text-neutral-500 mb-1">{t("profile.last_name")}</div>
-                      <div className="text-sm text-neutral-400">{t("common.loading")}</div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                      <div className="text-xs text-neutral-500 mb-1">{t("profile.first_name")}</div>
-                      <div className="text-sm text-white">{memberProfile?.firstName || "—"}</div>
-                    </div>
-                    <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                      <div className="text-xs text-neutral-500 mb-1">{t("profile.last_name")}</div>
-                      <div className="text-sm text-white">{memberProfile?.lastName || "—"}</div>
-                    </div>
-                  </>
-                )}
-              </div>
+              )}
             </div>
           )}
 
-          {/* Role Tab */}
+          {/* ── Role tab ── */}
           {activeTab === "role" && (
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-white">{t("management.team_role")}</h3>
+            <div className="space-y-4">
+
+              {/* Team role */}
+              <div>
+                <SectionLabel>
+                  {t("management.team_role")}
                   {!canEditRole && (
-                    <span className="text-xs text-neutral-500">{t("management.view_only")}</span>
+                    <span className="text-[10px] text-neutral-600 uppercase tracking-wide">{t("management.view_only")}</span>
                   )}
-                </div>
+                </SectionLabel>
                 {canEditRole ? (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1.5">
                     {ROLE_OPTIONS.map((role) => (
                       <button
                         key={role}
                         onClick={() => handleChangeRole(role)}
                         disabled={isChangingRole}
-                        className={`px-3 py-2 rounded text-sm font-medium transition-colors border ${
+                        className={cn(
+                          "px-3 py-2 rounded-lg text-xs font-semibold transition-all border",
                           role === member.role
-                            ? `${ROLE_COLORS[role]} border-current border-opacity-20`
-                            : "text-neutral-400 bg-neutral-800/50 border-neutral-700 hover:bg-neutral-800"
-                        } disabled:opacity-50`}
+                            ? ROLE_BADGE_STYLES[role]
+                            : "text-neutral-500 bg-neutral-800/40 border-neutral-800 hover:bg-neutral-800 hover:text-neutral-300 hover:border-neutral-700",
+                          "disabled:opacity-50"
+                        )}
                       >
-                        {role}
+                        {t(`roles.${role}`)}
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                    <div className="text-sm text-white">{member.role}</div>
+                  <div className={cn("px-3 py-2 rounded-lg text-xs font-semibold border", ROLE_BADGE_STYLES[member.role])}>
+                    {t(`roles.${member.role}`)}
                   </div>
                 )}
               </div>
 
-              <div className="px-4 py-3 bg-neutral-800/50 border border-neutral-700 rounded space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-white">{t("management.roster_status")}</p>
-                    <p className="text-xs text-neutral-500">
-                      {activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}
-                    </p>
-                  </div>
+              {/* Roster toggle */}
+              <div>
+                <SectionLabel>{t("management.roster_status")}</SectionLabel>
+                <div className="flex items-center justify-between px-3 py-2.5 bg-neutral-800/30 border border-neutral-800 rounded-lg">
+                  <p className={cn(
+                    "text-xs font-medium",
+                    activePlayerState ? "text-emerald-300" : "text-neutral-400"
+                  )}>
+                    {activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}
+                  </p>
                   {canEditRole && member.role === "PLAYER" ? (
                     <Toggle
                       checked={activePlayerState ?? false}
                       onChange={handleToggleActivePlayer}
-                      disabled={
-                        isTogglingActive ||
-                        (!activePlayerState && members.filter((m) => m.activePlayer !== false).length >= MAX_ACTIVE_PLAYERS)
-                      }
+                      disabled={isTogglingActive || (!activePlayerState && atCapacity)}
                     />
                   ) : (
-                    <div className="text-sm font-medium text-white">
-                      {activePlayerState ? "✓" : "✗"}
-                    </div>
+                    <span className={cn(
+                      "text-[10px] font-semibold px-2 py-0.5 rounded border uppercase tracking-wide",
+                      activePlayerState
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        : "bg-neutral-800 text-neutral-500 border-neutral-700"
+                    )}>
+                      {activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}
+                    </span>
                   )}
                 </div>
-                {!activePlayerState && canEditRole && members.filter((m) => m.activePlayer !== false).length >= MAX_ACTIVE_PLAYERS && (
-                  <p className="text-xs text-red-400">{MAX_ACTIVE_PLAYERS}/{MAX_ACTIVE_PLAYERS} {t("management.active")}</p>
+                {!activePlayerState && canEditRole && atCapacity && (
+                  <p className="text-[11px] text-amber-500 mt-1.5">
+                    {maxActive}/{maxActive} {t("management.active")}
+                  </p>
                 )}
               </div>
 
+              {/* In-game role */}
               {activePlayerState && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold text-white">{t("management.in_game_role")}</h3>
+                <div>
+                  <SectionLabel>
+                    {t("management.in_game_role")}
                     {!canEditRole && (
-                      <span className="text-xs text-neutral-500">{t("management.view_only")}</span>
+                      <span className="text-[10px] text-neutral-600 uppercase tracking-wide">{t("management.view_only")}</span>
                     )}
-                  </div>
+                  </SectionLabel>
                   {canEditRole ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* Option pour effacer le rôle */}
+                    <div className="grid grid-cols-2 gap-1.5">
                       <button
                         onClick={() => handleChangeInGameRole(null)}
                         disabled={isChangingInGameRole}
-                        className={`px-3 py-2 rounded text-sm font-medium transition-colors border ${
+                        className={cn(
+                          "px-3 py-2 rounded-lg text-xs font-semibold transition-all border",
                           inGameRole === null
                             ? "bg-neutral-700 text-white border-neutral-600"
-                            : "text-neutral-400 bg-neutral-800/50 border-neutral-700 hover:bg-neutral-800"
-                        } disabled:opacity-50`}
-                      >
-                        —
-                      </button>
-                      {/* Options pour les rôles disponibles */}
+                            : "text-neutral-500 bg-neutral-800/40 border-neutral-800 hover:bg-neutral-800 hover:text-neutral-300 hover:border-neutral-700",
+                          "disabled:opacity-50"
+                        )}
+                      >—</button>
                       {getAvailableInGameRoles(team?.game).map((role) => (
                         <button
                           key={role}
                           onClick={() => handleChangeInGameRole(role)}
                           disabled={isChangingInGameRole}
-                          className={`px-3 py-2 rounded text-sm font-medium transition-colors border ${
+                          className={cn(
+                            "px-3 py-2 rounded-lg text-xs font-semibold transition-all border",
                             role === inGameRole
-                              ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
-                              : "text-neutral-400 bg-neutral-800/50 border-neutral-700 hover:bg-neutral-800"
-                          } disabled:opacity-50`}
+                              ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                              : "text-neutral-500 bg-neutral-800/40 border-neutral-800 hover:bg-neutral-800 hover:text-neutral-300 hover:border-neutral-700",
+                            "disabled:opacity-50"
+                          )}
                         >
                           {IN_GAME_ROLE_LABELS[role]}
                         </button>
                       ))}
                     </div>
                   ) : (
-                    <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                      <div className="text-sm text-white">{inGameRole ? IN_GAME_ROLE_LABELS[inGameRole] : "—"}</div>
+                    <div className="px-3 py-2 bg-neutral-800/40 border border-neutral-800 rounded-lg">
+                      <span className="text-xs text-neutral-200">{inGameRole ? IN_GAME_ROLE_LABELS[inGameRole] : "—"}</span>
                     </div>
                   )}
                 </div>
@@ -433,100 +490,81 @@ export default function MemberDetailPanel({
             </div>
           )}
 
-          {/* Details Tab */}
+          {/* ── Details tab ── */}
           {activeTab === "details" && canAccessDetails && (
-            <>
+            <div className="space-y-4">
               {isLoadingProfile ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader className="w-5 h-5 text-neutral-400 animate-spin" />
+                <div className="flex items-center justify-center py-10">
+                  <Loader className="w-4 h-4 text-neutral-600 animate-spin" />
                 </div>
               ) : memberProfile ? (
                 isEditingProfile ? (
                   <MemberProfileEditForm
                     profile={memberProfile}
+                    game={team?.game}
                     onSave={handleSaveProfile}
                     onCancel={() => setIsEditingProfile(false)}
                     isSaving={isSavingProfile}
                   />
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
-                      <h3 className="text-sm font-semibold text-white">{t("profile.profile")}</h3>
-                      {canEditRole && (
-                        <button
-                          onClick={() => setIsEditingProfile(true)}
-                          className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                        >
-                          {t("common.edit")}
-                        </button>
-                      )}
+                  <>
+                    <div>
+                      <SectionLabel
+                        action={
+                          <button
+                            onClick={() => setIsEditingProfile(true)}
+                            className="text-[10px] text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wide font-semibold"
+                          >
+                            {t("common.edit")}
+                          </button>
+                        }
+                      >
+                        {t("profile.identity")}
+                      </SectionLabel>
+                      <PrivateRow label={t("profile.first_name")}  value={memberProfile.firstName} />
+                      <PrivateRow label={t("profile.last_name")}   value={memberProfile.lastName} />
+                      <PrivateRow label={t("profile.birth_date")}  value={memberProfile.birthDate} />
+                      <PrivateRow label={t("profile.country")}     value={memberProfile.countryCode} />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                        <div className="text-xs text-neutral-500 mb-1">{t("profile.first_name")}</div>
-                        <div className="text-sm text-white">{memberProfile.firstName || "—"}</div>
-                      </div>
-                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                        <div className="text-xs text-neutral-500 mb-1">{t("profile.last_name")}</div>
-                        <div className="text-sm text-white">{memberProfile.lastName || "—"}</div>
-                      </div>
-                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                        <div className="text-xs text-neutral-500 mb-1">{t("common.email")}</div>
-                        <div className="text-sm text-white break-all">{memberProfile.email || "—"}</div>
-                      </div>
-                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                        <div className="text-xs text-neutral-500 mb-1">{t("management.phone")}</div>
-                        <div className="text-sm text-white">{memberProfile.phone || "—"}</div>
-                      </div>
-                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                        <div className="text-xs text-neutral-500 mb-1">{t("profile.city")}</div>
-                        <div className="text-sm text-white">{memberProfile.city || "—"}</div>
-                      </div>
-                      <div className="px-3 py-2 bg-neutral-800/50 border border-neutral-700 rounded">
-                        <div className="text-xs text-neutral-500 mb-1">{t("profile.country")}</div>
-                        <div className="text-sm text-white">{memberProfile.countryCode || "—"}</div>
-                      </div>
+
+                    <div>
+                      <SectionLabel>{t("profile.contact")}</SectionLabel>
+                      <PrivateRow label={t("profile.email")}    value={memberProfile.email} />
+                      <PrivateRow label={t("profile.phone")}    value={memberProfile.phone} />
+                      <PrivateRow label={t("profile.address")}  value={memberProfile.address} />
+                      <PrivateRow
+                        label={`${t("profile.zip_code")} / ${t("profile.city")}`}
+                        value={[memberProfile.zipCode, memberProfile.city].filter(Boolean).join(" ") || null}
+                      />
                     </div>
-                  </div>
+
+                    <div>
+                      <SectionLabel>{t("profile.gaming")}</SectionLabel>
+                      <PrivateRow label={t("management.username")} value={memberProfile.customUsername} />
+                      {validLinks.includes("discord") && <PrivateRow label="Discord"     value={memberProfile.discord} />}
+                      {validLinks.includes("twitter") && <PrivateRow label="Twitter / X" value={memberProfile.twitter} />}
+                      {validLinks.includes("hltv")    && <PrivateRow label="HLTV"        value={memberProfile.hltv} />}
+                    </div>
+                  </>
                 )
               ) : null}
 
-              {canTransfer && (
-                <div className="border-t border-neutral-800 pt-6">
+              {canTransfer && !isEditingProfile && (
+                <div className="pt-2 border-t border-neutral-800">
                   <button
                     onClick={handleTransfer}
-                    className="w-full px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-sm font-medium rounded transition-colors border border-amber-500/20 flex items-center justify-center gap-2"
+                    className="w-full px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold rounded-lg transition-colors border border-amber-500/20 flex items-center justify-center gap-2"
                   >
-                    <Crown className="w-4 h-4" />
+                    <Crown className="w-3.5 h-3.5" />
                     {t("management.transfer_to_member")}
                   </button>
                 </div>
               )}
-            </>
+            </div>
           )}
+
         </div>
       </div>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

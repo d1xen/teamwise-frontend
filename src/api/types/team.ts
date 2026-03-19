@@ -6,7 +6,17 @@ export type Game = "CS2" | "VALORANT";
 
 export type TeamRole = "PLAYER" | "COACH" | "ANALYST" | "MANAGER";
 
-export type InGameRole = "RIFLER" | "SNIPER" | "IGL";
+export type InGameRole =
+    // CS2
+    | "RIFLER"
+    | "SNIPER"
+    | "IGL"
+    // VALORANT
+    | "DUELIST"
+    | "CONTROLLER"
+    | "INITIATOR"
+    | "SENTINEL"
+    | "FLEX";
 
 export type TeamLinkType = "HLTV" | "FACEIT" | "TWITTER";
 
@@ -85,6 +95,7 @@ export type UpdateTeamRequest = {
     name?: string;
     tag?: string;
     logoUrl?: string | null;
+    description?: string | null;
     links?: TeamLink[];
     logo?: File | null; // For form-based upload
 };

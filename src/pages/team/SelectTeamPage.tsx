@@ -9,6 +9,7 @@ import { appConfig } from '@/config/appConfig';
 import { useMinimumLoader } from '@/shared/hooks/useMinimumLoader';
 import FullScreenLoader from "@/shared/components/FullScreenLoader";
 import JoinTeamModal from "@/features/team/components/JoinTeamModal";
+import TeamWiseLogo from "@/shared/components/TeamWiseLogo";
 
 type Team = {
     id: number;
@@ -140,33 +141,10 @@ export default function SelectTeamPage() {
 
             <div className="relative z-10 w-full max-w-2xl">
                 <div className="text-center mb-12">
-                    <style>{`
-                        @keyframes fadeColor {
-                            0%, 100% { opacity: 0.75; }
-                            50% { opacity: 1; }
-                        }
-                        .animate-fade-color {
-                            animation: fadeColor 4s ease-in-out infinite;
-                        }
-                        @keyframes waveGradient {
-                            0% { background-position: 0% 50%; }
-                            50% { background-position: 100% 50%; }
-                            100% { background-position: 0% 50%; }
-                        }
-                        .animate-wave-gradient {
-                            background-size: 200% 200%;
-                            animation: waveGradient 4s ease-in-out infinite;
-                        }
-                    `}</style>
                     <div className="mb-8">
-                        <h1 className="text-6xl font-black text-white mb-4 leading-tight">
-                            TEAM
-                            <span className="animate-fade-color animate-wave-gradient inline-block text-transparent bg-clip-text bg-gradient-to-b from-indigo-500 via-purple-500 to-indigo-400">
-                                WISE
-                            </span>
-                        </h1>
+                        <TeamWiseLogo size={64} />
                     </div>
-                    <div className="h-1.5 w-32 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mx-auto mb-6" />
+                    <div className="h-1 w-24 rounded-full mx-auto mb-6" style={{ background: 'linear-gradient(90deg, #60A5FA, #6366F1, #A855F7)', opacity: 0.5 }} />
                     <h2 className="text-xl font-semibold text-neutral-200 mb-2">{t("team.select_title")}</h2>
                     <p className="text-neutral-400">{t("team.welcome", { nickname: user?.nickname })}</p>
                 </div>

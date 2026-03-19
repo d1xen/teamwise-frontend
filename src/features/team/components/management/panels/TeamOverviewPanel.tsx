@@ -1,6 +1,4 @@
-import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useTeam } from "@/contexts/team/useTeam";
 import type { Team, TeamMember, TeamMembership } from "@/contexts/team/team.types";
 import { calculateAverageAge, formatDateShort } from "@/shared/utils/dateUtils";
 import { NationalityBadge } from "@/shared/components/NationalityBadge";
@@ -28,8 +26,6 @@ export default function TeamOverviewPanel({
   playerCount,
 }: TeamOverviewPanelProps) {
   const { t } = useTranslation();
-  const { refreshTeam } = useTeam();
-  const hasRefreshedRef = useRef(false);
 
   const owner = members.find((m) => m.isOwner);
   const averageAge = calculateAverageAge(members.filter((m) => m.role === "PLAYER"));
@@ -37,12 +33,6 @@ export default function TeamOverviewPanel({
   const verifiedProfiles = team.membersOverview?.verifiedProfilesCount ?? 0;
   const totalMembersFromOverview = team.membersOverview?.totalMembers ?? members.length;
 
-  useEffect(() => {
-    if (!hasRefreshedRef.current && !team.membersOverview) {
-      hasRefreshedRef.current = true;
-      void refreshTeam();
-    }
-  }, [refreshTeam, team.membersOverview]);
 
   return (
     <div className="space-y-6">

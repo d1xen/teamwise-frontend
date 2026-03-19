@@ -104,7 +104,7 @@ export function getCountryName(countryCode: string): string {
   return COUNTRY_NAMES[countryCode.toUpperCase()] || countryCode.toUpperCase();
 }
 
-/**
+const COUNTRY_TO_CONTINENT: Record<string, string> = {
   // Europe
   'FR': 'EU', 'DE': 'EU', 'GB': 'EU', 'ES': 'EU', 'IT': 'EU',
   'SE': 'EU', 'NO': 'EU', 'DK': 'EU', 'PL': 'EU', 'RU': 'EU',

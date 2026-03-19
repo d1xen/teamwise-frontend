@@ -8,7 +8,8 @@ import type { TeamMember, TeamMembership } from "@/contexts/team/team.types.ts";
  * - Manager peut modifier role/profil de tous (Owner inclus)
  * - Manager ne peut jamais modifier isOwner
  * - Owner ne peut pas quitter sans transférer
- * - Seul Owner peut transférer propriété et inviter
+ * - Seul Owner peut transférer propriété
+ * - Tout staff (MANAGER, COACH, ANALYST, OWNER) peut inviter
  */
 export function useManagementPermissions({
     currentSteamId,
@@ -19,6 +20,7 @@ export function useManagementPermissions({
 }) {
     const isOwner = membership.isOwner;
     const isManager = membership.role === "MANAGER";
+    const isPlayer = membership.role === "PLAYER";
 
     /* ─────────────────────────────────────────────────── */
     /* TEAM ACTIONS                                         */
@@ -27,8 +29,8 @@ export function useManagementPermissions({
     /** Éditer infos équipe (nom, tag, URLs, logo) */
     const canEditTeam = (): boolean => isOwner || isManager;
 
-    /** Générer lien invitation */
-    const canInvite = (): boolean => isOwner;
+    /** Générer lien invitation — tous les membres staff (MANAGER, COACH, ANALYST, OWNER) */
+    const canInvite = (): boolean => isOwner || !isPlayer;
 
     /* ─────────────────────────────────────────────────── */
     /* MEMBER PROFILE ACTIONS                              */

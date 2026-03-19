@@ -4,6 +4,7 @@ import { useTeam } from "@/contexts/team/useTeam";
 import { useTranslation } from "react-i18next";
 import FullScreenLoader from "@/shared/components/FullScreenLoader";
 import { useMinimumLoader } from "@/shared/hooks/useMinimumLoader";
+import { Button } from "@/design-system/components";
 
 /**
  * TeamLayout - Layout pour toutes les pages liées à une team
@@ -11,7 +12,7 @@ import { useMinimumLoader } from "@/shared/hooks/useMinimumLoader";
  */
 export default function TeamLayout() {
     const { t } = useTranslation();
-    const { isReady } = useTeam();
+    const { isReady, team, refreshTeam, isLoading } = useTeam();
     const showLoader = useMinimumLoader(!isReady, 800);
 
     if (showLoader) {
@@ -20,6 +21,29 @@ export default function TeamLayout() {
                 title={t("common.loading")}
                 subtitle={t("team.loading_context")}
             />
+        );
+    }
+
+    if (!team) {
+        return (
+            <div className="min-h-screen bg-neutral-950 flex items-center justify-center px-6">
+                <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-900/70 p-8 text-center shadow-2xl">
+                    <h1 className="text-xl font-semibold text-white">
+                        {t("common.error")}
+                    </h1>
+                    <p className="mt-3 text-sm text-neutral-400">
+                        {t("common.try_again")}
+                    </p>
+                    <div className="mt-6 flex justify-center">
+                        <Button
+                            onClick={() => void refreshTeam()}
+                            isLoading={isLoading}
+                        >
+                            {t("common.try_again")}
+                        </Button>
+                    </div>
+                </div>
+            </div>
         );
     }
 

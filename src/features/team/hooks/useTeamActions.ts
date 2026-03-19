@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
-import { removeMember, transferOwnership } from "@/api/endpoints/team.api";
+import { removeMember, transferOwnership, deleteTeam as deleteTeamApi } from "@/api/endpoints/team.api";
 import type { TeamMember } from "@/contexts/team/team.types.ts";
 import { useTeam } from "@/contexts/team/useTeam";
 
@@ -18,45 +18,49 @@ export function useTeamActions({
     const { t } = useTranslation();
     const { refreshTeam, resetTeam } = useTeam();
 
-    const kickMember = async (member: TeamMember) => {
+    const kickMember = async (member: TeamMember): Promise<boolean> => {
         const confirmed = window.confirm(
             t("management.confirm_kick", { nickname: member.nickname })
         );
-        if (!confirmed) return;
+        if (!confirmed) return false;
 
         try {
             await removeMember(teamId, member.steamId);
             toast.success(t("management.member_kicked"));
             await refreshTeam();
+            return true;
         } catch {
             toast.error(t("common.error"));
+            return false;
         }
     };
 
-    const promoteToOwner = async (member: TeamMember) => {
+    const promoteToOwner = async (member: TeamMember): Promise<boolean> => {
         const confirmed = window.confirm(
-            t("management.confirm_transfer_owner", {
+            t("management.confirm_transfer", {
                 nickname: member.nickname,
             })
         );
-        if (!confirmed) return;
+        if (!confirmed) return false;
 
         try {
             await transferOwnership(teamId, member.steamId);
-            toast.success(t("management.owner_transferred"));
+            toast.success(t("management.ownership_transferred"));
             await refreshTeam();
+            return true;
         } catch {
             toast.error(t("common.error"));
+            return false;
         }
     };
 
     const leaveTeam = async () => {
         if (isOwner) {
-            toast.error(t("management.owner_must_transfer"));
+            toast.error(t("management.leave_owner_error"));
             return;
         }
 
-        const confirmed = window.confirm(t("management.confirm_leave"));
+        const confirmed = window.confirm(t("management.leave_confirm"));
         if (!confirmed) return;
 
         try {
@@ -68,9 +72,40 @@ export function useTeamActions({
         }
     };
 
+    const deleteTeam = async (): Promise<boolean> => {
+        const confirmed = window.confirm(t("management.delete_confirm"));
+        if (!confirmed) return false;
+
+        try {
+            await deleteTeamApi(teamId);
+            toast.success(t("management.delete_success"));
+            resetTeam();
+            window.location.href = "/select-team";
+            return true;
+        } catch {
+            toast.error(t("management.delete_error"));
+            return false;
+        }
+    };
+
+    const deleteTeamConfirmed = async (): Promise<boolean> => {
+        try {
+            await deleteTeamApi(teamId);
+            toast.success(t("management.delete_success"));
+            resetTeam();
+            window.location.href = "/select-team";
+            return true;
+        } catch {
+            toast.error(t("management.delete_error"));
+            return false;
+        }
+    };
+
     return {
         kickMember,
         promoteToOwner,
         leaveTeam,
+        deleteTeam,
+        deleteTeamConfirmed,
     };
 }

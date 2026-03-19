@@ -186,7 +186,7 @@
     "missing_fields": "Please fill in all required fields",
     "update_error": "Error updating profile",
     "load_error": "Error loading profile",
-    "verified": "Profile verified",
+    "verified": "Profile completed",
     "not_verified": "Profile incomplete",
     "completion_tooltip": "Profile successfully completed",
     "user_profile": "User profile",
@@ -201,7 +201,13 @@
     "promote_owner": "Promote to owner",
     "remove_owner": "Remove owner",
     "owner_added": "New owner added",
-    "owner_removed": "Owner removed"
+    "owner_removed": "Owner removed",
+    "identity": "Identity",
+    "contact": "Contact",
+    "gaming": "Gaming",
+    "save_error": "Error saving profile",
+    "age": "Age",
+    "years_old": "years old"
   },
 
   "management": {
@@ -335,11 +341,20 @@
     "role": "Role",
     "danger_zone": "Danger zone",
     "danger_zone_description": "Irreversible actions",
+    "team_profile_completion": "Team profile completion",
+    "team_appearance": "Appearance",
+    "delete_cta": "Delete",
+    "delete_team_title": "Delete the team",
+    "delete_type_to_confirm": "Type the team name to confirm:",
+    "delete_consequence_1": "All members will immediately lose access to the team",
+    "delete_consequence_2": "All team data will be permanently deleted",
+    "delete_consequence_3": "This action cannot be undone",
     "quick_actions": "Quick actions",
     "manage_members": "Manage members",
     "feature_coming_soon": "Feature coming soon",
     "team_updated": "Team updated successfully",
-    "logo_url_placeholder": "Logo URL..."
+    "logo_url_placeholder": "Logo URL...",
+    "links": "Links"
   },
 
   "nav": {
@@ -362,6 +377,7 @@
     "collapse": "Collapse",
     "expand": "Open sidebar",
     "switch_team": "Switch team",
+    "language": "Language",
     "powered_by": "TeamWise App powered by {{name}}"
   },
 

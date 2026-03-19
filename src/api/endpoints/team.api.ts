@@ -7,6 +7,7 @@ import type {
     UpdateMemberRosterRequest,
     UpdateTeamRequest,
 } from "@/api/types/team";
+import type { InvitationUrlResponse } from "@/api/types/invitation";
 
 function buildTeamUpdateBody(payload: UpdateTeamRequest): BodyInit {
     if (payload.logo instanceof File) {
@@ -100,5 +101,12 @@ export function removeMember(
 export function joinTeamByInvitation(invitationToken: string): Promise<TeamDto> {
     return apiClient<TeamDto>(`/api/teams/join/${invitationToken}`, {
         method: "POST",
+    });
+}
+
+export function createInvitation(teamId: string | number): Promise<InvitationUrlResponse> {
+    return apiClient<InvitationUrlResponse>("/api/invitations", {
+        method: "POST",
+        body: JSON.stringify({ teamId: Number(teamId) }),
     });
 }

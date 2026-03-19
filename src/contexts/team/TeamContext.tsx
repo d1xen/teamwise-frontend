@@ -40,14 +40,18 @@ export function TeamProvider({
         }
     }, [teamId]);
 
-    const loadTeam = useCallback(async () => {
+    const loadTeam = useCallback(async (options?: { blockUi?: boolean }) => {
+        const blockUi = options?.blockUi ?? false;
+
         if (!user || !teamId) {
             setIsReady(true);
             return;
         }
 
         setIsLoading(true);
-        setIsReady(false);
+        if (blockUi) {
+            setIsReady(false);
+        }
 
         try {
             const [teamData, membersData]: [TeamDto, TeamMemberDto[]] = await Promise.all([
@@ -117,7 +121,7 @@ export function TeamProvider({
 
     useEffect(() => {
         isCancelledRef.current = false;
-        loadTeam();
+        void loadTeam({ blockUi: true });
         return () => {
             isCancelledRef.current = true;
         };
@@ -131,7 +135,7 @@ export function TeamProvider({
     };
 
     const refreshTeam = async () => {
-        await loadTeam();
+        await loadTeam({ blockUi: false });
     };
 
     // Mise à jour locale du statut actif d'un joueur (optimistic update)

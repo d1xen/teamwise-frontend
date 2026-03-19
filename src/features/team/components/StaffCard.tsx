@@ -1,21 +1,19 @@
 import { useTranslation } from 'react-i18next';
 import type { TeamMember } from '@/contexts/team/team.types';
 import { calculateAge } from '@/shared/utils/dateUtils';
-import { Calendar } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import Flag from 'react-world-flags';
 
 interface StaffCardProps {
   member: TeamMember;
 }
 
-/**
- * StaffCard Premium - Design sobre et compact
- *
- * Style:
- * - Design épuré
- * - Badge rôle sobre (pas de couleurs flash)
- * - Hover subtil
- */
+const ROLE_STYLES: Record<string, string> = {
+  MANAGER:  'bg-indigo-500/10 text-indigo-300 border-indigo-500/20',
+  COACH:    'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+  ANALYST:  'bg-amber-500/10 text-amber-300 border-amber-500/20',
+};
+
 export function StaffCard({ member }: StaffCardProps) {
   const { t } = useTranslation();
 
@@ -26,54 +24,57 @@ export function StaffCard({ member }: StaffCardProps) {
     ? `${member.firstName || ''} ${member.lastName || ''}`.trim()
     : null;
 
-  return (
-    <div className="group relative">
-      <div className="relative bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden hover:bg-neutral-900/70 hover:border-neutral-700 transition-all duration-200 h-[300px] w-full max-w-[210px] mx-auto flex flex-col">
-        {/* Visuel haut (buste) */}
-        <div className="relative h-40 bg-neutral-950">
-          <img
-            src={member.avatarUrl}
-            alt={displayName}
-            className="h-full w-full object-contain object-top"
-          />
-        </div>
+  const roleStyle = ROLE_STYLES[member.role] ?? 'bg-neutral-800 text-neutral-400 border-neutral-700';
 
-        {/* Infos */}
-        <div className="relative p-3 flex-1 overflow-hidden flex flex-col">
-          {member.countryCode && (
-            <div className="absolute top-2.5 right-2.5">
-              <Flag
-                code={member.countryCode}
-                className="w-6 h-4 rounded-sm shadow-lg"
-              />
+  return (
+    <div className="flex items-center gap-3.5 px-4 py-3 bg-neutral-900/50 border border-neutral-800 rounded-xl hover:border-neutral-700 hover:bg-neutral-900/70 transition-all duration-200 group">
+
+      {/* Avatar */}
+      <div className="relative flex-shrink-0">
+        <div className="w-11 h-11 rounded-lg overflow-hidden bg-neutral-800 border border-neutral-700/50">
+          {member.avatarUrl ? (
+            <img
+              src={member.avatarUrl}
+              alt={displayName}
+              className="w-full h-full object-cover object-top"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-lg font-black text-neutral-600 select-none">
+                {displayName[0]?.toUpperCase()}
+              </span>
             </div>
           )}
-          <div className="min-w-0 min-h-[44px]">
-            <h3 className="text-lg font-bold text-white truncate leading-tight">
-              {displayName}
-            </h3>
-            {fullName && (
-              <p className="text-sm text-neutral-400 truncate leading-tight">
-                {fullName}
-              </p>
-            )}
-          </div>
-
-          <div className="mt-auto flex flex-col items-start gap-2">
-            {age && (
-              <div className="flex items-center gap-2 px-2.5 py-1.5 bg-neutral-800/50 rounded-lg border border-neutral-700/30">
-                <Calendar className="w-4 h-4 text-neutral-400" />
-                <span className="text-sm font-medium text-neutral-300 whitespace-nowrap">
-                  {age} {t('common.years')}
-                </span>
-              </div>
-            )}
-
-            <span className="px-2.5 py-1 bg-neutral-800 text-neutral-500 rounded text-[11px] font-medium uppercase whitespace-nowrap truncate max-w-[140px]">
-              {t(`roles.${member.role}`)}
-            </span>
-          </div>
         </div>
+        {/* Owner badge */}
+        {member.isOwner && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500/20 border border-amber-500/30 rounded-full flex items-center justify-center">
+            <Crown className="w-2.5 h-2.5 text-amber-400" />
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-sm font-bold text-white truncate">{displayName}</span>
+          {member.countryCode && (
+            <Flag code={member.countryCode} className="w-4 h-2.5 rounded-[2px] flex-shrink-0 opacity-80" />
+          )}
+        </div>
+        {fullName && (
+          <p className="text-[11px] text-neutral-500 truncate leading-tight">{fullName}</p>
+        )}
+        {age && !fullName && (
+          <p className="text-[11px] text-neutral-600">{age} {t('common.years')}</p>
+        )}
+      </div>
+
+      {/* Role badge */}
+      <div className="flex-shrink-0">
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${roleStyle}`}>
+          {t(`roles.${member.role}`)}
+        </span>
       </div>
     </div>
   );
