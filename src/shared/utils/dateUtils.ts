@@ -56,6 +56,19 @@ export function formatDate(isoDate: string | undefined | null, locale = 'fr'): s
 }
 
 /**
+ * Retourne une date ISO (YYYY-MM-DD) à partir d'un DateRange
+ */
+export function dateRangeToFrom(range: "1m" | "3m" | "6m" | "1y" | "all"): string | null {
+    if (range === "all") return null;
+    const d = new Date();
+    if (range === "1m")  d.setMonth(d.getMonth() - 1);
+    if (range === "3m")  d.setMonth(d.getMonth() - 3);
+    if (range === "6m")  d.setMonth(d.getMonth() - 6);
+    if (range === "1y")  d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().slice(0, 10);
+}
+
+/**
  * Formater une date ISO en format court (Jan 2024)
  */
 export function formatDateShort(isoDate: string | undefined | null, locale = 'fr'): string | null {

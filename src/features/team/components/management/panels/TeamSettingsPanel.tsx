@@ -6,11 +6,13 @@ import {
   CheckCircle2, Circle, Pencil, Save, X,
 } from 'lucide-react';
 import type { Team } from '@/contexts/team/team.types';
-import { updateTeam as updateTeamApi, createInvitation } from '@/api/endpoints/team.api';
+import { updateTeam as updateTeamApi, createInvitation, uploadTeamLogo, deleteTeamLogo } from '@/api/endpoints/team.api';
 import type { UpdateTeamRequest } from '@/api/types/team';
 import { useTeam } from '@/contexts/team/useTeam';
 import type { useTeamActions } from '@/features/team/hooks/useTeamActions';
 import { FormInput, FormTextarea } from '@/design-system/components/Form';
+import ImageUpload from '@/shared/components/ImageUpload';
+import { TeamAvatar } from '@/shared/components/TeamAvatar';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -98,7 +100,6 @@ export default function TeamSettingsPanel({
   const [formData, setFormData] = useState({
     name:        team.name,
     tag:         team.tag ?? '',
-    logoUrl:     team.logoUrl ?? '',
     description: team.description ?? '',
     hltv:        team.links?.find((l) => l.type === 'HLTV')?.url   ?? '',
     faceit:      team.links?.find((l) => l.type === 'FACEIT')?.url  ?? '',
@@ -150,7 +151,6 @@ export default function TeamSettingsPanel({
         name:        formData.name,
         tag:         formData.tag || undefined,
         description: formData.description || null,
-        logoUrl:     formData.logoUrl || null,
         links,
       };
       await updateTeamApi(team.id, payload);
@@ -169,7 +169,6 @@ export default function TeamSettingsPanel({
     setFormData({
       name:        team.name,
       tag:         team.tag ?? '',
-      logoUrl:     team.logoUrl ?? '',
       description: team.description ?? '',
       hltv:        team.links?.find((l) => l.type === 'HLTV')?.url   ?? '',
       faceit:      team.links?.find((l) => l.type === 'FACEIT')?.url  ?? '',
@@ -222,13 +221,13 @@ export default function TeamSettingsPanel({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 bg-neutral-900/70">
           <div className="flex items-center gap-3">
-            {team.logoUrl ? (
-              <img src={team.logoUrl} alt={team.name} className="w-9 h-9 rounded-lg object-cover" />
-            ) : (
-              <div className="w-9 h-9 rounded-lg bg-neutral-800 flex items-center justify-center">
-                <span className="text-sm font-black text-neutral-600">{team.name[0]}</span>
-              </div>
-            )}
+            <TeamAvatar
+              logoUrl={team.logoUrl}
+              name={team.name}
+              tag={team.tag}
+              size={36}
+              className="ring-1 ring-neutral-700"
+            />
             <div>
               <p className="text-sm font-semibold text-white">{team.name}</p>
               <p className="text-xs text-neutral-500">{t('management.edit_team_settings')}</p>
@@ -290,12 +289,6 @@ export default function TeamSettingsPanel({
               {t('management.team_appearance')}
             </p>
             <div className="grid grid-cols-1 gap-4">
-              <FormInput
-                label="Logo URL"
-                placeholder="https://..."
-                value={formData.logoUrl}
-                onChange={(v) => handleChange('logoUrl', v)}
-              />
               <FormTextarea
                 label={t('management.team_description')}
                 placeholder={t('management.team_description_placeholder')}
@@ -349,17 +342,31 @@ export default function TeamSettingsPanel({
         <div className="flex items-center gap-4">
           {/* Logo */}
           <div className="relative shrink-0">
-            {team.logoUrl ? (
-              <img
-                src={team.logoUrl}
-                alt={team.name}
-                className="w-16 h-16 rounded-xl object-cover ring-2 ring-neutral-700"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-xl bg-neutral-800 ring-2 ring-neutral-700 flex items-center justify-center">
-                <span className="text-2xl font-black text-neutral-600 select-none">{team.name[0]}</span>
-              </div>
-            )}
+            <ImageUpload
+              currentUrl={team.logoUrl ?? null}
+              alt={team.name}
+              shape="square"
+              size={64}
+              accept="image/jpeg,image/png,image/svg+xml"
+              maxBytes={5 * 1024 * 1024}
+              disabled={!canEdit}
+              onUpload={async (file) => {
+                try {
+                  const updated = await uploadTeamLogo(team.id, file);
+                  toast.success(t('upload.logo_updated'));
+                  await refreshTeam();
+                  return updated.logoUrl ?? null;
+                } catch {
+                  toast.error(t('upload.error_generic'));
+                  return null;
+                }
+              }}
+              onDelete={canEdit ? async () => {
+                await deleteTeamLogo(team.id);
+                toast.success(t('upload.logo_deleted'));
+                await refreshTeam();
+              } : undefined}
+            />
             <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-neutral-900 ${completionColor(pct)}`} />
           </div>
 
@@ -432,7 +439,7 @@ export default function TeamSettingsPanel({
             {t('management.team_appearance')}
           </p>
           <div className="divide-y divide-neutral-800/60">
-            <TeamField label="Logo URL"                         value={team.logoUrl} />
+            <TeamField label={t('upload.logo')} value={team.logoUrl ? '✓' : null} />
             <TeamField label={t('management.team_description')} value={team.description} />
           </div>
         </div>

@@ -10,16 +10,6 @@ import type {
 import type { InvitationUrlResponse } from "@/api/types/invitation";
 
 function buildTeamUpdateBody(payload: UpdateTeamRequest): BodyInit {
-    if (payload.logo instanceof File) {
-        const body = new FormData();
-        if (typeof payload.name !== "undefined") body.append("name", payload.name);
-        if (typeof payload.tag !== "undefined") body.append("tag", payload.tag);
-        if (typeof payload.logoUrl !== "undefined") body.append("logoUrl", payload.logoUrl ?? "");
-        if (typeof payload.links !== "undefined") body.append("links", JSON.stringify(payload.links ?? []));
-        body.append("logo", payload.logo);
-        return body;
-    }
-
     return JSON.stringify(payload);
 }
 
@@ -98,8 +88,8 @@ export function removeMember(
     });
 }
 
-export function joinTeamByInvitation(invitationToken: string): Promise<TeamDto> {
-    return apiClient<TeamDto>(`/api/teams/join/${invitationToken}`, {
+export function joinTeamByInvitation(invitationToken: string): Promise<{ id: number; name: string }> {
+    return apiClient<{ id: number; name: string }>(`/api/teams/join/${invitationToken}`, {
         method: "POST",
     });
 }
@@ -109,4 +99,14 @@ export function createInvitation(teamId: string | number): Promise<InvitationUrl
         method: "POST",
         body: JSON.stringify({ teamId: Number(teamId) }),
     });
+}
+
+export function uploadTeamLogo(teamId: string | number, file: File): Promise<TeamDto> {
+    const body = new FormData();
+    body.append("file", file);
+    return apiClient<TeamDto>(`/api/teams/${teamId}/logo`, { method: "POST", body });
+}
+
+export function deleteTeamLogo(teamId: string | number): Promise<TeamDto> {
+    return apiClient<TeamDto>(`/api/teams/${teamId}/logo`, { method: "DELETE" });
 }

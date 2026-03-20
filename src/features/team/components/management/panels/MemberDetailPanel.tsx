@@ -11,6 +11,7 @@ import type { UserProfileDto, UserProfileUpdateDto } from "@/api/endpoints/profi
 import { useTeam } from "@/contexts/team/useTeam";
 import { useAuth } from "@/contexts/auth/useAuth";
 import { Toggle } from "@/shared/components/Toggle";
+import { UserAvatar } from "@/shared/components/UserAvatar";
 import { getAvailableInGameRoles, IN_GAME_ROLE_LABELS, getMaxActivePlayers, getValidLinksForGame } from "@/shared/config/gameConfig";
 import { ROLE_BADGE_STYLES } from "@/shared/constants/roleStyles";
 import { Crown, X, Loader, LogOut, CheckCircle2, Circle } from "lucide-react";
@@ -233,17 +234,13 @@ export default function MemberDetailPanel({
         {/* Row 1: avatar + identity + close */}
         <div className="flex items-center gap-3 mb-3">
           {/* Avatar */}
-          <div className="relative shrink-0">
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-neutral-800 ring-1 ring-neutral-700/60">
-              {member.avatarUrl ? (
-                <img src={member.avatarUrl} alt={displayName} className="w-full h-full object-cover object-top" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-base font-black text-neutral-500">{displayName[0]?.toUpperCase()}</span>
-                </div>
-              )}
-            </div>
-          </div>
+          <UserAvatar
+            profileImageUrl={member.profileImageUrl}
+            avatarUrl={member.avatarUrl}
+            nickname={displayName}
+            size={40}
+            className="ring-1 ring-neutral-700/60"
+          />
 
           {/* Name + country */}
           <div className="flex-1 min-w-0">

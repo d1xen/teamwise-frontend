@@ -4,7 +4,7 @@ const STORAGE_KEYS = {
   lastTeamId: 'tw.lastTeamId',
 } as const;
 
-type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
+type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS] | `tw.matchFilters.${string}`;
 
 type StorageLike = {
   getItem: (key: string) => string | null;
@@ -86,6 +86,12 @@ export const appStorage = {
   },
   clearLastTeamId(): void {
     removeItem(STORAGE_KEYS.lastTeamId);
+  },
+  getMatchFilters(teamId: string): string | null {
+    return getItem(`tw.matchFilters.${teamId}`);
+  },
+  setMatchFilters(teamId: string, value: string): void {
+    setItem(`tw.matchFilters.${teamId}`, value);
   },
 };
 

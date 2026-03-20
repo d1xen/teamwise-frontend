@@ -67,6 +67,7 @@ export function TeamProvider({
                 role: m.role,
                 isOwner: m.isOwner,
                 ...(m.avatarUrl && { avatarUrl: m.avatarUrl }),
+                ...(m.profileImageUrl && { profileImageUrl: m.profileImageUrl }),
                 ...(m.profileCompleted !== undefined ? { profileCompleted: m.profileCompleted } : {}),
                 ...(m.discord && { discord: m.discord }),
                 ...(m.twitter && { twitter: m.twitter }),

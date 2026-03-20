@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { useRef, useState, useEffect } from 'react';
 import { useTeam } from '@/contexts/team/useTeam';
 import { useAuth } from '@/contexts/auth/useAuth';
+import { useMatchSummary } from '@/features/match/hooks/useMatchSummary';
 import {
   Calendar,
   BarChart3,
   BookOpen,
-  Trophy,
   Swords,
   Settings,
   LogOut,
@@ -16,7 +16,6 @@ import {
   ArrowLeftRight,
   Heart,
   Crosshair,
-  Medal,
   MessagesSquare,
 } from 'lucide-react';
 import Flag from 'react-world-flags';
@@ -46,6 +45,7 @@ export default function TeamSidebar() {
   const kofiUrl = appConfig.externalLinks.kofi;
   const showLoader = useMinimumLoader(isLoading || !team, 800);
   const [langOpen, setLangOpen] = useState(false);
+  const { toCompleteCount } = useMatchSummary(team?.id ?? "");
   const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -91,34 +91,22 @@ export default function TeamSidebar() {
       path: `/team/${team.id}/agenda`,
     },
     {
-      id: 'scrims',
-      label: t('nav.scrims'),
-      icon: Swords,
-      path: `/team/${team.id}/scrims`,
-    },
-    {
       id: 'matches',
       label: t('nav.matches'),
       icon: Crosshair,
       path: `/team/${team.id}/matches`,
     },
     {
-      id: 'tournaments',
-      label: t('nav.tournaments'),
-      icon: Medal,
-      path: `/team/${team.id}/tournaments`,
-    },
-    {
-      id: 'results',
-      label: t('nav.results'),
-      icon: Trophy,
-      path: `/team/${team.id}/results`,
-    },
-    {
       id: 'stratbook',
       label: t('nav.stratbook'),
       icon: BookOpen,
       path: `/team/${team.id}/stratbook`,
+    },
+    {
+      id: 'scrims',
+      label: t('nav.scrims'),
+      icon: Swords,
+      path: `/team/${team.id}/scrims`,
     },
     {
       id: 'stats',
@@ -179,6 +167,7 @@ export default function TeamSidebar() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
+          const badge = item.id === 'matches' && toCompleteCount > 0 ? toCompleteCount : null;
 
           return (
             <button
@@ -193,7 +182,12 @@ export default function TeamSidebar() {
               )}
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
-              <span className="truncate">{item.label}</span>
+              <span className="flex-1 truncate text-left">{item.label}</span>
+              {badge !== null && (
+                <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-[10px] font-bold text-neutral-950 flex items-center justify-center tabular-nums">
+                  {badge > 9 ? "9+" : badge}
+                </span>
+              )}
             </button>
           );
         })}

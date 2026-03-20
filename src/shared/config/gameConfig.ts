@@ -1,5 +1,39 @@
 import type { Game, InGameRole } from "@/api/types/team";
 
+// ─── Maps by game ─────────────────────────────────────────────────────────────
+
+export const GAME_MAPS: Record<Game, { value: string; label: string }[]> = {
+    CS2: [
+        { value: "de_ancient",  label: "Ancient"  },
+        { value: "de_anubis",   label: "Anubis"   },
+        { value: "de_cache",    label: "Cache"     },
+        { value: "de_dust2",    label: "Dust II"   },
+        { value: "de_inferno",  label: "Inferno"   },
+        { value: "de_mirage",   label: "Mirage"    },
+        { value: "de_nuke",     label: "Nuke"      },
+        { value: "de_overpass", label: "Overpass"  },
+        { value: "de_train",    label: "Train"     },
+        { value: "de_vertigo",  label: "Vertigo"   },
+    ],
+    VALORANT: [
+        { value: "Abyss",   label: "Abyss"   },
+        { value: "Ascent",  label: "Ascent"  },
+        { value: "Bind",    label: "Bind"    },
+        { value: "Breeze",  label: "Breeze"  },
+        { value: "Haven",   label: "Haven"   },
+        { value: "Icebox",  label: "Icebox"  },
+        { value: "Lotus",   label: "Lotus"   },
+        { value: "Pearl",   label: "Pearl"   },
+        { value: "Split",   label: "Split"   },
+        { value: "Sunset",  label: "Sunset"  },
+    ],
+};
+
+export function getMapsForGame(game?: Game): { value: string; label: string }[] {
+    if (!game) return GAME_MAPS.CS2;
+    return GAME_MAPS[game] ?? GAME_MAPS.CS2;
+}
+
 // ─── In-game roles by game ────────────────────────────────────────────────────
 
 export const GAME_IN_GAME_ROLES: Record<Game, InGameRole[]> = {

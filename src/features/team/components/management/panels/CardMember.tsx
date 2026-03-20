@@ -5,6 +5,7 @@ import { ROLE_BADGE_STYLES } from "@/shared/constants/roleStyles";
 import { Crown } from "lucide-react";
 import { cn } from "@/design-system";
 import Flag from "react-world-flags";
+import { UserAvatar } from "@/shared/components/UserAvatar";
 
 interface CardMemberProps {
   member: TeamMember;
@@ -29,23 +30,13 @@ export default function CardMember({ member, isSelected, onSelect, isStaffView }
       )}
     >
       {/* Avatar */}
-      <div className="relative shrink-0">
-        <div className="w-10 h-10 rounded-xl overflow-hidden bg-neutral-800 ring-1 ring-neutral-700/50">
-          {member.avatarUrl ? (
-            <img
-              src={member.avatarUrl}
-              alt={displayName}
-              className="w-full h-full object-cover object-top"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-base font-bold text-neutral-500">
-                {displayName[0]?.toUpperCase()}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+      <UserAvatar
+        profileImageUrl={member.profileImageUrl}
+        avatarUrl={member.avatarUrl}
+        nickname={displayName}
+        size={40}
+        className="ring-1 ring-neutral-700/50"
+      />
 
       {/* Info */}
       <div className="flex-1 min-w-0">

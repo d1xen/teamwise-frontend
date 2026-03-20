@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { createTeam } from "@/api/endpoints/team.api";
+import { createTeam, getMyTeams } from "@/api/endpoints/team.api";
 import type { CreateTeamRequest, Game, TeamLink } from "@/api/types/team";
 import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
+import { MAX_TEAMS_PER_USER } from "@/shared/constants/teamConstants";
 import { Input } from "@/design-system/components/Input";
 import { Button } from "@/design-system/components";
 
@@ -27,6 +28,15 @@ export default function CreateTeamPage() {
     const [currentStep, setCurrentStep] = useState<Step>(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Guard: redirect if already at team limit
+    useEffect(() => {
+        getMyTeams().then(teams => {
+            if (teams.length >= MAX_TEAMS_PER_USER) {
+                navigate("/select-team", { replace: true });
+            }
+        }).catch(() => {/* ignore, let the form try and surface the backend error */});
+    }, [navigate]);
 
     const steps = [
         { number: 1, title: t("create_team.step_1_title"), description: t("create_team.step_1_description") },
@@ -88,9 +98,8 @@ export default function CreateTeamPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 px-4 py-8">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+        <div className="min-h-screen flex items-center justify-center bg-neutral-950 px-4 py-8">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(99,102,241,0.07),transparent)]" />
 
             {/* Back Button */}
             <button

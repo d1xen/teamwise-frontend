@@ -4,6 +4,7 @@ export type AuthResponseDto = {
     steamId: string;
     nickname: string;
     avatarUrl: string | null;
+    profileImageUrl: string | null;
     hasTeam: boolean;
     profileCompleted: boolean;
 };

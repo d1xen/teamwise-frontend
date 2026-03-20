@@ -2,6 +2,7 @@ import type { Team } from '@/contexts/team/team.types';
 import type { ReactNode } from 'react';
 import { Globe, Twitter } from 'lucide-react';
 import { cn } from '@/design-system';
+import { TeamAvatar } from '@/shared/components/TeamAvatar';
 
 interface TeamHeaderProps {
   team: Team;
@@ -31,19 +32,13 @@ export function TeamHeader({ team, actions, children }: TeamHeaderProps) {
 
         {/* Logo */}
         <div className="flex-shrink-0 flex items-center">
-          {team.logoUrl ? (
-            <img
-              src={team.logoUrl}
-              alt={team.name}
-              className="w-16 h-16 rounded-xl object-cover ring-1 ring-neutral-800"
-            />
-          ) : (
-            <div className="w-16 h-16 rounded-xl bg-neutral-800 flex items-center justify-center ring-1 ring-neutral-700">
-              <span className="text-2xl font-black text-neutral-500 select-none">
-                {team.name[0]}
-              </span>
-            </div>
-          )}
+          <TeamAvatar
+            logoUrl={team.logoUrl}
+            name={team.name}
+            tag={team.tag}
+            size={64}
+            className="ring-1 ring-neutral-800"
+          />
         </div>
 
         {/* Main info */}

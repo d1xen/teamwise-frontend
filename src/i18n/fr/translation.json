@@ -55,6 +55,7 @@
     "no_teams_message": "Vous ne faites partie d'aucune équipe pour le moment",
     "create_team": "Créer une équipe",
     "create_new_team": "Créer une nouvelle équipe",
+    "max_teams_reached": "Vous avez atteint la limite de {{max}} équipes. Quittez une équipe pour en rejoindre ou créer une autre.",
     "create_title": "Créer une équipe",
     "team_name": "Nom de l'équipe",
     "name_placeholder": "Nom de l'équipe",
@@ -207,7 +208,23 @@
     "gaming": "Gaming",
     "save_error": "Erreur lors de l'enregistrement du profil",
     "age": "Âge",
-    "years_old": "ans"
+    "years_old": "ans",
+    "avatar": "Photo de profil",
+    "avatar_hint": "JPEG ou PNG · max 2 Mo",
+    "avatar_updated": "Photo de profil mise à jour",
+    "avatar_deleted": "Photo de profil supprimée"
+  },
+
+  "upload": {
+    "change": "Changer l'image",
+    "delete": "Supprimer l'image",
+    "error_too_large": "Fichier trop volumineux (max {{max}} Mo)",
+    "error_type": "Format non supporté",
+    "error_generic": "Échec de l'upload, veuillez réessayer",
+    "logo": "Logo de l'équipe",
+    "logo_hint": "JPEG, PNG ou SVG · max 5 Mo",
+    "logo_updated": "Logo mis à jour",
+    "logo_deleted": "Logo supprimé"
   },
 
   "management": {
@@ -354,7 +371,13 @@
     "feature_coming_soon": "Fonctionnalité bientôt disponible",
     "team_updated": "Équipe mise à jour avec succès",
     "logo_url_placeholder": "URL du logo...",
-    "links": "Liens"
+    "links": "Liens",
+    "next_match": "Prochain match",
+    "to_complete": "À compléter",
+    "to_complete_hint": "{{count}} match(s) en attente de score",
+    "up_to_date": "À jour",
+    "up_to_date_hint": "Tous vos matchs passés ont été complétés.",
+    "matches_played": "Matchs joués"
   },
 
   "nav": {
@@ -531,5 +554,134 @@
     "internal_error": "Erreur interne du serveur",
     "network_error": "Erreur réseau",
     "try_again": "Veuillez réessayer"
+  },
+
+  "matches": {
+    "new_match": "Nouveau match",
+    "create_title": "Planifier un match",
+    "create_button": "Créer le match",
+    "create_success": "Match créé",
+    "create_error": "Erreur lors de la création du match",
+    "load_error": "Impossible de charger les matchs",
+    "edit_score": "Modifier les scores",
+    "cancel_success": "Match annulé",
+    "cancel_error": "Erreur lors de l'annulation",
+    "delete": "Supprimer le match",
+    "delete_success": "Match supprimé",
+    "delete_error": "Erreur lors de la suppression",
+    "score_saved": "Score enregistré",
+    "score_error": "Erreur lors de l'enregistrement du score",
+
+    "type": "Type",
+    "type_official": "Officiel",
+    "type_scrim": "Scrim",
+
+    "format": "Format",
+
+    "context": "Contexte",
+    "context_tournament": "Tournoi",
+    "context_qualifier": "Qualificatif",
+    "context_lan": "LAN",
+    "context_regular_season": "Saison régulière",
+
+    "filter_all": "Tous",
+
+    "opponent_name": "Adversaire",
+    "opponent_name_placeholder": "Nom de l'équipe...",
+    "opponent_logo": "Logo adversaire",
+    "tba": "À définir",
+    "tba_hint": "optionnel",
+    "match_url": "URL du match",
+    "match_url_link": "Lien",
+    "scheduled_at": "Date et heure",
+    "competition_name": "Compétition",
+    "competition_stage": "Phase",
+    "level": "Niveau",
+    "notes": "Notes",
+    "notes_placeholder": "Notes optionnelles...",
+    "optional": "Optionnel",
+    "more_options": "Plus d'options",
+
+    "section_upcoming": "À venir",
+    "section_to_complete": "À compléter",
+    "section_completed": "Résultats",
+
+    "tab_upcoming": "À venir",
+    "tab_to_complete": "À compléter",
+    "tab_completed": "Terminés",
+    "tab_all": "Tous",
+
+    "empty_upcoming": "Aucun match à venir.",
+    "empty_to_complete": "Aucun match à compléter.",
+    "empty_results": "Aucun résultat pour l'instant.",
+    "empty_all": "Aucun match trouvé.",
+    "empty_all_hint": "Ajustez vos filtres ou créez un nouveau match.",
+    "empty_hint": "Essayez d'ajuster vos filtres.",
+
+    "result_count": "{{count}} match(s) trouvé(s)",
+
+    "filters": "Filtres",
+    "clear_filters": "Effacer les filtres",
+    "filter_opponent": "Rechercher un adversaire…",
+    "filter_competition": "Rechercher une compétition…",
+    "filter_type_all": "Tous les types",
+    "filter_context_all": "Tous les contextes",
+    "filter_format_all": "Tous les formats",
+
+    "date_range_all": "Toute période",
+    "date_range_1m": "Dernier mois",
+    "date_range_3m": "3 derniers mois",
+    "date_range_6m": "6 derniers mois",
+    "date_range_1y": "Dernière année",
+
+    "pending": "en attente",
+    "show_ignored": "Afficher ignorés ({{count}})",
+    "show_ignored_btn": "Afficher ignorés",
+    "hide_ignored": "Masquer ignorés",
+
+    "enter_score": "Saisir le score",
+    "cancel": "Annuler le match",
+    "ignore": "Ignorer",
+    "unignore": "Réactiver",
+
+    "score_title": "Saisir les scores",
+    "map_name": "Map",
+    "map_label": "Map {{n}}",
+    "map_select_placeholder": "Choisir une map…",
+    "score_header": "Score",
+    "score_us": "Nous",
+    "score_them": "Eux",
+    "score_help": "Renseignez les scores des cartes jouées, puis cliquez sur Enregistrer. Utilisez ↺ pour réinitialiser une carte.",
+    "validate_map": "Valider la map",
+    "reset_map": "Réinitialiser la map",
+    "map_unknown": "Map inconnue",
+    "maps_of": "{{done}} / {{total}} maps",
+
+    "result_win": "VICTOIRE",
+    "result_lose": "DÉFAITE",
+    "result_draw": "ÉGALITÉ",
+
+    "edit_mode": "Éditer",
+    "exit_edit_mode": "Terminer",
+    "select_all": "Tout sélectionner",
+    "deselect_all": "Tout désélectionner",
+    "selected_count": "{{count}} sélectionné(s)",
+    "bulk_delete": "Supprimer ({{count}})",
+    "bulk_delete_success": "{{count}} match(s) supprimé(s)",
+    "bulk_delete_error": "Certains matchs n'ont pas pu être supprimés",
+
+    "complete": "Compléter",
+    "in_hours": "Dans {{count}}h",
+    "in_days": "Dans {{count}}j",
+
+    "map_not_played": "Non joué",
+    "update_error": "Échec de la mise à jour du match",
+    "save_scores": "Enregistrer les scores",
+    "scores_saved": "{{count}} score(s) enregistré(s)",
+    "edit_match": "Modifier le match",
+    "save_changes": "Enregistrer",
+    "changes_saved": "Modifications enregistrées",
+    "vs": "vs",
+    "to_complete_motivation": "{{count}} match(s) en attente de score — gardez votre historique à jour !"
   }
 }

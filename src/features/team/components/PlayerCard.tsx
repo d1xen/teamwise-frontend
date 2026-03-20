@@ -4,6 +4,7 @@ import { calculateAge } from '@/shared/utils/dateUtils';
 import { Crown } from 'lucide-react';
 import Flag from 'react-world-flags';
 import { IN_GAME_ROLE_LABELS } from '@/shared/config/gameConfig';
+import { UserAvatar } from '@/shared/components/UserAvatar';
 
 interface PlayerCardProps {
   member: TeamMember;
@@ -43,19 +44,12 @@ export function PlayerCard({ member }: PlayerCardProps) {
 
         {/* Avatar — top 60% */}
         <div className="relative flex-shrink-0 h-[60%] bg-neutral-950 overflow-hidden">
-          {member.avatarUrl ? (
-            <img
-              src={member.avatarUrl}
-              alt={displayName}
-              className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-4xl font-black text-neutral-700 select-none">
-                {displayName[0]?.toUpperCase()}
-              </span>
-            </div>
-          )}
+          <UserAvatar
+            profileImageUrl={member.profileImageUrl}
+            avatarUrl={member.avatarUrl}
+            nickname={displayName}
+            className="absolute inset-0 w-full h-full rounded-none transition-transform duration-300 group-hover:scale-[1.03]"
+          />
 
           {/* Gradient overlay bottom */}
           <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-neutral-900 to-transparent" />

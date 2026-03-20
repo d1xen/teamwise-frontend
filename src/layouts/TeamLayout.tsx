@@ -3,7 +3,6 @@ import TeamSidebar from "@/layouts/TeamSidebar";
 import { useTeam } from "@/contexts/team/useTeam";
 import { useTranslation } from "react-i18next";
 import FullScreenLoader from "@/shared/components/FullScreenLoader";
-import { useMinimumLoader } from "@/shared/hooks/useMinimumLoader";
 import { Button } from "@/design-system/components";
 
 /**
@@ -13,15 +12,9 @@ import { Button } from "@/design-system/components";
 export default function TeamLayout() {
     const { t } = useTranslation();
     const { isReady, team, refreshTeam, isLoading } = useTeam();
-    const showLoader = useMinimumLoader(!isReady, 800);
 
-    if (showLoader) {
-        return (
-            <FullScreenLoader
-                title={t("common.loading")}
-                subtitle={t("team.loading_context")}
-            />
-        );
+    if (!isReady) {
+        return <FullScreenLoader />;
     }
 
     if (!team) {

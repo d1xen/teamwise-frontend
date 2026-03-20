@@ -3,6 +3,7 @@ import type { TeamMember } from '@/contexts/team/team.types';
 import { calculateAge } from '@/shared/utils/dateUtils';
 import { Crown } from 'lucide-react';
 import Flag from 'react-world-flags';
+import { UserAvatar } from '@/shared/components/UserAvatar';
 
 interface StaffCardProps {
   member: TeamMember;
@@ -31,21 +32,13 @@ export function StaffCard({ member }: StaffCardProps) {
 
       {/* Avatar */}
       <div className="relative flex-shrink-0">
-        <div className="w-11 h-11 rounded-lg overflow-hidden bg-neutral-800 border border-neutral-700/50">
-          {member.avatarUrl ? (
-            <img
-              src={member.avatarUrl}
-              alt={displayName}
-              className="w-full h-full object-cover object-top"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-lg font-black text-neutral-600 select-none">
-                {displayName[0]?.toUpperCase()}
-              </span>
-            </div>
-          )}
-        </div>
+        <UserAvatar
+          profileImageUrl={member.profileImageUrl}
+          avatarUrl={member.avatarUrl}
+          nickname={displayName}
+          size={44}
+          className="border border-neutral-700/50"
+        />
         {/* Owner badge */}
         {member.isOwner && (
           <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500/20 border border-amber-500/30 rounded-full flex items-center justify-center">

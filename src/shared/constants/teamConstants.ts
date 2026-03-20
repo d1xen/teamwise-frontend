@@ -9,6 +9,11 @@
 export const MAX_ACTIVE_PLAYERS = 5;
 
 /**
+ * Nombre maximum d'équipes par utilisateur
+ */
+export const MAX_TEAMS_PER_USER = 3;
+
+/**
  * Seuil minimum de joueurs du même pays pour majorité
  */
 export const MAJORITY_THRESHOLD = 3;

@@ -66,6 +66,7 @@ export type TeamMemberDto = {
     role: TeamRole;
     isOwner: boolean;
     avatarUrl?: string | null;
+    profileImageUrl?: string | null;
     profileCompleted?: boolean;
     discord?: string | null;
     twitter?: string | null;
@@ -97,7 +98,6 @@ export type UpdateTeamRequest = {
     logoUrl?: string | null;
     description?: string | null;
     links?: TeamLink[];
-    logo?: File | null; // For form-based upload
 };
 
 export type UpdateMemberRoleRequest = {

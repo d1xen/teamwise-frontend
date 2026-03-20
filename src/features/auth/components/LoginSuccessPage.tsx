@@ -29,9 +29,8 @@ export default function LoginSuccessPage() {
     }, [params, navigate, login]);
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+        <div className="fixed inset-0 flex items-center justify-center bg-neutral-950">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(99,102,241,0.07),transparent)]" />
 
             {/* Content */}
             <div className="relative z-10 text-center space-y-6">

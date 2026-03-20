@@ -45,6 +45,7 @@ export interface TeamMember {
     role: TeamRole;
     isOwner: boolean;
     avatarUrl?: string;
+    profileImageUrl?: string;
     profileCompleted?: boolean;
     discord?: string;
     twitter?: string;

@@ -52,3 +52,13 @@ export function updateUserProfile(
     );
 }
 
+export function uploadAvatar(file: File): Promise<UserProfileDto> {
+    const body = new FormData();
+    body.append("file", file);
+    return apiClient<UserProfileDto>("/api/users/me/avatar", { method: "POST", body });
+}
+
+export function deleteAvatar(): Promise<UserProfileDto> {
+    return apiClient<UserProfileDto>("/api/users/me/avatar", { method: "DELETE" });
+}
+

@@ -55,6 +55,7 @@
     "no_teams_message": "You are not part of any team yet",
     "create_team": "Create a team",
     "create_new_team": "Create a new team",
+    "max_teams_reached": "You have reached the maximum of {{max}} teams. Leave a team to join or create another.",
     "create_title": "Create a team",
     "team_name": "Team name",
     "name_placeholder": "Team name",
@@ -207,7 +208,23 @@
     "gaming": "Gaming",
     "save_error": "Error saving profile",
     "age": "Age",
-    "years_old": "years old"
+    "years_old": "years old",
+    "avatar": "Profile photo",
+    "avatar_hint": "JPEG or PNG · max 2 MB",
+    "avatar_updated": "Profile photo updated",
+    "avatar_deleted": "Profile photo removed"
+  },
+
+  "upload": {
+    "change": "Change image",
+    "delete": "Remove image",
+    "error_too_large": "File too large (max {{max}} MB)",
+    "error_type": "Unsupported format",
+    "error_generic": "Upload failed, please try again",
+    "logo": "Team logo",
+    "logo_hint": "JPEG, PNG or SVG · max 5 MB",
+    "logo_updated": "Logo updated",
+    "logo_deleted": "Logo removed"
   },
 
   "management": {
@@ -354,7 +371,13 @@
     "feature_coming_soon": "Feature coming soon",
     "team_updated": "Team updated successfully",
     "logo_url_placeholder": "Logo URL...",
-    "links": "Links"
+    "links": "Links",
+    "next_match": "Next match",
+    "to_complete": "To complete",
+    "to_complete_hint": "{{count}} match(es) awaiting score",
+    "up_to_date": "Up to date",
+    "up_to_date_hint": "All your past matches have been completed.",
+    "matches_played": "Matches played"
   },
 
   "nav": {
@@ -531,5 +554,134 @@
     "internal_error": "Internal server error",
     "network_error": "Network error",
     "try_again": "Please try again"
+  },
+
+  "matches": {
+    "new_match": "New match",
+    "create_title": "Schedule a match",
+    "create_button": "Create match",
+    "create_success": "Match created",
+    "create_error": "Error creating match",
+    "load_error": "Unable to load matches",
+    "edit_score": "Edit scores",
+    "cancel_success": "Match cancelled",
+    "cancel_error": "Error cancelling match",
+    "delete": "Delete match",
+    "delete_success": "Match deleted",
+    "delete_error": "Error deleting match",
+    "score_saved": "Score saved",
+    "score_error": "Error saving score",
+
+    "type": "Type",
+    "type_official": "Official",
+    "type_scrim": "Scrim",
+
+    "format": "Format",
+
+    "context": "Context",
+    "context_tournament": "Tournament",
+    "context_qualifier": "Qualifier",
+    "context_lan": "LAN",
+    "context_regular_season": "Regular Season",
+
+    "filter_all": "All",
+
+    "opponent_name": "Opponent",
+    "opponent_name_placeholder": "Team name...",
+    "opponent_logo": "Opponent logo",
+    "tba": "TBA",
+    "tba_hint": "optional",
+    "match_url": "Match URL",
+    "match_url_link": "Link",
+    "scheduled_at": "Date & time",
+    "competition_name": "Competition",
+    "competition_stage": "Stage",
+    "level": "Level",
+    "notes": "Notes",
+    "notes_placeholder": "Optional notes...",
+    "optional": "Optional",
+    "more_options": "More options",
+
+    "section_upcoming": "Upcoming",
+    "section_to_complete": "To complete",
+    "section_completed": "Results",
+
+    "tab_upcoming": "Upcoming",
+    "tab_to_complete": "To complete",
+    "tab_completed": "Completed",
+    "tab_all": "All",
+
+    "empty_upcoming": "No upcoming matches.",
+    "empty_to_complete": "No matches to complete.",
+    "empty_results": "No results yet.",
+    "empty_all": "No matches found.",
+    "empty_all_hint": "Try adjusting your filters or create a new match.",
+    "empty_hint": "Try adjusting your filters.",
+
+    "result_count": "{{count}} match(es) found",
+
+    "filters": "Filters",
+    "clear_filters": "Clear filters",
+    "filter_opponent": "Search opponent…",
+    "filter_competition": "Search competition…",
+    "filter_type_all": "All types",
+    "filter_context_all": "All contexts",
+    "filter_format_all": "All formats",
+
+    "date_range_all": "All time",
+    "date_range_1m": "Last month",
+    "date_range_3m": "Last 3 months",
+    "date_range_6m": "Last 6 months",
+    "date_range_1y": "Last year",
+
+    "pending": "pending",
+    "show_ignored": "Show ignored ({{count}})",
+    "show_ignored_btn": "Show ignored",
+    "hide_ignored": "Hide ignored",
+
+    "enter_score": "Enter score",
+    "cancel": "Cancel match",
+    "ignore": "Ignore",
+    "unignore": "Unignore",
+
+    "score_title": "Enter scores",
+    "map_name": "Map",
+    "map_label": "Map {{n}}",
+    "map_select_placeholder": "Select a map…",
+    "score_header": "Score",
+    "score_us": "Us",
+    "score_them": "Them",
+    "score_help": "Enter scores for all played maps, then click Save. Use ↺ to reset a map.",
+    "validate_map": "Validate map",
+    "reset_map": "Reset map",
+    "map_unknown": "Unknown map",
+    "maps_of": "{{done}} / {{total}} maps",
+
+    "result_win": "WIN",
+    "result_lose": "LOSE",
+    "result_draw": "DRAW",
+
+    "edit_mode": "Edit",
+    "exit_edit_mode": "Done",
+    "select_all": "Select all",
+    "deselect_all": "Deselect all",
+    "selected_count": "{{count}} selected",
+    "bulk_delete": "Delete ({{count}})",
+    "bulk_delete_success": "{{count}} match(es) deleted",
+    "bulk_delete_error": "Some matches could not be deleted",
+
+    "complete": "Complete",
+    "in_hours": "In {{count}}h",
+    "in_days": "In {{count}}d",
+
+    "map_not_played": "Not played",
+    "update_error": "Failed to update match",
+    "save_scores": "Save scores",
+    "scores_saved": "{{count}} score(s) saved",
+    "edit_match": "Edit match",
+    "save_changes": "Save changes",
+    "changes_saved": "Changes saved",
+    "vs": "vs",
+    "to_complete_motivation": "{{count}} match(es) awaiting scores — keep your history up to date!"
   }
 }

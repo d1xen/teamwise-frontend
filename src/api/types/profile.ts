@@ -3,7 +3,10 @@ import type { TeamMemberLink } from "@/api/types/team";
 export type UserProfileDto = {
     steamId: string;
     nickname: string;
+    /** Avatar Steam (non éditable). */
     avatarUrl: string | null;
+    /** Photo de profil personnalisée uploadée (prioritaire sur avatarUrl). */
+    profileImageUrl: string | null;
     firstName: string | null;
     lastName: string | null;
     email: string | null;

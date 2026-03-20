@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { CheckCircle2, Circle, Pencil, X, Save } from 'lucide-react';
 import type { UserProfileDto } from '@/api/endpoints/profile.api';
-import { updateMyProfile } from '@/api/endpoints/profile.api';
+import { updateMyProfile, uploadAvatar, deleteAvatar } from '@/api/endpoints/profile.api';
 import type { Game } from '@/api/types/team';
 import { getValidLinksForGame } from '@/shared/utils/linksUtils';
 import { useAuth } from '@/contexts/auth/useAuth';
@@ -11,6 +11,8 @@ import {
   FormInput,
   FormSelect,
 } from '@/design-system/components/Form';
+import ImageUpload from '@/shared/components/ImageUpload';
+import { getAvatarUrl } from '@/shared/utils/avatarUtils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -243,10 +245,33 @@ export default function EditableProfileSection({
           <div className="flex items-center gap-4">
             {/* Avatar */}
             <div className="relative shrink-0">
-              <img
-                src={profile.avatarUrl ?? ''}
+              <ImageUpload
+                currentUrl={getAvatarUrl(profile)}
                 alt={profile.nickname}
-                className="w-16 h-16 rounded-xl object-cover ring-2 ring-neutral-700"
+                shape="square"
+                size={64}
+                disabled={!canEdit}
+                onUpload={async (file) => {
+                  try {
+                    const updated = await uploadAvatar(file);
+                    setProfile(updated);
+                    updateUser({
+                      profileImageUrl: updated.profileImageUrl ?? null,
+                      ...(updated.profileCompleted !== undefined ? { profileCompleted: updated.profileCompleted } : {}),
+                    });
+                    toast.success(t('profile.avatar_updated'));
+                    return updated.profileImageUrl ?? updated.avatarUrl ?? null;
+                  } catch {
+                    toast.error(t('upload.error_generic'));
+                    return null;
+                  }
+                }}
+                onDelete={canEdit ? async () => {
+                  const updated = await deleteAvatar();
+                  setProfile(updated);
+                  updateUser({ profileImageUrl: null });
+                  toast.success(t('profile.avatar_deleted'));
+                } : undefined}
               />
               {/* Verified overlay dot */}
               <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-neutral-900 ${profile.profileCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
@@ -383,7 +408,7 @@ export default function EditableProfileSection({
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 bg-neutral-900/70">
         <div className="flex items-center gap-3">
-          <img src={profile.avatarUrl ?? ''} alt={profile.nickname} className="w-9 h-9 rounded-lg object-cover" />
+          <img src={getAvatarUrl(profile) ?? ''} alt={profile.nickname} className="w-9 h-9 rounded-lg object-cover" />
           <div>
             <p className="text-sm font-semibold text-white">{profile.nickname}</p>
             <p className="text-xs text-neutral-500">{t('profile.edit_profile')}</p>
