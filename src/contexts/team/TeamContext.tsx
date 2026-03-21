@@ -32,7 +32,7 @@ export function TeamProvider({
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isReady, setIsReady] = useState(false);
-    const isCancelledRef = useRef(false);
+    const loadIdRef = useRef(0);
 
     useEffect(() => {
         if (teamId) {
@@ -42,6 +42,7 @@ export function TeamProvider({
 
     const loadTeam = useCallback(async (options?: { blockUi?: boolean }) => {
         const blockUi = options?.blockUi ?? false;
+        const currentLoadId = ++loadIdRef.current;
 
         if (!user || !teamId) {
             setIsReady(true);
@@ -58,7 +59,7 @@ export function TeamProvider({
                 getTeam(teamId),
                 getMembers(teamId),
             ]);
-            if (isCancelledRef.current) return;
+            if (loadIdRef.current !== currentLoadId) return;
 
             // Convertir les données des membres
             const convertedMembers = membersData.map((m) => ({
@@ -79,6 +80,7 @@ export function TeamProvider({
                 ...(m.birthDate && { birthDate: m.birthDate }),
                 ...(m.countryCode && { countryCode: m.countryCode }),
                 ...(m.customUsername && { customUsername: m.customUsername }),
+                faceitNickname: m.faceitNickname ?? null,
             }));
 
             // Calculer la nationalité de l'équipe basée sur les joueurs
@@ -96,7 +98,7 @@ export function TeamProvider({
                 ...(teamData.createdAt && { createdAt: teamData.createdAt }),
                 ...(teamData.updatedAt && { updatedAt: teamData.updatedAt }),
                 ...(teamData.description && { description: teamData.description }),
-                // Nationalité calculée
+                ...(teamData.serverInfo && { serverInfo: teamData.serverInfo }),
                 nationality: teamNationality,
             });
 
@@ -113,7 +115,7 @@ export function TeamProvider({
         } catch (err) {
             console.error("Failed to load team context", err);
         } finally {
-            if (!isCancelledRef.current) {
+            if (loadIdRef.current === currentLoadId) {
                 setIsLoading(false);
                 setIsReady(true);
             }
@@ -121,11 +123,7 @@ export function TeamProvider({
     }, [user, teamId]);
 
     useEffect(() => {
-        isCancelledRef.current = false;
         void loadTeam({ blockUi: true });
-        return () => {
-            isCancelledRef.current = true;
-        };
     }, [loadTeam]);
 
     const resetTeam = () => {

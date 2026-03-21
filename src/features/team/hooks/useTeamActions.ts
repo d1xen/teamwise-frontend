@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { removeMember, transferOwnership, deleteTeam as deleteTeamApi } from "@/api/endpoints/team.api";
-import type { TeamMember } from "@/contexts/team/team.types.ts";
 import { useTeam } from "@/contexts/team/useTeam";
 
 type UseTeamActionsParams = {
@@ -18,14 +17,10 @@ export function useTeamActions({
     const { t } = useTranslation();
     const { refreshTeam, resetTeam } = useTeam();
 
-    const kickMember = async (member: TeamMember): Promise<boolean> => {
-        const confirmed = window.confirm(
-            t("management.confirm_kick", { nickname: member.nickname })
-        );
-        if (!confirmed) return false;
-
+    /** Kick a member — no confirmation, caller handles it via ConfirmModal. */
+    const kickMember = async (steamId: string): Promise<boolean> => {
         try {
-            await removeMember(teamId, member.steamId);
+            await removeMember(teamId, steamId);
             toast.success(t("management.member_kicked"));
             await refreshTeam();
             return true;
@@ -35,16 +30,10 @@ export function useTeamActions({
         }
     };
 
-    const promoteToOwner = async (member: TeamMember): Promise<boolean> => {
-        const confirmed = window.confirm(
-            t("management.confirm_transfer", {
-                nickname: member.nickname,
-            })
-        );
-        if (!confirmed) return false;
-
+    /** Transfer ownership — no confirmation, caller handles it. */
+    const transferOwnershipTo = async (targetSteamId: string): Promise<boolean> => {
         try {
-            await transferOwnership(teamId, member.steamId);
+            await transferOwnership(teamId, targetSteamId);
             toast.success(t("management.ownership_transferred"));
             await refreshTeam();
             return true;
@@ -54,40 +43,36 @@ export function useTeamActions({
         }
     };
 
-    const leaveTeam = async () => {
-        if (isOwner) {
-            toast.error(t("management.leave_owner_error"));
-            return;
-        }
-
-        const confirmed = window.confirm(t("management.leave_confirm"));
-        if (!confirmed) return;
-
+    /** Leave team — no confirmation, caller handles it. */
+    const leaveTeamConfirmed = async (): Promise<boolean> => {
         try {
             await removeMember(teamId, currentUserSteamId);
-            resetTeam();
-            window.location.href = "/select-team";
-        } catch {
-            toast.error(t("common.error"));
-        }
-    };
-
-    const deleteTeam = async (): Promise<boolean> => {
-        const confirmed = window.confirm(t("management.delete_confirm"));
-        if (!confirmed) return false;
-
-        try {
-            await deleteTeamApi(teamId);
-            toast.success(t("management.delete_success"));
+            toast.success(t("management.leave_success"));
             resetTeam();
             window.location.href = "/select-team";
             return true;
         } catch {
-            toast.error(t("management.delete_error"));
+            toast.error(t("common.error"));
             return false;
         }
     };
 
+    /** Transfer ownership + leave in one flow. */
+    const transferAndLeave = async (targetSteamId: string): Promise<boolean> => {
+        try {
+            await transferOwnership(teamId, targetSteamId);
+            await removeMember(teamId, currentUserSteamId);
+            toast.success(t("management.leave_success"));
+            resetTeam();
+            window.location.href = "/select-team";
+            return true;
+        } catch {
+            toast.error(t("common.error"));
+            return false;
+        }
+    };
+
+    /** Delete team — no confirmation, caller handles it. */
     const deleteTeamConfirmed = async (): Promise<boolean> => {
         try {
             await deleteTeamApi(teamId);
@@ -103,9 +88,10 @@ export function useTeamActions({
 
     return {
         kickMember,
-        promoteToOwner,
-        leaveTeam,
-        deleteTeam,
+        transferOwnershipTo,
+        leaveTeamConfirmed,
+        transferAndLeave,
         deleteTeamConfirmed,
+        isOwner,
     };
 }

@@ -46,6 +46,13 @@ export type MembersOverviewDto = {
     verifiedProfilesCount: number;
 };
 
+export type ServerInfoDto = {
+    teamspeakAddress?: string | null;
+    teamspeakPassword?: string | null;
+    gameServerAddress?: string | null;
+    gameServerPassword?: string | null;
+};
+
 export type TeamDto = {
     id: number;
     name: string;
@@ -53,10 +60,11 @@ export type TeamDto = {
     game?: Game | null;
     logoUrl?: string | null;
     links?: TeamLink[] | null;
+    serverInfo?: ServerInfoDto | null;
     membership?: TeamMembershipDto;
     membersOverview?: MembersOverviewDto | null;
-    createdAt?: string | null; // ISO 8601 date-time
-    updatedAt?: string | null; // ISO 8601 date-time
+    createdAt?: string | null;
+    updatedAt?: string | null;
     description?: string | null;
 };
 
@@ -78,6 +86,7 @@ export type TeamMemberDto = {
     birthDate?: string | null; // ISO 8601 date (YYYY-MM-DD)
     countryCode?: string | null; // ISO 2 letters (FR, US, GB...)
     customUsername?: string | null;
+    faceitNickname?: string | null;
 };
 
 // ============================================================================
@@ -98,6 +107,10 @@ export type UpdateTeamRequest = {
     logoUrl?: string | null;
     description?: string | null;
     links?: TeamLink[];
+    teamspeakAddress?: string | null;
+    teamspeakPassword?: string | null;
+    gameServerAddress?: string | null;
+    gameServerPassword?: string | null;
 };
 
 export type UpdateMemberRoleRequest = {
@@ -107,5 +120,9 @@ export type UpdateMemberRoleRequest = {
 export type UpdateMemberRosterRequest = {
     inGameRole?: InGameRole | null;
     activePlayer?: boolean;
+};
+
+export type SetMemberFaceitRequest = {
+    faceitNickname: string | null;
 };
 

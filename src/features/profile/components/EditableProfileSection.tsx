@@ -1,560 +1,355 @@
-import { useState } from 'react';
+import { useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { CheckCircle2, Circle, Pencil, X, Save } from 'lucide-react';
+import { Loader, CheckCircle2 } from 'lucide-react';
 import type { UserProfileDto } from '@/api/endpoints/profile.api';
 import { updateMyProfile, uploadAvatar, deleteAvatar } from '@/api/endpoints/profile.api';
+import type { UserProfileUpdateDto } from '@/api/types/profile';
 import type { Game } from '@/api/types/team';
-import { getValidLinksForGame } from '@/shared/utils/linksUtils';
+import { getValidLinksForGame } from '@/shared/config/gameConfig';
 import { useAuth } from '@/contexts/auth/useAuth';
-import {
-  FormInput,
-  FormSelect,
-} from '@/design-system/components/Form';
 import ImageUpload from '@/shared/components/ImageUpload';
 import { getAvatarUrl } from '@/shared/utils/avatarUtils';
+import FaceitConnectSection from './FaceitConnectSection';
+import { cn } from '@/design-system';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+const FaceitInline = FaceitConnectSection as unknown as ComponentType<{
+  canEdit: boolean;
+  variant: 'inline';
+}>;
 
 interface EditableProfileSectionProps {
   profile: UserProfileDto;
   canEdit: boolean;
-  game?: Game | undefined;
-  onSuccess?: (() => void) | undefined;
+  game?: Game;
+  onSuccess?: () => void;
 }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const COUNTRIES = [
-  { value: 'FR', label: '🇫🇷 France' },
-  { value: 'BE', label: '🇧🇪 Belgium' },
-  { value: 'CH', label: '🇨🇭 Switzerland' },
-  { value: 'DE', label: '🇩🇪 Germany' },
-  { value: 'GB', label: '🇬🇧 United Kingdom' },
-  { value: 'US', label: '🇺🇸 United States' },
-  { value: 'CA', label: '🇨🇦 Canada' },
-  { value: 'ES', label: '🇪🇸 Spain' },
-  { value: 'IT', label: '🇮🇹 Italy' },
-  { value: 'NL', label: '🇳🇱 Netherlands' },
-  { value: 'PT', label: '🇵🇹 Portugal' },
-  { value: 'PL', label: '🇵🇱 Poland' },
-  { value: 'SE', label: '🇸🇪 Sweden' },
-  { value: 'DK', label: '🇩🇰 Denmark' },
-  { value: 'FI', label: '🇫🇮 Finland' },
-  { value: 'NO', label: '🇳🇴 Norway' },
-  { value: 'BR', label: '🇧🇷 Brazil' },
-  { value: 'RU', label: '🇷🇺 Russia' },
-  { value: 'TR', label: '🇹🇷 Turkey' },
-  { value: 'UA', label: '🇺🇦 Ukraine' },
+  { value: 'FR', label: 'France' }, { value: 'BE', label: 'Belgium' },
+  { value: 'CH', label: 'Switzerland' }, { value: 'DE', label: 'Germany' },
+  { value: 'GB', label: 'United Kingdom' }, { value: 'US', label: 'United States' },
+  { value: 'CA', label: 'Canada' }, { value: 'ES', label: 'Spain' },
+  { value: 'IT', label: 'Italy' }, { value: 'NL', label: 'Netherlands' },
+  { value: 'PT', label: 'Portugal' }, { value: 'PL', label: 'Poland' },
+  { value: 'SE', label: 'Sweden' }, { value: 'DK', label: 'Denmark' },
+  { value: 'FI', label: 'Finland' }, { value: 'NO', label: 'Norway' },
+  { value: 'BR', label: 'Brazil' }, { value: 'RU', label: 'Russia' },
+  { value: 'TR', label: 'Turkey' }, { value: 'UA', label: 'Ukraine' },
+  { value: 'CZ', label: 'Czech Republic' }, { value: 'RO', label: 'Romania' },
+  { value: 'HU', label: 'Hungary' }, { value: 'AU', label: 'Australia' },
+];
+const COUNTRY_LABEL: Record<string, string> = Object.fromEntries(COUNTRIES.map(c => [c.value, c.label]));
+
+const MONTHS = [
+  { value: '01', label: 'Jan' }, { value: '02', label: 'Feb' }, { value: '03', label: 'Mar' },
+  { value: '04', label: 'Apr' }, { value: '05', label: 'May' }, { value: '06', label: 'Jun' },
+  { value: '07', label: 'Jul' }, { value: '08', label: 'Aug' }, { value: '09', label: 'Sep' },
+  { value: '10', label: 'Oct' }, { value: '11', label: 'Nov' }, { value: '12', label: 'Dec' },
 ];
 
-const COUNTRY_LABEL: Record<string, string> = Object.fromEntries(
-  COUNTRIES.map((c) => [c.value, c.label])
-);
-
-// Required fields for profileCompleted (backend logic)
 const REQUIRED_FIELDS = ['firstName', 'lastName', 'email'] as const;
-// All tracked fields for local completion score
 const TRACKED_FIELDS = [
-  'firstName', 'lastName', 'email',
-  'birthDate', 'countryCode', 'phone',
-  'customUsername', 'discord', 'twitter', 'hltv',
+  'firstName', 'lastName', 'email', 'birthDate', 'countryCode',
+  'phone', 'customUsername', 'discord', 'twitter', 'hltv',
 ] as const;
-
 type TrackedField = typeof TRACKED_FIELDS[number];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function isFilled(value: string | null | undefined): boolean {
-  return value !== null && value !== undefined && value.trim() !== '';
+function isFilled(v: string | null | undefined): boolean {
+  return v !== null && v !== undefined && v.trim() !== '';
 }
 
-function computeCompletion(
-  profile: UserProfileDto,
-  validLinks: string[],
-): { filled: number; total: number; pct: number; requiredDone: boolean[] } {
-  const fields: TrackedField[] = TRACKED_FIELDS.filter((f) => {
-    // Only count hltv if game supports it
+function computeCompletion(profile: UserProfileDto, validLinks: string[]) {
+  const fields: TrackedField[] = TRACKED_FIELDS.filter(f => {
     if (f === 'hltv') return validLinks.includes('hltv');
     if (f === 'twitter') return validLinks.includes('twitter');
     if (f === 'discord') return validLinks.includes('discord');
     return true;
   });
-
-  const filled = fields.filter((f) => isFilled(profile[f])).length;
+  const filled = fields.filter(f => isFilled(profile[f])).length;
   const total = fields.length;
   const pct = total === 0 ? 100 : Math.round((filled / total) * 100);
-  const requiredDone = REQUIRED_FIELDS.map((f) => isFilled(profile[f]));
-  return { filled, total, pct, requiredDone };
+  return { filled, total, pct };
 }
 
-function completionColor(pct: number): string {
-  if (pct >= 80) return 'bg-emerald-500';
-  if (pct >= 40) return 'bg-amber-500';
-  return 'bg-red-500';
-}
+// ── Circular progress ─────────────────────────────────────────────────────────
 
-function completionTextColor(pct: number): string {
-  if (pct >= 80) return 'text-emerald-400';
-  if (pct >= 40) return 'text-amber-400';
-  return 'text-red-400';
-}
+function CompletionBadge({ pct, completeLabel }: { pct: number; completeLabel: string }) {
+  const size = 18;
+  const stroke = 2;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+  const complete = pct >= 100;
+  const color = complete ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444';
+  const textColor = complete ? 'text-emerald-400' : pct >= 40 ? 'text-amber-400' : 'text-red-400';
+  const borderColor = complete ? 'border-emerald-500/30' : pct >= 40 ? 'border-amber-500/30' : 'border-red-500/30';
+  const bgColor = complete ? 'bg-emerald-500/10' : pct >= 40 ? 'bg-amber-500/10' : 'bg-red-500/10';
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function ProfileField({ label, value }: { label: string; value: string | null | undefined }) {
-  const filled = isFilled(value);
   return (
-    <div className="flex items-start gap-2.5 py-2">
-      {filled ? (
-        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
-      ) : (
-        <Circle className="w-3.5 h-3.5 text-neutral-700 mt-0.5 shrink-0" />
+    <span className={cn(
+      'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border shrink-0',
+      bgColor, borderColor, textColor
+    )}>
+      {!complete && (
+        <svg width={size} height={size} className="rotate-[-90deg] shrink-0">
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#262626" strokeWidth={stroke} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+            strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+            className="transition-all duration-500" />
+        </svg>
       )}
-      <div className="min-w-0">
-        <p className="text-xs text-neutral-500 mb-0.5">{label}</p>
-        <p className={`text-sm truncate ${filled ? 'text-neutral-100' : 'text-neutral-600 italic'}`}>
-          {filled ? value : '—'}
-        </p>
-      </div>
+      {complete ? (
+        <><CheckCircle2 className="w-3 h-3" />{completeLabel}</>
+      ) : (
+        <>{pct}%</>
+      )}
+    </span>
+  );
+}
+
+// ── Date helpers ──────────────────────────────────────────────────────────────
+
+function formatDateDisplay(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const [y, m, d] = iso.split('-');
+  if (!y || !m || !d) return iso;
+  const month = MONTHS[parseInt(m, 10) - 1];
+  return `${parseInt(d, 10)} ${month?.label ?? m} ${y}`;
+}
+
+function DateEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const parts = (value || '').split('-');
+  const year = parts[0] ?? '', month = parts[1] ?? '', day = parts[2] ?? '';
+  const update = (y: string, m: string, d: string) => {
+    if (y.length === 4 && m && d) onChange(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`);
+    else if (!y && !m && !d) onChange('');
+  };
+  const numCls = 'h-7 text-sm text-center text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] outline-none focus:border-indigo-500/50 caret-indigo-400 transition-colors placeholder:text-neutral-600 tabular-nums';
+  const selCls = 'h-7 text-sm text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-1.5 outline-none focus:border-indigo-500/50 cursor-pointer transition-colors';
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <input value={day} onChange={e => update(year, month, e.target.value.replace(/\D/g, '').slice(0, 2))}
+        placeholder="DD" maxLength={2} className={cn(numCls, 'w-[40px]')} />
+      <select value={month} onChange={e => update(year, e.target.value, day)} className={cn(selCls, 'w-[64px]')}>
+        <option value="">—</option>
+        {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+      </select>
+      <input value={year} onChange={e => update(e.target.value.replace(/\D/g, '').slice(0, 4), month, day)}
+        placeholder="YYYY" maxLength={4} className={cn(numCls, 'w-[52px]')} />
     </div>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ── Validation ────────────────────────────────────────────────────────────────
+
+function isValidEmail(v: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+
+// ── Cell component ────────────────────────────────────────────────────────────
+
+const INPUT_CLS = 'w-full h-7 text-sm text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-2.5 outline-none placeholder:text-neutral-600 focus:border-indigo-500/50 caret-indigo-400 transition-colors';
+
+function Cell({
+  label, value, editing, formValue, onChange, type = 'text', placeholder, full, options,
+}: {
+  label: string;
+  value: string | null | undefined;
+  editing?: boolean;
+  formValue?: string;
+  onChange?: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+  full?: boolean;
+  options?: { value: string; label: string }[];
+}) {
+  const displayValue = editing ? formValue : value;
+  const filled = isFilled(displayValue);
+  const emailError = editing && type === 'email' && formValue && !isValidEmail(formValue);
+
+  const readValue = type === 'date'
+    ? (formatDateDisplay(value) ?? '—')
+    : options && value
+      ? (COUNTRY_LABEL[value] ?? value)
+      : (value || '—');
+
+  return (
+    <div className={full ? 'col-span-2' : ''}>
+      <div className="flex items-center gap-1.5 mb-1">
+        <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-wide">{label}</p>
+        {emailError && <span className="text-[9px] text-red-400">format invalide</span>}
+      </div>
+      {editing && onChange ? (
+        type === 'date' ? (
+          <DateEditor value={formValue ?? ''} onChange={onChange} />
+        ) : options ? (
+          <select value={formValue ?? ''} onChange={e => onChange(e.target.value)}
+            className={cn(INPUT_CLS, 'cursor-pointer')}>
+            <option value="">{placeholder ?? '—'}</option>
+            {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        ) : (
+          <input type="text" value={formValue ?? ''} onChange={e => onChange(e.target.value)}
+            placeholder={placeholder ?? '—'}
+            className={cn(INPUT_CLS, emailError && 'border-red-500/50 focus:border-red-500/50')} />
+        )
+      ) : (
+        <p className={cn('h-7 flex items-center text-sm truncate px-1', filled ? 'text-neutral-200' : 'text-neutral-700')}>
+          {readValue}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function EditableProfileSection({
-  profile: initialProfile,
-  canEdit,
-  game,
-  onSuccess,
+  profile: initialProfile, canEdit, game, onSuccess,
 }: EditableProfileSectionProps) {
   const { t } = useTranslation();
   const { updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  // Local copy so the read view reflects saved data immediately without waiting for parent refresh
   const [profile, setProfile] = useState<UserProfileDto>(initialProfile);
-
-  const validLinks = getValidLinksForGame(game);
-  const { filled, total, pct, requiredDone } = computeCompletion(profile, validLinks);
-
-  // ── Form state ────────────────────────────────────────────────────────────
-
-  const [formData, setFormData] = useState({
-    firstName: profile.firstName || '',
-    lastName: profile.lastName || '',
-    customUsername: profile.customUsername || '',
-    email: profile.email || '',
-    phone: profile.phone || '',
-    birthDate: profile.birthDate || '',
-    address: profile.address || '',
-    zipCode: profile.zipCode || '',
-    city: profile.city || '',
-    countryCode: profile.countryCode || '',
-    discord: profile.discord || '',
-    twitter: profile.twitter || '',
-    hltv: profile.hltv || '',
-  });
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    setIsDirty(true);
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
-  };
+  const validLinks = getValidLinksForGame(game);
+  const { pct } = computeCompletion(profile, validLinks);
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.firstName.trim()) newErrors.firstName = t('profile.first_name_required');
-    if (!formData.lastName.trim()) newErrors.lastName = t('profile.last_name_required');
-    if (!formData.email.trim()) newErrors.email = t('profile.email_required');
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = t('profile.email_invalid');
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const [form, setForm] = useState({
+    firstName: profile.firstName ?? '', lastName: profile.lastName ?? '',
+    customUsername: profile.customUsername ?? '', email: profile.email ?? '',
+    phone: profile.phone ?? '', birthDate: profile.birthDate ?? '',
+    address: profile.address ?? '', zipCode: profile.zipCode ?? '',
+    city: profile.city ?? '', countryCode: profile.countryCode ?? '',
+    discord: profile.discord ?? '', twitter: profile.twitter ?? '',
+    hltv: profile.hltv ?? '',
+  });
+  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   const handleSave = async () => {
-    if (!validateForm()) return;
     setIsSaving(true);
     try {
       const updated = await updateMyProfile({
-        firstName: formData.firstName || null,
-        lastName: formData.lastName || null,
-        email: formData.email || null,
-        customUsername: formData.customUsername || null,
-        birthDate: formData.birthDate || null,
-        countryCode: formData.countryCode || null,
-        address: formData.address || null,
-        zipCode: formData.zipCode || null,
-        city: formData.city || null,
-        phone: formData.phone || null,
-        discord: formData.discord || null,
-        twitter: formData.twitter || null,
-        hltv: formData.hltv || null,
+        firstName: form.firstName.trim(), lastName: form.lastName.trim(),
+        email: form.email.trim(), customUsername: form.customUsername.trim(),
+        birthDate: form.birthDate, countryCode: form.countryCode,
+        address: form.address.trim(), zipCode: form.zipCode.trim(),
+        city: form.city.trim(), phone: form.phone.trim(),
+        discord: form.discord.trim(), twitter: form.twitter.trim(),
+        hltv: form.hltv.trim(),
       });
-      // Update local profile so read view reflects new data immediately
       setProfile(updated);
-      // Sync profileCompleted status to AuthContext so the badge in the nav updates
-      if (updated.profileCompleted !== undefined) {
-        updateUser({ profileCompleted: updated.profileCompleted });
-      }
+      if (updated.profileCompleted !== undefined) updateUser({ profileCompleted: updated.profileCompleted });
       toast.success(t('profile.save_profile'));
-      setIsDirty(false);
       setIsEditing(false);
       onSuccess?.();
-    } catch {
-      toast.error(t('profile.update_error'));
-    } finally {
-      setIsSaving(false);
-    }
+    } catch { toast.error(t('profile.update_error')); }
+    finally { setIsSaving(false); }
   };
 
   const handleCancel = () => {
-    // Reset to last saved state (local profile, not initial prop)
-    setFormData({
-      firstName: profile.firstName || '',
-      lastName: profile.lastName || '',
-      customUsername: profile.customUsername || '',
-      email: profile.email || '',
-      phone: profile.phone || '',
-      birthDate: profile.birthDate || '',
-      address: profile.address || '',
-      zipCode: profile.zipCode || '',
-      city: profile.city || '',
-      countryCode: profile.countryCode || '',
-      discord: profile.discord || '',
-      twitter: profile.twitter || '',
-      hltv: profile.hltv || '',
+    setForm({
+      firstName: profile.firstName ?? '', lastName: profile.lastName ?? '',
+      customUsername: profile.customUsername ?? '', email: profile.email ?? '',
+      phone: profile.phone ?? '', birthDate: profile.birthDate ?? '',
+      address: profile.address ?? '', zipCode: profile.zipCode ?? '',
+      city: profile.city ?? '', countryCode: profile.countryCode ?? '',
+      discord: profile.discord ?? '', twitter: profile.twitter ?? '',
+      hltv: profile.hltv ?? '',
     });
-    setErrors({});
-    setIsDirty(false);
     setIsEditing(false);
   };
 
-  // ── Read view ─────────────────────────────────────────────────────────────
-
-  if (!isEditing) {
-    return (
-      <div className="space-y-4">
-
-        {/* ── Identity card ── */}
-        <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6">
-          <div className="flex items-center gap-4">
-            {/* Avatar */}
-            <div className="relative shrink-0">
-              <ImageUpload
-                currentUrl={getAvatarUrl(profile)}
-                alt={profile.nickname}
-                shape="square"
-                size={64}
-                disabled={!canEdit}
-                onUpload={async (file) => {
-                  try {
-                    const updated = await uploadAvatar(file);
-                    setProfile(updated);
-                    updateUser({
-                      profileImageUrl: updated.profileImageUrl ?? null,
-                      ...(updated.profileCompleted !== undefined ? { profileCompleted: updated.profileCompleted } : {}),
-                    });
-                    toast.success(t('profile.avatar_updated'));
-                    return updated.profileImageUrl ?? updated.avatarUrl ?? null;
-                  } catch {
-                    toast.error(t('upload.error_generic'));
-                    return null;
-                  }
-                }}
-                onDelete={canEdit ? async () => {
-                  const updated = await deleteAvatar();
-                  setProfile(updated);
-                  updateUser({ profileImageUrl: null });
-                  toast.success(t('profile.avatar_deleted'));
-                } : undefined}
-              />
-              {/* Verified overlay dot */}
-              <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-neutral-900 ${profile.profileCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-            </div>
-
-            {/* Name + status */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg font-bold text-white truncate">{profile.nickname}</h2>
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${
-                  profile.profileCompleted
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                    : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                }`}>
-                  {profile.profileCompleted ? (
-                    <><CheckCircle2 className="w-3 h-3" />{t('profile.verified')}</>
-                  ) : (
-                    <><Circle className="w-3 h-3" />{t('profile.not_verified')}</>
-                  )}
-                </span>
-              </div>
-              {profile.customUsername && (
-                <p className="text-sm text-neutral-400 mt-0.5">@{profile.customUsername}</p>
-              )}
-              <p className="text-xs text-neutral-600 mt-1">{profile.steamId}</p>
-            </div>
-
-            {/* Edit button */}
-            {canEdit && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white text-sm font-medium transition-colors"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                {t('profile.edit') ?? 'Edit'}
-              </button>
-            )}
-          </div>
-
-          {/* ── Completion bar ── */}
-          <div className="mt-5 pt-5 border-t border-neutral-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-neutral-400">
-                {t('profile.completion_tooltip') ?? 'Profile completion'}
-              </span>
-              <span className={`text-xs font-bold ${completionTextColor(pct)}`}>
-                {filled}/{total} &middot; {pct}%
-              </span>
-            </div>
-
-            {/* Bar */}
-            <div className="h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${completionColor(pct)}`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-
-            {/* Required fields checklist */}
-            <div className="mt-3 flex items-center gap-4 flex-wrap">
-              {(
-                [
-                  [0, t('profile.first_name')],
-                  [1, t('profile.last_name')],
-                  [2, t('profile.email')],
-                ] as [number, string][]
-              ).map(([i, label]) => (
-                <div key={i} className="flex items-center gap-1.5">
-                  {requiredDone[i] ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  ) : (
-                    <Circle className="w-3.5 h-3.5 text-neutral-600" />
-                  )}
-                  <span className={`text-xs ${requiredDone[i] ? 'text-neutral-400' : 'text-neutral-600'}`}>
-                    {label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Field sections ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-          {/* Identity */}
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-5">
-            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">
-              {t('profile.identity')}
-            </p>
-            <div className="divide-y divide-neutral-800/60">
-              <ProfileField label={t('profile.first_name')} value={profile.firstName} />
-              <ProfileField label={t('profile.last_name')} value={profile.lastName} />
-              <ProfileField label={t('profile.birth_date')} value={profile.birthDate} />
-              <ProfileField label={t('profile.country')} value={profile.countryCode ? (COUNTRY_LABEL[profile.countryCode] ?? profile.countryCode) : null} />
-            </div>
-          </div>
-
-          {/* Contact */}
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-5">
-            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">
-              {t('profile.contact')}
-            </p>
-            <div className="divide-y divide-neutral-800/60">
-              <ProfileField label={t('profile.email')} value={profile.email} />
-              <ProfileField label={t('profile.phone')} value={profile.phone} />
-              <ProfileField label={t('profile.address')} value={profile.address} />
-              <ProfileField label={`${t('profile.zip_code')} / ${t('profile.city')}`} value={[profile.zipCode, profile.city].filter(Boolean).join(' ')} />
-            </div>
-          </div>
-
-          {/* Gaming */}
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-5">
-            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">
-              {t('profile.gaming')}
-            </p>
-            <div className="divide-y divide-neutral-800/60">
-              <ProfileField label={t('profile.custom_username')} value={profile.customUsername} />
-              {validLinks.includes('discord') && <ProfileField label="Discord" value={profile.discord} />}
-              {validLinks.includes('twitter') && <ProfileField label="Twitter" value={profile.twitter} />}
-              {validLinks.includes('hltv') && <ProfileField label="HLTV" value={profile.hltv} />}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Edit view ─────────────────────────────────────────────────────────────
+  const e = isEditing;
 
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl overflow-hidden">
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl">
+      {/* ── Header ── */}
+      <div className="flex items-center gap-4 px-5 py-4 border-b border-neutral-800">
+        <div className="relative shrink-0">
+          {canEdit ? (
+            <ImageUpload currentUrl={getAvatarUrl(profile)} alt={profile.nickname} shape="square" size={64} disabled={false}
+              onUpload={async (file) => {
+                try {
+                  const u = await uploadAvatar(file);
+                  setProfile(u);
+                  updateUser({ profileImageUrl: u.profileImageUrl ?? null, ...(u.profileCompleted !== undefined ? { profileCompleted: u.profileCompleted } : {}) });
+                  toast.success(t('profile.avatar_updated'));
+                  return u.profileImageUrl ?? u.avatarUrl ?? null;
+                } catch { toast.error(t('upload.error_generic')); return null; }
+              }}
+              onDelete={async () => {
+                const u = await deleteAvatar();
+                setProfile(u); updateUser({ profileImageUrl: null }); toast.success(t('profile.avatar_deleted'));
+              }}
+            />
+          ) : (
+            <ImageUpload currentUrl={getAvatarUrl(profile)} alt={profile.nickname} shape="square" size={64} disabled
+              onUpload={async () => null} />
+          )}
+        </div>
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 bg-neutral-900/70">
-        <div className="flex items-center gap-3">
-          <img src={getAvatarUrl(profile) ?? ''} alt={profile.nickname} className="w-9 h-9 rounded-lg object-cover" />
-          <div>
-            <p className="text-sm font-semibold text-white">{profile.nickname}</p>
-            <p className="text-xs text-neutral-500">{t('profile.edit_profile')}</p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-base font-bold text-white truncate">{profile.nickname}</h2>
+            {game === 'CS2' && <FaceitInline canEdit={canEdit} variant="inline" />}
+            <CompletionBadge pct={pct} completeLabel={t('profile.verified')} />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCancel}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white text-sm transition-colors"
-          >
-            <X className="w-3.5 h-3.5" />
-            {t('common.cancel') ?? 'Cancel'}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!isDirty || isSaving}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Save className="w-3.5 h-3.5" />
-            {isSaving ? '…' : (t('common.save') ?? 'Save')}
-          </button>
-        </div>
+
+        {canEdit && (
+          e ? (
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={handleSave} disabled={isSaving}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+                {isSaving ? t('common.saving') : t('common.save')}
+              </button>
+              <button onClick={handleCancel} disabled={isSaving}
+                className="px-2 py-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
+                {t('common.cancel')}
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setIsEditing(true)}
+              className="shrink-0 px-3 py-1.5 rounded-[4px] bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white text-xs font-medium transition-colors">
+              {t('common.edit')}
+            </button>
+          )
+        )}
       </div>
 
-      {/* Form body */}
-      <div className="p-6 space-y-6">
+      {/* ── Fields — 3 columns side by side ── */}
+      <div className="grid grid-cols-3 divide-x divide-neutral-800">
 
         {/* Identity */}
-        <div>
-          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
-            {t('profile.identity')}
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput
-              label={t('profile.first_name')}
-              placeholder="John"
-              value={formData.firstName}
-              onChange={(v) => handleChange('firstName', v)}
-              error={errors.firstName}
-              required
-            />
-            <FormInput
-              label={t('profile.last_name')}
-              placeholder="Doe"
-              value={formData.lastName}
-              onChange={(v) => handleChange('lastName', v)}
-              error={errors.lastName}
-              required
-            />
-            <FormInput
-              label={t('profile.birth_date')}
-              type="date"
-              value={formData.birthDate}
-              onChange={(v) => handleChange('birthDate', v)}
-            />
-            <FormSelect
-              label={t('profile.country')}
-              value={formData.countryCode}
-              onChange={(v) => handleChange('countryCode', v)}
-              options={COUNTRIES}
-              placeholder={t('profile.select_country')}
-            />
-          </div>
+        <div className="p-5 space-y-2.5">
+          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t('profile.identity')}</p>
+          <Cell label={t('profile.first_name')} value={profile.firstName} editing={e} formValue={form.firstName} onChange={v => set('firstName', v)} placeholder="John" />
+          <Cell label={t('profile.last_name')} value={profile.lastName} editing={e} formValue={form.lastName} onChange={v => set('lastName', v)} placeholder="Doe" />
+          <Cell label={t('profile.birth_date')} value={profile.birthDate} editing={e} formValue={form.birthDate} onChange={v => set('birthDate', v)} type="date" />
+          <Cell label={t('profile.country')} value={profile.countryCode} editing={e} formValue={form.countryCode} onChange={v => set('countryCode', v)} options={COUNTRIES} placeholder={t('profile.select_country')} />
+          <Cell label={t('profile.custom_username')} value={profile.customUsername} editing={e} formValue={form.customUsername} onChange={v => set('customUsername', v)} placeholder="s1mple, ZywOo…" />
         </div>
 
         {/* Contact */}
-        <div>
-          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
-            {t('profile.contact')}
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput
-              label={t('profile.email')}
-              type="email"
-              placeholder="john@example.com"
-              value={formData.email}
-              onChange={(v) => handleChange('email', v)}
-              error={errors.email}
-              required
-            />
-            <FormInput
-              label={t('profile.phone')}
-              placeholder="+33 6 12 34 56 78"
-              value={formData.phone}
-              onChange={(v) => handleChange('phone', v)}
-            />
-            <div className="col-span-2">
-              <FormInput
-                label={t('profile.address')}
-                placeholder="123 Main Street"
-                value={formData.address}
-                onChange={(v) => handleChange('address', v)}
-              />
-            </div>
-            <FormInput
-              label={t('profile.zip_code')}
-              placeholder="75001"
-              value={formData.zipCode}
-              onChange={(v) => handleChange('zipCode', v)}
-            />
-            <FormInput
-              label={t('profile.city')}
-              placeholder="Paris"
-              value={formData.city}
-              onChange={(v) => handleChange('city', v)}
-            />
-          </div>
+        <div className="p-5 space-y-2.5">
+          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t('profile.contact')}</p>
+          <Cell label={t('profile.email')} value={profile.email} editing={e} formValue={form.email} onChange={v => set('email', v)} type="email" placeholder="john@example.com" />
+          <Cell label={t('profile.phone')} value={profile.phone} editing={e} formValue={form.phone} onChange={v => set('phone', v)} placeholder="+33 6 12 34 56 78" />
+          <Cell label={t('profile.address')} value={profile.address} editing={e} formValue={form.address} onChange={v => set('address', v)} placeholder="123 Main Street" />
+          <Cell label={t('profile.zip_code')} value={profile.zipCode} editing={e} formValue={form.zipCode} onChange={v => set('zipCode', v)} placeholder="75001" />
+          <Cell label={t('profile.city')} value={profile.city} editing={e} formValue={form.city} onChange={v => set('city', v)} placeholder="Paris" />
         </div>
 
         {/* Gaming */}
-        <div>
-          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
-            {t('profile.gaming')}
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput
-              label={t('profile.custom_username')}
-              placeholder="neo, s1mple…"
-              value={formData.customUsername}
-              onChange={(v) => handleChange('customUsername', v)}
-            />
-            {validLinks.includes('discord') && (
-              <FormInput
-                label="Discord"
-                placeholder={t('profile.discord_placeholder')}
-                value={formData.discord}
-                onChange={(v) => handleChange('discord', v)}
-              />
-            )}
-            {validLinks.includes('twitter') && (
-              <FormInput
-                label="Twitter"
-                placeholder={t('profile.twitter_placeholder')}
-                value={formData.twitter}
-                onChange={(v) => handleChange('twitter', v)}
-              />
-            )}
-            {validLinks.includes('hltv') && (
-              <FormInput
-                label="HLTV"
-                placeholder={t('profile.hltv_placeholder')}
-                value={formData.hltv}
-                onChange={(v) => handleChange('hltv', v)}
-              />
-            )}
-          </div>
+        <div className="p-5 space-y-2.5">
+          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t('profile.gaming')}</p>
+          {validLinks.includes('discord') && <Cell label="Discord" value={profile.discord} editing={e} formValue={form.discord} onChange={v => set('discord', v)} placeholder={t('profile.discord_placeholder')} />}
+          {validLinks.includes('twitter') && <Cell label="Twitter / X" value={profile.twitter} editing={e} formValue={form.twitter} onChange={v => set('twitter', v)} placeholder={t('profile.twitter_placeholder')} />}
+          {validLinks.includes('hltv') && <Cell label="HLTV" value={profile.hltv} editing={e} formValue={form.hltv} onChange={v => set('hltv', v)} placeholder={t('profile.hltv_placeholder')} />}
         </div>
       </div>
     </div>

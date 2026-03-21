@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Clock,
   Swords,
+  Zap,
 } from "lucide-react";
 
 interface TeamOverviewPanelProps {
@@ -24,6 +25,7 @@ interface TeamOverviewPanelProps {
   members: TeamMember[];
   staffCount: number;
   playerCount: number;
+  onNavigateToFaceit?: () => void;
 }
 
 function formatTimeUntil(iso: string): { label: string; urgency: "high" | "medium" | "low" } {
@@ -49,6 +51,7 @@ export default function TeamOverviewPanel({
   members,
   staffCount,
   playerCount,
+  onNavigateToFaceit,
 }: TeamOverviewPanelProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -161,7 +164,7 @@ export default function TeamOverviewPanel({
               : "text-neutral-400 bg-neutral-800/60 border-neutral-700/30";
             return (
               <button
-                onClick={() => goToMatches()}
+                onClick={() => goToMatches("upcoming")}
                 className="group text-left bg-neutral-900/50 border border-neutral-800 hover:border-neutral-700 rounded-2xl p-4 transition-all duration-150"
               >
                 <div className="flex items-center justify-between mb-2">
@@ -219,6 +222,42 @@ export default function TeamOverviewPanel({
               </div>
             </div>
           )}
+
+          {/* FACEIT sync shortcut */}
+          {onNavigateToFaceit && team.game === "CS2" && (() => {
+            const stored = sessionStorage.getItem(`tw.faceit.lastSync.${team.id}`);
+            const lastSync = stored ? new Date(stored) : null;
+            const linkedCount = members.filter(m => m.role === "PLAYER" && m.activePlayer !== false && m.faceitNickname != null).length;
+
+            return (
+              <button
+                onClick={onNavigateToFaceit}
+                className="group text-left bg-orange-500/5 border border-orange-500/15 hover:border-orange-500/30 hover:bg-orange-500/10 rounded-2xl p-4 transition-all duration-150"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-orange-500/70">
+                    <Zap className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider">{t("management.faceit_sync")}</span>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-orange-700/40 group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all duration-150" />
+                </div>
+                <p className="text-xs text-neutral-400 mb-1.5">
+                  {t("management.faceit_linked_count", { count: linkedCount })}
+                </p>
+                {lastSync ? (
+                  <p className="text-[10px] text-neutral-600">
+                    {t("faceit.last_sync_full", {
+                      date: new Intl.DateTimeFormat(undefined, {
+                        day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+                      }).format(lastSync),
+                    })}
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-orange-600/60">{t("management.faceit_never_synced")}</p>
+                )}
+              </button>
+            );
+          })()}
         </div>
       </div>
     </div>

@@ -23,6 +23,7 @@ const DEFAULT_FILTERS: MatchFilters = {
     context: "",
     format: "",
     opponent: "",
+    competition: "",
     dateRange: "all",
 };
 
@@ -52,10 +53,7 @@ export function useMatches(teamId: string) {
     const [currentPage, setCurrentPage] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
-    // Incremented each time a loadFirst resolves — used as React key for fade-in
-    const [contentRevision, setContentRevision] = useState(0);
-
-    const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     // Incremented on each loadFirst call — stale responses are discarded
     const fetchIdRef = useRef(0);
 
@@ -65,14 +63,24 @@ export function useMatches(teamId: string) {
         appStorage.setMatchFilters(teamId, JSON.stringify(filters));
     }, [teamId, filters]);
 
-    // Only debounce opponent text input
+    // Debounce text inputs (opponent + competition)
     useEffect(() => {
-        clearTimeout(debounceTimer.current);
+        if (debounceTimer.current !== null) {
+            clearTimeout(debounceTimer.current);
+        }
         debounceTimer.current = setTimeout(() => {
-            setAppliedFilters(prev => ({ ...prev, opponent: filters.opponent }));
+            setAppliedFilters(prev => ({
+                ...prev,
+                opponent: filters.opponent,
+                competition: filters.competition,
+            }));
         }, 350);
-        return () => clearTimeout(debounceTimer.current);
-    }, [filters.opponent]);
+        return () => {
+            if (debounceTimer.current !== null) {
+                clearTimeout(debounceTimer.current);
+            }
+        };
+    }, [filters.opponent, filters.competition]);
 
     // Load page 0 — replaces content. Old content stays visible until this resolves.
     const loadFirst = useCallback(async (f: MatchFilters) => {
@@ -87,7 +95,6 @@ export function useMatches(teamId: string) {
             setTotalElements(result.totalElements);
             setHasMore(result.hasNext);
             setCurrentPage(0);
-            setContentRevision(r => r + 1);
         } catch {
             if (id === fetchIdRef.current) toast.error(t("matches.load_error"));
         } finally {
@@ -121,17 +128,22 @@ export function useMatches(teamId: string) {
     // Non-text filter changes bypass debounce
     const updateFilters = useCallback((patch: Partial<MatchFilters>) => {
         setFilters(prev => ({ ...prev, ...patch }));
-        const { opponent, ...rest } = patch;
+        const { opponent, competition, ...rest } = patch;
         if (Object.keys(rest).length > 0) {
-            clearTimeout(debounceTimer.current);
+            if (debounceTimer.current !== null) {
+                clearTimeout(debounceTimer.current);
+            }
             setAppliedFilters(prev => ({ ...prev, ...rest }));
         }
-        void opponent; // opponent handled by debounce effect
+        void opponent;    // handled by debounce effect
+        void competition; // handled by debounce effect
     }, []);
 
     // Tab change: preserve active filters, only update tab
     const changeTab = useCallback((tab: MatchFilters["tab"]) => {
-        clearTimeout(debounceTimer.current);
+        if (debounceTimer.current !== null) {
+            clearTimeout(debounceTimer.current);
+        }
         setFilters(prev => {
             const next = { ...prev, tab };
             setAppliedFilters(next);
@@ -203,7 +215,6 @@ export function useMatches(teamId: string) {
 
     return {
         content,
-        contentRevision,
         totalElements,
         isLoading,
         isLoadingMore,

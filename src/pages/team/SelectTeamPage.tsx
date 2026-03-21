@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-hot-toast";
 import { useAuth } from "@/contexts/auth/useAuth";
 import { getMyTeams } from "@/api/endpoints/team.api";
 import type { TeamDto } from "@/api/types/team";
 import { Plus, LogIn, LogOut, ChevronRight, Users, Heart, Lock } from "lucide-react";
 import { appConfig } from "@/config/appConfig";
 import FullScreenLoader from "@/shared/components/FullScreenLoader";
+import ConfirmModal from "@/shared/components/ConfirmModal";
+import AppVersion from "@/shared/components/AppVersion";
 import JoinTeamModal from "@/features/team/components/JoinTeamModal";
 import TeamWiseLogo from "@/shared/components/TeamWiseLogo";
 import { MAX_TEAMS_PER_USER } from "@/shared/constants/teamConstants";
@@ -25,18 +28,41 @@ export default function SelectTeamPage() {
     const { t } = useTranslation();
     const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const kofiUrl = appConfig.externalLinks.kofi;
 
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     useEffect(() => {
         if (!isAuthLoading && !isAuthenticated) {
             navigate("/login", { replace: true });
         }
     }, [isAuthLoading, isAuthenticated, navigate]);
+
+    // Handle FACEIT OAuth2 return
+    useEffect(() => {
+        const faceit = searchParams.get("faceit");
+        if (!faceit) return;
+
+        if (faceit === "linked") {
+            toast.success(t("faceit.connect_success"));
+        } else if (faceit === "error") {
+            const reason = searchParams.get("reason") ?? "";
+            const key = `faceit.connect_error_${reason}`;
+            toast.error(t(key, { defaultValue: t("faceit.connect_error") }));
+        }
+
+        // Clean URL
+        setSearchParams(prev => {
+            prev.delete("faceit");
+            prev.delete("reason");
+            return prev;
+        }, { replace: true });
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (isAuthLoading || !isAuthenticated) return;
@@ -81,12 +107,8 @@ export default function SelectTeamPage() {
         navigate(`/team/${teamId}`);
     };
 
-    const handleLogout = () => {
-        if (window.confirm(t("auth.logout_confirm"))) {
-            logout();
-            navigate("/login");
-        }
-    };
+    const handleLogout = () => setShowLogoutConfirm(true);
+    const confirmLogout = () => { logout(); navigate("/login"); };
 
     const atTeamLimit = teams.length >= MAX_TEAMS_PER_USER;
 
@@ -233,11 +255,14 @@ export default function SelectTeamPage() {
                     )}
 
                     {/* Footer */}
-                    <p className="text-center text-xs text-neutral-600 mt-10">
-                        <Link to="/terms-auth" className="hover:text-neutral-400 transition-colors">
-                            {t("auth.terms_of_service")}
-                        </Link>
-                    </p>
+                    <div className="text-center mt-10 space-y-2">
+                        <p className="text-xs text-neutral-600">
+                            <Link to="/terms" className="hover:text-neutral-400 transition-colors">
+                                {t("auth.terms_of_service")}
+                            </Link>
+                        </p>
+                        <AppVersion />
+                    </div>
                 </div>
             </div>
 
@@ -246,6 +271,18 @@ export default function SelectTeamPage() {
                 onClose={() => setIsJoinModalOpen(false)}
                 onSuccess={handleJoinSuccess}
             />
+
+            {showLogoutConfirm && (
+                <ConfirmModal
+                    title={t("auth.logout")}
+                    description={t("auth.logout_confirm")}
+                    confirmLabel={t("auth.logout")}
+                    cancelLabel={t("common.cancel")}
+                    variant="danger"
+                    onConfirm={async () => confirmLogout()}
+                    onCancel={() => setShowLogoutConfirm(false)}
+                />
+            )}
         </div>
     );
 }

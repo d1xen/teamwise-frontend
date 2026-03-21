@@ -9,6 +9,7 @@ export type MatchState = "UPCOMING" | "TO_COMPLETE" | "COMPLETED" | "CANCELLED";
 export type MatchResult = "WIN" | "LOSE" | "DRAW";
 export type MatchFormat = "BO1" | "BO3" | "BO5";
 export type MatchLevel = "S" | "A" | "B" | "C";
+export type MatchSource = "MANUAL" | "FACEIT";
 
 // ============================================================================
 // Data Transfer Objects
@@ -42,9 +43,11 @@ export type MatchDto = {
     notes: string | null;
     ignored: boolean;
     createdBy: string;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: string | null;
+    updatedAt: string | null;
     maps: MatchMapDto[];
+    source: MatchSource;
+    faceitMatchId: string | null;
 };
 
 export type ToCompleteSection = {
@@ -119,5 +122,6 @@ export type MatchFilters = {
     context: MatchContext | "";
     format: MatchFormat | "";
     opponent: string;
+    competition: string;
     dateRange: DateRange;
 };

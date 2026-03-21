@@ -1,4 +1,4 @@
-import type { Game, TeamLinkType, TeamMemberLinkType, InGameRole } from "@/api/types/team";
+import type { Game, TeamLinkType, TeamMemberLinkType, InGameRole, ServerInfoDto } from "@/api/types/team";
 import type { TeamNationality } from "@/shared/utils/countryUtils";
 
 export interface TeamLink {
@@ -30,8 +30,9 @@ export interface Team {
     // Métadonnées enrichies (optionnelles, à venir du backend)
     createdAt?: string;      // Date de création ISO 8601
     updatedAt?: string;      // Dernière mise à jour ISO 8601
-    description?: string;    // Description de l'équipe
-    nationality?: TeamNationality | null; // Nationalité calculée basée sur les joueurs
+    description?: string;
+    serverInfo?: ServerInfoDto | null;
+    nationality?: TeamNationality | null;
 }
 
 export interface TeamMembership {
@@ -52,6 +53,7 @@ export interface TeamMember {
     inGameRole?: InGameRole;
     activePlayer?: boolean;
     links?: TeamMemberLink[];
+    faceitNickname?: string | null;
     // Données enrichies pour TeamPage Premium
     firstName?: string;
     lastName?: string;

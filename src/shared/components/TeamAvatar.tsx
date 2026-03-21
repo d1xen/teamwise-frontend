@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { getAvatarPalette } from '@/shared/utils/avatarHash';
 
 interface TeamAvatarProps {
-    logoUrl?: string | null;
+    logoUrl?: string | null | undefined;
     name: string;
-    tag?: string | null;
+    tag?: string | null | undefined;
     size?: number;
     className?: string;
     shape?: 'rounded' | 'square';

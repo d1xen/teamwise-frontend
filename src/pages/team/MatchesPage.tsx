@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
     Plus, Clock, AlertCircle, CheckCircle2, Loader2,
@@ -7,6 +8,7 @@ import {
 } from "lucide-react";
 import { useTeam } from "@/contexts/team/useTeam";
 import { useAuth } from "@/contexts/auth/useAuth";
+import { useMatchSummary } from "@/features/match/hooks/useMatchSummary";
 import FeatureHeader from "@/shared/components/FeatureHeader";
 import MatchCard from "@/features/match/components/MatchCard";
 import CreateMatchModal from "@/features/match/components/CreateMatchModal";
@@ -31,12 +33,18 @@ const TABS: TabDef[] = [
     { id: "all",         labelKey: "matches.tab_all",         icon: LayoutList,   color: "text-neutral-400", activeColor: "border-neutral-300 text-neutral-300" },
 ];
 
+function isMatchTab(value: string | null): value is MatchFilters["tab"] {
+    return value === "upcoming" || value === "to_complete" || value === "results" || value === "all";
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function MatchesPage() {
     const { t } = useTranslation();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { team, membership } = useTeam();
     const { user } = useAuth();
+    const { toCompleteCount } = useMatchSummary(team?.id ?? "");
 
     const [showCreate, setShowCreate] = useState(false);
     const [editMatch, setEditMatch] = useState<MatchDto | null>(null);
@@ -45,10 +53,16 @@ export default function MatchesPage() {
     // Edit mode
     const [editMode, setEditMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+    const scrollByTabRef = useRef<Record<MatchFilters["tab"], number>>({
+        upcoming: 0,
+        to_complete: 0,
+        results: 0,
+        all: 0,
+    });
 
     const {
         content,
-        contentRevision,
         totalElements,
         isLoading,
         isLoadingMore,
@@ -63,9 +77,14 @@ export default function MatchesPage() {
         updateMapScore,
     } = useMatches(team?.id ?? "");
 
-    if (!team || !membership || !user) return null;
+    const tabFromUrl = searchParams.get("tab");
 
-    const isStaff = membership.isOwner || membership.role !== "PLAYER";
+    // URL -> state: permet aux liens depuis Team Overview de forcer l'onglet cible.
+    useEffect(() => {
+        if (!isMatchTab(tabFromUrl)) return;
+        if (tabFromUrl === filters.tab) return;
+        changeTab(tabFromUrl);
+    }, [changeTab, filters.tab, tabFromUrl]);
 
     const hasActiveFilters =
         !!(filters.type || filters.context || filters.format ||
@@ -74,10 +93,31 @@ export default function MatchesPage() {
     // ── Edit mode ─────────────────────────────────────────────────────────────
 
     const handleChangeTab = (tab: MatchFilters["tab"]) => {
+        if (scrollContainerRef.current) {
+            scrollByTabRef.current[filters.tab] = scrollContainerRef.current.scrollTop;
+        }
+
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set("tab", tab);
+        setSearchParams(nextParams, { replace: true });
+
         setEditMode(false);
         setSelectedIds(new Set());
         changeTab(tab);
     };
+
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+        const saved = scrollByTabRef.current[filters.tab] ?? 0;
+        requestAnimationFrame(() => {
+            container.scrollTop = saved;
+        });
+    }, [filters.tab]);
+
+    if (!team || !membership || !user) return null;
+
+    const isStaff = membership.isOwner || membership.role !== "PLAYER";
 
     const toggleEditMode = () => {
         setEditMode(v => !v);
@@ -125,7 +165,7 @@ export default function MatchesPage() {
                 }
             />
 
-            <div className="flex-1 overflow-y-auto">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar">
                 <div className="max-w-5xl mx-auto px-8 py-6 space-y-5">
 
                     {/* Tabs */}
@@ -145,6 +185,11 @@ export default function MatchesPage() {
                                 >
                                     <Icon className="w-3.5 h-3.5" />
                                     {t(tab.labelKey)}
+                                    {tab.id === "to_complete" && toCompleteCount > 0 && (
+                                        <span className="ml-1 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500/90 text-[10px] font-bold text-neutral-950 flex items-center justify-center tabular-nums">
+                                            {toCompleteCount > 99 ? "99+" : toCompleteCount}
+                                        </span>
+                                    )}
                                 </button>
                             );
                         })}
@@ -230,21 +275,9 @@ export default function MatchesPage() {
                         {t("matches.result_count", { count: totalElements })}
                     </p>
 
-                    {/* To-complete motivating banner — always rendered when on that tab to avoid layout shift */}
-                    {filters.tab === "to_complete" && content.length > 0 && (
-                        <div className={`flex items-center gap-3 px-4 py-3 bg-amber-500/5 border border-amber-500/15 rounded-xl transition-opacity duration-150 ${isLoading ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-                            <div className="w-0.5 self-stretch bg-amber-500/40 rounded-full shrink-0" />
-                            <AlertCircle className="w-4 h-4 text-amber-500/60 shrink-0" />
-                            <p className="text-xs text-amber-600/80">
-                                {t("matches.to_complete_motivation", { count: totalElements })}
-                            </p>
-                        </div>
-                    )}
-
                     {/* Content */}
                     <MatchList
                         content={content}
-                        contentRevision={contentRevision}
                         isLoading={isLoading}
                         isLoadingMore={isLoadingMore}
                         hasMore={hasMore}
@@ -253,7 +286,7 @@ export default function MatchesPage() {
                         editMode={editMode}
                         selectedIds={selectedIds}
                         onToggleSelect={toggleSelect}
-                        onEdit={isStaff ? setEditMatch : undefined}
+                        {...(isStaff ? { onEdit: setEditMatch } : {})}
                         tab={filters.tab}
                         onNew={() => setShowCreate(true)}
                     />
@@ -311,7 +344,6 @@ export default function MatchesPage() {
 
 function MatchList({
     content,
-    contentRevision,
     isLoading,
     isLoadingMore,
     hasMore,
@@ -325,7 +357,6 @@ function MatchList({
     onNew,
 }: {
     content: MatchDto[];
-    contentRevision: number;
     isLoading: boolean;
     isLoadingMore: boolean;
     hasMore: boolean;
@@ -363,7 +394,7 @@ function MatchList({
     }
 
     return (
-        <div key={contentRevision} className="space-y-3 animate-fade-in">
+        <div className="space-y-3">
             {content.map(m => (
                 <MatchCard
                     key={m.id}
@@ -372,7 +403,7 @@ function MatchList({
                     editMode={editMode}
                     selected={selectedIds.has(m.id)}
                     onToggleSelect={onToggleSelect}
-                    onEdit={onEdit}
+                    {...(onEdit ? { onEdit } : {})}
                 />
             ))}
 
@@ -469,6 +500,16 @@ function FilterPanel({
                         value={filters.opponent}
                         onChange={e => onUpdate({ opponent: e.target.value })}
                         placeholder={t("matches.filter_opponent")}
+                        className="w-full pl-8 pr-3 py-2 rounded-lg bg-neutral-800 border border-neutral-700 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                    />
+                </div>
+                <div className="relative flex-1 max-w-xs">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-600 pointer-events-none" />
+                    <input
+                        type="text"
+                        value={filters.competition}
+                        onChange={e => onUpdate({ competition: e.target.value })}
+                        placeholder={t("matches.filter_competition")}
                         className="w-full pl-8 pr-3 py-2 rounded-lg bg-neutral-800 border border-neutral-700 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
                     />
                 </div>

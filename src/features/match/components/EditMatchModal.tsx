@@ -247,7 +247,7 @@ export default function EditMatchModal({
                 </div>
 
                 {/* ── Scrollable body ────────────────────────────────────── */}
-                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-5">
 
                     {/* Type */}
                     <div className="space-y-2">

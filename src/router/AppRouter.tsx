@@ -24,6 +24,7 @@ import StatsPage from "@/pages/team/StatsPage";
 import MatchesPage from "@/pages/team/MatchesPage";
 import TournamentsPage from "@/pages/team/TournamentsPage";
 import MessagingPage from "@/pages/team/MessagingPage";
+import FaceitPopupCallbackPage from "@/pages/auth/FaceitPopupCallbackPage";
 
 const appRouter = createBrowserRouter([
     // ROOT
@@ -32,6 +33,7 @@ const appRouter = createBrowserRouter([
     // PUBLIC
     { path: "/login", element: <LoginPage /> },
     { path: "/login-success", element: <LoginSuccessPage /> },
+    { path: "/faceit/popup-callback", element: <FaceitPopupCallbackPage /> },
     { path: "/invite/:token", element: <InvitationPage /> },
     { path: "/terms", element: <TermsOfServicePage /> },
 
@@ -44,7 +46,7 @@ const appRouter = createBrowserRouter([
                 children: [
                     {
                         path: "/terms-auth",
-                        element: <TermsOfServicePage />,
+                        element: <Navigate to="/terms" replace />,
                     },
                     {
                         path: "/select-team",

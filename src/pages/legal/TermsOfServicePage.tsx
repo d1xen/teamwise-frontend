@@ -6,7 +6,7 @@ export function TermsOfServicePage() {
   const { t } = useTranslation('terms');
   const navigate = useNavigate();
 
-  const lastUpdateDate = new Date('2026-02-15').toLocaleDateString(
+  const lastUpdateDate = new Date('2026-03-21').toLocaleDateString(
     navigator.language,
     { year: 'numeric', month: 'long', day: 'numeric' }
   );

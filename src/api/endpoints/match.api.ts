@@ -80,7 +80,8 @@ export function getMatchesPaginated(
     if (filters.type)     params.set("type", filters.type);
     if (filters.context)  params.set("context", filters.context);
     if (filters.format)   params.set("format", filters.format);
-    if (filters.opponent) params.set("opponent", filters.opponent.trim());
+    if (filters.opponent)    params.set("opponent",    filters.opponent.trim());
+    if (filters.competition) params.set("competition", filters.competition.trim());
 
     if (filters.dateRange !== "all") {
         const from = dateRangeToFrom(filters.dateRange);

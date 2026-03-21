@@ -36,10 +36,19 @@ export function useManagementPermissions({
     /* MEMBER PROFILE ACTIONS                              */
     /* ─────────────────────────────────────────────────── */
 
-    /** Éditer profil d'un membre (firstName, lastName, email, etc.) */
-    const canEditMemberProfile = (member: TeamMember): boolean => {
-        // Éditer son propre profil
+    /** Voir les informations personnelles d'un membre (nom, email, téléphone, adresse) */
+    const canViewPersonalInfo = (member: TeamMember): boolean => {
+        // Chacun peut voir ses propres infos
         if (member.steamId === currentSteamId) return true;
+        // Tout le staff (non-joueur) + owner peut voir
+        if (isOwner || !isPlayer) return true;
+        return false;
+    };
+
+    /** Éditer profil d'un membre (firstName, lastName, email, etc.) — staff uniquement, pas soi-même */
+    const canEditMemberProfile = (member: TeamMember): boolean => {
+        // Soi-même : voir uniquement (éditer via la page profil)
+        if (member.steamId === currentSteamId) return false;
         // Owner peut éditer tous les profils
         if (isOwner) return true;
         // Manager peut éditer tous les profils (Owner inclus)
@@ -121,6 +130,7 @@ export function useManagementPermissions({
         canInvite,
 
         // Member profile
+        canViewPersonalInfo,
         canEditMemberProfile,
 
         // Member role
@@ -135,10 +145,5 @@ export function useManagementPermissions({
 
         // Helpers
         hasAnyAction,
-
-        // Aliases pour rétrocompatibilité
-        canPromoteOwner: canTransferOwnership,
-        canLeaveTeam: (member: TeamMember) =>
-            member.steamId === currentSteamId && canLeave(member),
     };
 }

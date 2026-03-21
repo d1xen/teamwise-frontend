@@ -38,6 +38,7 @@ export default function MatchCard({
 }: MatchCardProps) {
     const { t } = useTranslation();
     const [expanded, setExpanded] = useState(false);
+    const [logoError, setLogoError] = useState(false);
 
     const resultColor = match.result === "WIN"
         ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20"
@@ -102,11 +103,16 @@ export default function MatchCard({
 
                 {/* Opponent logo */}
                 <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-neutral-800 border border-neutral-700 flex items-center justify-center overflow-hidden">
-                    {match.opponentLogo ? (
-                        <img src={match.opponentLogo} alt={match.opponentName ?? "TBA"} className="w-full h-full object-contain p-1" />
+                    {match.opponentLogo && !logoError ? (
+                        <img
+                            src={match.opponentLogo}
+                            alt={match.opponentName ?? "TBA"}
+                            className="w-full h-full object-cover"
+                            onError={() => setLogoError(true)}
+                        />
                     ) : match.opponentName ? (
-                        <span className="text-lg font-bold text-neutral-400">
-                            {match.opponentName.charAt(0).toUpperCase()}
+                        <span className="text-sm font-bold text-neutral-300 uppercase tracking-wide">
+                            {match.opponentName.split(" ").map(w => w[0]).join("").slice(0, 3)}
                         </span>
                     ) : (
                         <span className="text-sm font-bold text-neutral-600">?</span>

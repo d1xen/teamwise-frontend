@@ -85,12 +85,6 @@ export function TeamHeader({ team, actions, children }: TeamHeaderProps) {
               )}
             </div>
 
-            {/* Description */}
-            {team.description && (
-              <p className="mt-1.5 text-sm text-neutral-500 leading-snug max-w-xl truncate">
-                {team.description}
-              </p>
-            )}
           </div>
 
           {/* Bottom: tabs / actions */}

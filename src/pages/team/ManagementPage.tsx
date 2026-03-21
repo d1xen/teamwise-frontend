@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/auth/useAuth";
 import { useTeam } from "@/contexts/team/useTeam";
@@ -6,25 +7,34 @@ import type { TeamMember } from "@/contexts/team/team.types";
 import type { UserProfileDto } from "@/api/endpoints/profile.api";
 import { useManagementPermissions } from "@/features/team/hooks/useManagementPermissions";
 import { useTeamActions } from "@/features/team/hooks/useTeamActions";
-import { LayoutDashboard, Users, User, Crown } from "lucide-react";
-import { cn } from "@/design-system";
+import { LayoutDashboard, Users, User, Crown, Zap } from "lucide-react";
+import FaceitOverview from "@/features/faceit/components/FaceitOverview";
+
 
 // Profile & Team components
 import EditableProfileSection from "@/features/profile/components/EditableProfileSection";
+import TeamActionsSection from "@/features/profile/components/TeamActionsSection";
+import InlineLoader from "@/shared/components/InlineLoader";
 import TeamSettingsPanel from "@/features/team/components/management/panels/TeamSettingsPanel";
 import { useProfilePermissions } from "@/features/profile/hooks/useProfilePermissions";
 import { getMyProfile } from "@/api/endpoints/profile.api";
 
 import TeamOverviewPanel from "@/features/team/components/management/panels/TeamOverviewPanel";
 import MembersPanel from "@/features/team/components/management/panels/MembersPanel";
-import MemberDetailPanel from "@/features/team/components/management/panels/MemberDetailPanel";
+import MemberDetailModal from "@/features/team/components/management/panels/MemberDetailModal";
 import FeatureHeader from '@/shared/components/FeatureHeader';
 import FeatureBody from '@/shared/components/FeatureBody';
 import { useMinimumLoader } from '@/shared/hooks/useMinimumLoader';
 import ManagementTabs from '@/features/team/components/management/ManagementTabs';
 import { Button } from '@/design-system/components';
 
-type View = "overview" | "members" | "teams" | "profile";
+type View = "overview" | "members" | "teams" | "profile" | "faceit";
+
+const MANAGEMENT_VIEWS: View[] = ["overview", "members", "teams", "profile", "faceit"];
+
+function isManagementView(value: string | null): value is View {
+  return value !== null && MANAGEMENT_VIEWS.includes(value as View);
+}
 
 /**
  * ManagementPage – Intégré dans TeamLayout
@@ -32,18 +42,30 @@ type View = "overview" | "members" | "teams" | "profile";
  */
 export default function ManagementPage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { team, membership, members, isLoading, isReady, refreshTeam } = useTeam();
   // Loader uniquement pendant le chargement initial (isReady=false)
   // refreshTeam() est silencieux et ne doit pas relancer le loader global
   const showLoader = useMinimumLoader(!isReady || !user, 800);
 
-  const [activeView, setActiveView] = useState<View>("overview");
+  const tabFromUrl = searchParams.get("tab");
+  const resolvedTab: View = isManagementView(tabFromUrl) ? tabFromUrl : "overview";
+  const hasFaceitCallbackParams = searchParams.has("faceit_result");
+
+  const activeView: View = resolvedTab;
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfileDto | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState(false);
   const [profileRetryCount, setProfileRetryCount] = useState(0);
+
+  const handleChangeView = (view: View) => {
+    if (view === activeView) return;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("tab", view);
+    setSearchParams(nextParams, { replace: true });
+  };
 
   // Hooks
   const permissions = useManagementPermissions({
@@ -69,26 +91,48 @@ export default function ManagementPage() {
     if (userProfile !== null) return;
 
     let cancelled = false;
+    let retryTimer: number | null = null;
     setIsLoadingProfile(true);
     setProfileError(false);
 
-    getMyProfile()
-      .then((profile) => { if (!cancelled) setUserProfile(profile); })
-      .catch((err) => {
-        console.error("Failed to load profile:", err);
-        if (!cancelled) setProfileError(true);
-      })
-      .finally(() => { if (!cancelled) setIsLoadingProfile(false); });
+    // Après retour OAuth Faceit, le backend peut mettre un court instant
+    // avant que /users/me/profile réponde de manière stable.
+    const maxAttempts = hasFaceitCallbackParams ? 4 : 1;
+    const fetchProfile = (attempt: number) => {
+      getMyProfile()
+        .then((profile) => {
+          if (cancelled) return;
+          setUserProfile(profile);
+          setIsLoadingProfile(false);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          if (attempt < maxAttempts) {
+            retryTimer = window.setTimeout(() => fetchProfile(attempt + 1), 500);
+            return;
+          }
+          console.error("Failed to load profile:", err);
+          setProfileError(true);
+          setIsLoadingProfile(false);
+        });
+    };
 
-    return () => { cancelled = true; };
+    fetchProfile(1);
+
+    return () => {
+      cancelled = true;
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+      }
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeView, profileRetryCount]);
+  }, [activeView, hasFaceitCallbackParams, profileRetryCount]);
 
   // Vérifier après les hooks
   if (showLoader) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-sm text-neutral-400">{t("common.loading")}</div>
+        <InlineLoader />
       </div>
     );
   }
@@ -111,9 +155,10 @@ export default function ManagementPage() {
 
   const tabs = [
     { id: "overview" as View, label: t("management.overview"), icon: LayoutDashboard },
-    { id: "members" as View, label: t("management.members"), icon: Users, count: members.length },
-    { id: "teams" as View, label: t("management.teams"), icon: Crown },
     { id: "profile" as View, label: t("management.profile"), icon: User },
+    { id: "teams" as View, label: t("management.teams"), icon: Crown },
+    { id: "members" as View, label: t("management.members"), icon: Users },
+    ...(team.game === "CS2" ? [{ id: "faceit" as View, label: "FACEIT", icon: Zap }] : []),
   ];
 
   const handleSelectMember = (member: TeamMember) => {
@@ -133,18 +178,12 @@ export default function ManagementPage() {
         <ManagementTabs
           tabs={tabs}
           activeView={activeView}
-          onChange={setActiveView}
+          onChange={handleChangeView}
         />
       </FeatureHeader>
 
-      {/* Main content + Detail panel */}
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* Content - Fixed width, no shrink */}
-        <div
-          className={cn(
-            "flex-1 overflow-y-auto custom-scrollbar scrollbar-gutter-stable"
-          )}
-        >
+      {/* Main content */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-gutter-stable">
           <FeatureBody className="max-w-5xl">
             {activeView === "overview" && (
               <TeamOverviewPanel
@@ -153,6 +192,7 @@ export default function ManagementPage() {
                 members={members}
                 staffCount={members.filter((m) => m.role !== "PLAYER").length}
                 playerCount={members.filter((m) => m.role === "PLAYER").length}
+                onNavigateToFaceit={() => handleChangeView("faceit")}
               />
             )}
 
@@ -174,11 +214,13 @@ export default function ManagementPage() {
               />
             )}
 
+            {activeView === "faceit" && team.game === "CS2" && (
+              <FaceitOverview teamId={team.id} />
+            )}
+
             {activeView === "profile" && (
               isLoadingProfile ? (
-                <div className="flex items-center justify-center py-20">
-                  <div className="text-sm text-neutral-400">{t("common.loading")}</div>
-                </div>
+                <InlineLoader />
               ) : profileError ? (
                 <div className="flex items-center justify-center py-20">
                   <div className="text-center space-y-4">
@@ -196,43 +238,39 @@ export default function ManagementPage() {
                   </div>
                 </div>
               ) : userProfile ? (
-                <EditableProfileSection
-                  profile={userProfile}
-                  game={team?.game}
-                  canEdit={profilePermissions.canEditOwnProfile}
-                  onSuccess={() => refreshTeam()}
-                />
+                <div className="space-y-4">
+                  <EditableProfileSection
+                    profile={userProfile}
+                    game={team?.game}
+                    canEdit={profilePermissions.canEditOwnProfile}
+                    onSuccess={() => refreshTeam()}
+                  />
+                  <TeamActionsSection
+                    isOwner={membership?.isOwner ?? false}
+                    members={members}
+                    currentSteamId={user?.steamId ?? ""}
+                    teamName={team?.name ?? ""}
+                    onTransferOwnership={actions.transferOwnershipTo}
+                    onLeave={actions.leaveTeamConfirmed}
+                    onTransferAndLeave={actions.transferAndLeave}
+                    onDeleteTeam={actions.deleteTeamConfirmed}
+                  />
+                </div>
               ) : null
             )}
           </FeatureBody>
-        </div>
 
-        {/* Overlay - Click to close */}
-        {selectedMember && (
-          <div
-            className="absolute inset-0 z-30 bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-pointer"
-            onClick={handleCloseDetail}
+        {/* Member detail modal */}
+        {selectedMember && team && membership && (
+          <MemberDetailModal
+            member={selectedMember}
+            teamId={team.id}
+            permissions={permissions}
+            actions={actions}
+            onClose={handleCloseDetail}
+            team={team}
           />
         )}
-
-        {/* Detail Panel - Slide from right */}
-        <div
-          className={cn(
-            "absolute right-0 top-0 bottom-0 h-full transition-all duration-300 ease-out border-l border-neutral-800 bg-neutral-900 overflow-hidden shadow-2xl z-40",
-            selectedMember ? 'w-[550px] opacity-100 visible' : 'w-0 opacity-0 invisible'
-          )}
-        >
-          {selectedMember && team && membership && (
-            <MemberDetailPanel
-              member={selectedMember}
-              teamId={team.id}
-              permissions={permissions}
-              actions={actions}
-              onClose={handleCloseDetail}
-              team={team}
-            />
-          )}
-        </div>
       </div>
     </div>
   );

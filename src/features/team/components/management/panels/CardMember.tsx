@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { TeamMember } from "@/contexts/team/team.types";
-import { IN_GAME_ROLE_LABELS } from "@/shared/utils/inGameRoles";
+import { IN_GAME_ROLE_LABELS } from "@/shared/config/gameConfig";
 import { ROLE_BADGE_STYLES } from "@/shared/constants/roleStyles";
 import { Crown } from "lucide-react";
 import { cn } from "@/design-system";

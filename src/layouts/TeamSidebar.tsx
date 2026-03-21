@@ -24,6 +24,10 @@ import { appConfig } from '@/config/appConfig';
 import TeamWiseLogo from '@/shared/components/TeamWiseLogo';
 import { useMinimumLoader } from '@/shared/hooks/useMinimumLoader';
 import { appStorage } from '@/shared/utils/storage/appStorage';
+import { getAvatarUrl } from '@/shared/utils/avatarUtils';
+
+import ConfirmModal from '@/shared/components/ConfirmModal';
+import AppVersion from '@/shared/components/AppVersion';
 
 interface NavItem {
   id: string;
@@ -43,9 +47,10 @@ export default function TeamSidebar() {
   const { team, isLoading } = useTeam();
   const { user, logout } = useAuth();
   const kofiUrl = appConfig.externalLinks.kofi;
-  const showLoader = useMinimumLoader(isLoading || !team, 800);
+  const showLoader = useMinimumLoader(!team, 800);
   const [langOpen, setLangOpen] = useState(false);
   const { toCompleteCount } = useMatchSummary(team?.id ?? "");
+  const footerAvatarUrl = user ? getAvatarUrl(user) : null;
   const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -124,13 +129,10 @@ export default function TeamSidebar() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const handleLogout = () => {
-    // Vraie déconnexion : retire le token et redirige vers login
-    if (window.confirm(t('header.logout') + ' ?')) {
-      logout();
-      navigate('/login');
-    }
-  };
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogout = () => setShowLogoutConfirm(true);
+  const confirmLogout = () => { logout(); navigate('/login'); };
 
   const handleChangeTeam = () => {
     // Changer d'équipe : garde l'auth mais change de contexte team
@@ -144,7 +146,10 @@ export default function TeamSidebar() {
       <div className="flex-shrink-0 border-b border-neutral-800">
         <div className="pl-8 pr-5 flex flex-col justify-center gap-2 h-[132px]">
 
-          <TeamWiseLogo size={30} />
+          <div className="flex items-center gap-2">
+            <TeamWiseLogo size={30} />
+            <AppVersion />
+          </div>
 
           <p className="text-sm font-bold text-white truncate leading-tight">{team.name}</p>
 
@@ -167,7 +172,7 @@ export default function TeamSidebar() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
-          const badge = item.id === 'matches' && toCompleteCount > 0 ? toCompleteCount : null;
+          const hasPendingMatches = item.id === 'matches' && toCompleteCount > 0;
 
           return (
             <button
@@ -182,12 +187,21 @@ export default function TeamSidebar() {
               )}
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
-              <span className="flex-1 truncate text-left">{item.label}</span>
-              {badge !== null && (
-                <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-[10px] font-bold text-neutral-950 flex items-center justify-center tabular-nums">
-                  {badge > 9 ? "9+" : badge}
-                </span>
-              )}
+              <span className="flex-1 truncate text-left">
+                {item.id === 'matches' ? (
+                  <span className="relative inline-block pr-2">
+                    {item.label}
+                    {hasPendingMatches && (
+                      <span
+                        className="absolute top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-amber-400"
+                        title={t('matches.tab_to_complete')}
+                      />
+                    )}
+                  </span>
+                ) : (
+                  item.label
+                )}
+              </span>
             </button>
           );
         })}
@@ -210,7 +224,7 @@ export default function TeamSidebar() {
           <div className="border-t border-neutral-800 px-5 py-3 flex items-center gap-2.5">
             <div className="relative shrink-0">
               <img
-                src={user.avatarUrl ?? ''}
+                src={footerAvatarUrl ?? ''}
                 alt={user.nickname}
                 className="w-7 h-7 rounded-md object-cover"
               />
@@ -278,6 +292,18 @@ export default function TeamSidebar() {
         )}
 
       </div>
+
+      {showLogoutConfirm && (
+        <ConfirmModal
+          title={t('auth.logout')}
+          description={t('auth.logout_confirm')}
+          confirmLabel={t('auth.logout')}
+          cancelLabel={t('common.cancel')}
+          variant="danger"
+          onConfirm={async () => confirmLogout()}
+          onCancel={() => setShowLogoutConfirm(false)}
+        />
+      )}
     </div>
   );
 }

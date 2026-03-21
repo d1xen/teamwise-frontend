@@ -1,6 +1,7 @@
 import { apiClient } from "@/api/client/apiClient";
 import type {
     CreateTeamRequest,
+    SetMemberFaceitRequest,
     TeamDto,
     TeamMemberDto,
     UpdateMemberRoleRequest,
@@ -109,4 +110,15 @@ export function uploadTeamLogo(teamId: string | number, file: File): Promise<Tea
 
 export function deleteTeamLogo(teamId: string | number): Promise<TeamDto> {
     return apiClient<TeamDto>(`/api/teams/${teamId}/logo`, { method: "DELETE" });
+}
+
+export function setMemberFaceit(
+    teamId: string | number,
+    steamId: string,
+    payload: SetMemberFaceitRequest
+): Promise<TeamMemberDto> {
+    return apiClient<TeamMemberDto>(`/api/teams/${teamId}/members/${steamId}/faceit-id`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+    });
 }

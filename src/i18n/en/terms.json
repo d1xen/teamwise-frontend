@@ -75,7 +75,7 @@
         "title": "7. Team Management",
         "roles": {
           "title": "7.1 Roles and Permissions",
-          "content": "Teams have three roles: Owner, Manager and Player. Each role has specific permissions defined in the application."
+          "content": "Teams have four roles: Owner, Manager, Coach and Analyst. Players make up the active roster. Each role has specific permissions defined in the application. The Owner has full control over the team."
         },
         "ownership": {
           "title": "7.2 Team Ownership",
