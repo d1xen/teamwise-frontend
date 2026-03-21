@@ -139,12 +139,12 @@ function useSyncDateLabel(date: Date | null, lang: string): string | null {
 export default function FaceitOverview({ teamId }: { teamId: string }) {
     const { t, i18n } = useTranslation();
     const { membership, members } = useTeam();
-    const { overview, isLoading, hasLoaded, error, config, setConfig, lastSyncedAt, sync, reload, patchImportedIds } =
+    const { overview, isLoading, hasLoaded, error, config, setConfig, lastSyncedAt, sync, reload, patchImportedIds, invalidate } =
         useFaceitOverview(teamId);
     const importState                 = useFaceitImport();
     const [filter, setFilter]         = useState<Filter>("all");
     const [configOpen, setConfigOpen] = useState(false);
-    const [guideOpen, setGuideOpen]   = useState(true);
+    const [guideOpen, setGuideOpen]   = useState(!hasLoaded);
     const prevHasLoaded               = useRef(hasLoaded);
 
     const isStaff = (membership?.isOwner ?? false) || membership?.role !== "PLAYER";
@@ -167,10 +167,24 @@ export default function FaceitOverview({ teamId }: { teamId: string }) {
         prevHasLoaded.current = hasLoaded;
     }, [hasLoaded]);
 
-    // Init core from linked roster
+    // Init or validate core players against current linked roster
     useEffect(() => {
-        if (linkedPlayers.length > 0 && config.corePlayerSteamIds.length === 0) {
-            setConfig({ ...config, corePlayerSteamIds: linkedPlayers.slice(0, MAX_CORE).map(p => p.steamId) });
+        const linkedIds = new Set(linkedPlayers.map(p => p.steamId));
+
+        if (config.corePlayerSteamIds.length === 0) {
+            // First init: auto-select up to MAX_CORE linked players
+            if (linkedPlayers.length > 0) {
+                setConfig({ ...config, corePlayerSteamIds: linkedPlayers.slice(0, MAX_CORE).map(p => p.steamId) });
+            }
+            return;
+        }
+
+        // Check if any stored core player is no longer active+linked
+        const validCore = config.corePlayerSteamIds.filter(id => linkedIds.has(id));
+        if (validCore.length < config.corePlayerSteamIds.length) {
+            setConfig({ ...config, corePlayerSteamIds: validCore });
+            invalidate();
+            setGuideOpen(true);
         }
     }, [linkedPlayers.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
