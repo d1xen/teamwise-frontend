@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
     Plus, Clock, AlertCircle, CheckCircle2, Loader2,
     Search, SlidersHorizontal, LayoutList, X,
-    Pencil, Trash2, Check,
+    Check,
 } from "lucide-react";
 import { useTeam } from "@/contexts/team/useTeam";
 import { useAuth } from "@/contexts/auth/useAuth";
@@ -12,7 +12,7 @@ import { useMatchSummary } from "@/features/match/hooks/useMatchSummary";
 import FeatureHeader from "@/shared/components/FeatureHeader";
 import MatchCard from "@/features/match/components/MatchCard";
 import CreateMatchModal from "@/features/match/components/CreateMatchModal";
-import EditMatchModal from "@/features/match/components/EditMatchModal";
+import MatchDetailModal from "@/features/match/components/MatchDetailModal";
 import { useMatches } from "@/features/match/hooks/useMatches";
 import type { MatchDto, MatchFilters } from "@/api/types/match";
 
@@ -47,7 +47,7 @@ export default function MatchesPage() {
     const { toCompleteCount } = useMatchSummary(team?.id ?? "");
 
     const [showCreate, setShowCreate] = useState(false);
-    const [editMatch, setEditMatch] = useState<MatchDto | null>(null);
+    const [detailMatch, setDetailMatch] = useState<MatchDto | null>(null);
     const [showFilters, setShowFilters] = useState(false);
 
     // Edit mode
@@ -152,20 +152,9 @@ export default function MatchesPage() {
             <FeatureHeader
                 title={t("pages.matches.title")}
                 subtitle={t("pages.matches.subtitle")}
-                side={
-                    isStaff ? (
-                        <button
-                            onClick={() => setShowCreate(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white transition-colors"
-                        >
-                            <Plus className="w-4 h-4" />
-                            {t("matches.new_match")}
-                        </button>
-                    ) : undefined
-                }
             />
 
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar scrollbar-gutter-stable">
                 <div className="max-w-5xl mx-auto px-8 py-6 space-y-5">
 
                     {/* Tabs */}
@@ -225,18 +214,30 @@ export default function MatchesPage() {
                                 )}
                             </div>
 
-                            {/* Edit mode toggle */}
+                            {/* New match */}
+                            {isStaff && (
+                                <button
+                                    onClick={() => setShowCreate(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#4338ca]/40 bg-[#4338ca]/10 text-[#8b83f7] hover:bg-[#4338ca]/20 text-xs font-medium transition-colors"
+                                >
+                                    <Plus className="w-3 h-3" />
+                                    {t("matches.new_match")}
+                                </button>
+                            )}
+
+                            {/* Select mode toggle */}
                             {isStaff && (
                                 <button
                                     onClick={toggleEditMode}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors ${
+                                    disabled={filters.tab === "results"}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                                         editMode
                                             ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-400"
                                             : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300"
                                     }`}
                                 >
-                                    <Pencil className="w-3 h-3" />
-                                    {editMode ? t("matches.exit_edit_mode") : t("matches.edit_mode")}
+                                    <Check className="w-3 h-3" />
+                                    {editMode ? t("matches.exit_select_mode") : t("matches.select_mode")}
                                 </button>
                             )}
                         </div>
@@ -251,7 +252,12 @@ export default function MatchesPage() {
                         />
                     )}
 
-                    {/* Edit mode select-all bar */}
+                    {/* Results count */}
+                    <p className={`text-xs transition-colors duration-150 ${isLoading ? "text-neutral-800" : "text-neutral-600"}`}>
+                        {t("matches.result_count", { count: totalElements })}
+                    </p>
+
+                    {/* Select-all — below count, only in select mode */}
                     {editMode && scheduledInView.length > 0 && (
                         <div className="flex items-center gap-3 px-1">
                             <button
@@ -270,11 +276,6 @@ export default function MatchesPage() {
                         </div>
                     )}
 
-                    {/* Results count — always rendered to avoid layout shift */}
-                    <p className={`text-xs transition-colors duration-150 ${isLoading ? "text-neutral-800" : "text-neutral-600"}`}>
-                        {t("matches.result_count", { count: totalElements })}
-                    </p>
-
                     {/* Content */}
                     <MatchList
                         content={content}
@@ -286,7 +287,7 @@ export default function MatchesPage() {
                         editMode={editMode}
                         selectedIds={selectedIds}
                         onToggleSelect={toggleSelect}
-                        {...(isStaff ? { onEdit: setEditMatch } : {})}
+                        onClick={setDetailMatch}
                         tab={filters.tab}
                         onNew={() => setShowCreate(true)}
                     />
@@ -309,9 +310,8 @@ export default function MatchesPage() {
                             </button>
                             <button
                                 onClick={handleBulkDelete}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-sm font-semibold text-white transition-colors"
+                                className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-sm font-semibold text-white transition-colors"
                             >
-                                <Trash2 className="w-3.5 h-3.5" />
                                 {t("matches.bulk_delete", { count: selectedIds.size })}
                             </button>
                         </div>
@@ -326,14 +326,16 @@ export default function MatchesPage() {
                 />
             )}
 
-            {editMatch && (
-                <EditMatchModal
-                    match={editMatch}
+            {detailMatch && (
+                <MatchDetailModal
+                    match={detailMatch}
                     teamTag={team.tag ?? team.name}
                     game={team.game ?? "CS2"}
-                    onClose={() => setEditMatch(null)}
+                    isStaff={isStaff}
+                    onClose={() => setDetailMatch(null)}
                     onUpdateMatch={updateMatch}
                     onSaveMap={updateMapScore}
+                    onDelete={deleteMatch}
                 />
             )}
         </div>
@@ -352,7 +354,7 @@ function MatchList({
     editMode,
     selectedIds,
     onToggleSelect,
-    onEdit,
+    onClick,
     tab,
     onNew,
 }: {
@@ -365,7 +367,7 @@ function MatchList({
     editMode: boolean;
     selectedIds: Set<number>;
     onToggleSelect: (id: number) => void;
-    onEdit?: (match: MatchDto) => void;
+    onClick?: (match: MatchDto) => void;
     tab: MatchFilters["tab"];
     onNew: () => void;
 }) {
@@ -403,7 +405,7 @@ function MatchList({
                     editMode={editMode}
                     selected={selectedIds.has(m.id)}
                     onToggleSelect={onToggleSelect}
-                    {...(onEdit ? { onEdit } : {})}
+                    onClick={onClick}
                 />
             ))}
 
@@ -584,7 +586,7 @@ function EmptyState({ tab, isStaff, onNew }: { tab: MatchFilters["tab"]; isStaff
             {tab === "upcoming" && isStaff && (
                 <button
                     onClick={onNew}
-                    className="mt-5 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white transition-colors"
+                    className="mt-5 flex items-center gap-2 px-4 py-2 bg-[#4338ca] hover:bg-[#4f46e5] rounded-xl text-sm font-semibold text-white transition-colors"
                 >
                     <Plus className="w-4 h-4" />
                     {t("matches.new_match")}

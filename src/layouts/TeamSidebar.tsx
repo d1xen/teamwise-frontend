@@ -295,11 +295,11 @@ export default function TeamSidebar() {
 
       {showLogoutConfirm && (
         <ConfirmModal
-          title={t('auth.logout')}
+          title={t('auth.logout_title')}
           description={t('auth.logout_confirm')}
           confirmLabel={t('auth.logout')}
           cancelLabel={t('common.cancel')}
-          variant="danger"
+          variant="warning"
           onConfirm={async () => confirmLogout()}
           onCancel={() => setShowLogoutConfirm(false)}
         />

@@ -138,7 +138,7 @@ function Cell({
 // ── Private tab with inline edit ──────────────────────────────────────────────
 
 function PrivateTab({
-  profile, canEdit, isSelf, isSaving, onSave, t,
+  profile, canEdit, isSelf, isSaving, onSave, t, extraCells,
 }: {
   profile: UserProfileDto;
   canEdit: boolean;
@@ -146,6 +146,7 @@ function PrivateTab({
   isSaving: boolean;
   onSave: (data: UserProfileUpdateDto) => Promise<void>;
   t: (key: string) => string;
+  extraCells?: React.ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
@@ -183,7 +184,7 @@ function PrivateTab({
           {editing ? (
             <div className="flex items-center gap-2">
               <button onClick={handleSave} disabled={isSaving}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors">
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors">
                 {isSaving && <Loader className="w-3 h-3 animate-spin" />}
                 {isSaving ? t("common.saving") : t("common.save")}
               </button>
@@ -223,6 +224,7 @@ function PrivateTab({
           editing={editing} onChange={v => set("zipCode", v)} placeholder="75001" />
         <Cell label={t("profile.city")} value={editing ? form.city : profile.city}
           editing={editing} onChange={v => set("city", v)} placeholder="Paris" />
+        {extraCells}
       </div>
     </div>
   );
@@ -231,7 +233,7 @@ function PrivateTab({
 export default function MemberDetailPanel({
   member, teamId, permissions, actions, onClose, team,
 }: MemberDetailPanelProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { refreshTeam, members, updateMemberActiveStatus } = useTeam();
 
@@ -399,7 +401,7 @@ export default function MemberDetailPanel({
         ) : (
           <>
             {/* ── Information ── */}
-            {activeTab === "info" && (
+            {activeTab === "info" && (<>
               <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                 <Cell label={t("management.username")} value={customUser} />
                 <Cell label={t("profile.country")} value={countryCode ? (COUNTRY_LABELS[countryCode] ?? countryCode) : null} />
@@ -413,7 +415,7 @@ export default function MemberDetailPanel({
                 {validLinks.includes("hltv") && <Cell label="HLTV" value={memberProfile?.hltv} />}
                 <Cell label="Steam ID" value={member.steamId} full />
               </div>
-            )}
+            </>)}
 
             {/* ── Role & Roster ── */}
             {activeTab === "role" && (
@@ -494,6 +496,14 @@ export default function MemberDetailPanel({
                 isSaving={isSavingProfile}
                 onSave={handleSaveProfile}
                 t={t}
+                extraCells={<>
+                  <Cell label={t("meta.created_label")}
+                    value={memberProfile.createdAt ? new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "long", year: "numeric" }).format(new Date(memberProfile.createdAt)) : null} />
+                  <Cell label={t("meta.updated_label")}
+                    value={memberProfile.updatedAt ? new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "long", year: "numeric" }).format(new Date(memberProfile.updatedAt)) : null} />
+                  <Cell label={t("meta.joined_label")}
+                    value={member.joinedAt ? new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "long", year: "numeric" }).format(new Date(member.joinedAt)) : null} />
+                </>}
               />
             )}
           </>

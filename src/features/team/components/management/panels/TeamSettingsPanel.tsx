@@ -85,7 +85,7 @@ function PasswordCell({ label, value, editing, formValue, onChange, placeholder 
 }
 
 export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete, actions }: TeamSettingsPanelProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { refreshTeam } = useTeam();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -212,7 +212,7 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
             e ? (
               <div className="flex items-center gap-2 shrink-0">
                 <button onClick={handleSave} disabled={isSaving}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-50 text-white text-xs font-semibold transition-colors">
                   {isSaving && <Loader className="w-3 h-3 animate-spin" />}
                   {isSaving ? t('common.saving') : t('common.save')}
                 </button>
@@ -239,6 +239,10 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
             <Cell label={t('management.team_tag')} value={team.tag} editing={e} formValue={form.tag} onChange={v => set('tag', v)} placeholder="VIT" />
             <Cell label={t('management.game')} value={team.game} />
             <Cell label={t('management.team_description')} value={team.description} editing={e} formValue={form.description} onChange={v => set('description', v)} placeholder={t('management.team_description_placeholder')} multiline />
+            {team.createdAt && (
+              <Cell label={t('meta.created_label')} value={new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(team.createdAt))} />
+            )}
+            <Cell label={t('meta.updated_label')} value={team.updatedAt ? new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(team.updatedAt)) : null} />
           </div>
 
           {/* Links + Servers */}
@@ -272,7 +276,7 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
       {/* ── Delete modal ── */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-neutral-900 border border-red-900/40 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="w-full max-w-md bg-[#141414] border border-red-900/40 rounded-2xl overflow-hidden">
             <div className="flex items-start gap-3 px-6 py-5 bg-red-950/30 border-b border-red-900/30">
               <div className="p-2 bg-red-500/15 rounded-lg shrink-0 mt-0.5"><AlertTriangle className="w-5 h-5 text-red-400" /></div>
               <div className="flex-1">
@@ -314,6 +318,7 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
           </div>
         </div>
       )}
+
     </div>
   );
 }

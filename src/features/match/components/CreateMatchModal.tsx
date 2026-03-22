@@ -1,7 +1,9 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X, ChevronDown } from "lucide-react";
 import type { CreateMatchRequest, MatchContext, MatchFormat, MatchLevel, MatchType } from "@/api/types/match";
+import DatePicker from "@/design-system/components/DatePicker";
+import TimePicker from "@/design-system/components/TimePicker";
 
 interface CreateMatchModalProps {
     onClose: () => void;
@@ -27,12 +29,21 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
 
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        document.addEventListener("keydown", handleEscape);
+        return () => document.removeEventListener("keydown", handleEscape);
+    }, [onClose]);
+
     const [type, setType]                   = useState<MatchType>("OFFICIAL");
     const [context, setContext]             = useState<MatchContext>("TOURNAMENT");
     const [opponentName, setOpponentName]   = useState("");
     const [opponentLogo, setOpponentLogo]   = useState("");
     const [matchUrl, setMatchUrl]           = useState("");
-    const [scheduledAt, setScheduledAt]     = useState("");
+    const [scheduledDate, setScheduledDate]   = useState("");
+    const [scheduledTime, setScheduledTime]   = useState("20:00");
     const [format, setFormat]               = useState<MatchFormat>("BO3");
     const [competitionName, setCompetitionName] = useState("");
     const [competitionStage, setCompetitionStage] = useState("");
@@ -44,7 +55,7 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
         if (t === "SCRIM") setContext("TOURNAMENT"); // reset, won't be sent
     };
 
-    const canSubmit = !!scheduledAt;
+    const canSubmit = !!scheduledDate;
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -56,7 +67,7 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
             opponentName: opponentName.trim() || null,
             opponentLogo: opponentLogo.trim() || null,
             matchUrl: matchUrl.trim() || null,
-            scheduledAt: new Date(scheduledAt).toISOString(),
+            scheduledAt: new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString(),
             format,
             competitionName: competitionName.trim() || null,
             competitionStage: competitionStage.trim() || null,
@@ -68,8 +79,8 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="bg-neutral-950 border border-neutral-800 rounded-2xl w-full max-w-xl shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4" onClick={onClose}>
+            <div className="bg-[#141414] border border-neutral-800 rounded-2xl w-full max-w-xl" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 pt-6 pb-5">
@@ -167,13 +178,10 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
                                         {t("matches.scheduled_at")}
                                         <span className="ml-1 text-indigo-500 normal-case tracking-normal font-normal">*</span>
                                     </label>
-                                    <input
-                                        type="datetime-local"
-                                        value={scheduledAt}
-                                        onChange={e => setScheduledAt(e.target.value)}
-                                        required
-                                        className={`${INPUT} [color-scheme:dark]`}
-                                    />
+                                    <div className="flex gap-2">
+                                        <DatePicker value={scheduledDate} onChange={setScheduledDate} />
+                                        <TimePicker value={scheduledTime} onChange={setScheduledTime} className="w-[110px]" />
+                                    </div>
                                 </div>
                             </div>
 
@@ -294,7 +302,7 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
                         <button
                             type="submit"
                             disabled={isSubmitting || !canSubmit}
-                            className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
+                            className="flex-1 py-2.5 rounded-xl bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
                         >
                             {isSubmitting ? t("common.saving") : t("matches.create_button")}
                         </button>

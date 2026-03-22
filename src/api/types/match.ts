@@ -42,7 +42,8 @@ export type MatchDto = {
     level: MatchLevel | null;
     notes: string | null;
     ignored: boolean;
-    createdBy: string;
+    createdByNickname: string | null;
+    updatedByNickname: string | null;
     createdAt: string | null;
     updatedAt: string | null;
     maps: MatchMapDto[];

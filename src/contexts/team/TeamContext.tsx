@@ -81,6 +81,7 @@ export function TeamProvider({
                 ...(m.countryCode && { countryCode: m.countryCode }),
                 ...(m.customUsername && { customUsername: m.customUsername }),
                 faceitNickname: m.faceitNickname ?? null,
+                ...(m.joinedAt && { joinedAt: m.joinedAt }),
             }));
 
             // Calculer la nationalité de l'équipe basée sur les joueurs

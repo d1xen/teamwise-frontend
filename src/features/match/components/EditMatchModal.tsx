@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
-import { X, Loader2, RotateCcw, Save, ChevronDown } from "lucide-react";
+import { X, Loader2, RotateCcw, ChevronDown } from "lucide-react";
 import type {
     MatchDto, MatchFormat, MatchType, MatchContext, MatchLevel,
     MatchMapDto, UpdateMapScoreRequest, UpdateMatchRequest,
 } from "@/api/types/match";
 import type { Game } from "@/api/types/team";
 import { getMapsForGame } from "@/shared/config/gameConfig";
+import DatePicker from "@/design-system/components/DatePicker";
+import TimePicker from "@/design-system/components/TimePicker";
+import MetaInfo from "@/shared/components/MetaInfo";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -71,10 +74,16 @@ function getMapLabel(maps: { value: string; label: string }[], value: string): s
     return maps.find(m => m.value === value)?.label ?? value;
 }
 
-function toLocalInput(iso: string): string {
+function toLocalDate(iso: string): string {
     const d = new Date(iso);
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function toLocalTime(iso: string): string {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 const FORMATS: MatchFormat[] = ["BO1", "BO3", "BO5"];
@@ -92,12 +101,21 @@ export default function EditMatchModal({
     const { t } = useTranslation();
     const gameMaps = getMapsForGame(game);
 
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        document.addEventListener("keydown", handleEscape);
+        return () => document.removeEventListener("keydown", handleEscape);
+    }, [onClose]);
+
     // ── Metadata state ────────────────────────────────────────────────────────
     const [type, setType]                       = useState<MatchType>(match.type);
     const [context, setContext]                 = useState<MatchContext | null>(match.context);
     const [format, setFormat]                   = useState<MatchFormat>(match.format);
     const [opponentName, setOpponentName]       = useState(match.opponentName ?? "");
-    const [scheduledAt, setScheduledAt]         = useState(() => toLocalInput(match.scheduledAt));
+    const [scheduledDate, setScheduledDate]     = useState(() => toLocalDate(match.scheduledAt));
+    const [scheduledTime, setScheduledTime]     = useState(() => toLocalTime(match.scheduledAt));
     const [matchUrl, setMatchUrl]               = useState(match.matchUrl ?? "");
     const [competitionName, setCompetitionName] = useState(match.competitionName ?? "");
     const [competitionStage, setCompetitionStage] = useState(match.competitionStage ?? "");
@@ -107,6 +125,7 @@ export default function EditMatchModal({
 
     // ── Score state (TO_COMPLETE and COMPLETED only) ──────────────────────────
     const hasScores = match.state === "TO_COMPLETE" || match.state === "COMPLETED";
+    const [showMetadata, setShowMetadata] = useState(!hasScores);
     const [rows, setRows]           = useState<MapRow[]>(match.maps.map(toRow));
     const [validated, setValidated] = useState<Set<number>>(
         () => new Set(match.maps.filter(m => m.ourScore !== null).map(m => m.id))
@@ -192,7 +211,7 @@ export default function EditMatchModal({
             context: type === "OFFICIAL" ? (context ?? undefined) : null,
             opponentName: opponentName.trim() || null,
             matchUrl: matchUrl.trim() || null,
-            scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
+            scheduledAt: scheduledDate ? new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString() : undefined,
             competitionName: competitionName.trim() || null,
             competitionStage: competitionStage.trim() || null,
             level: level || null,
@@ -231,12 +250,12 @@ export default function EditMatchModal({
     // ── Render ────────────────────────────────────────────────────────────────
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="bg-neutral-950 border border-neutral-800 rounded-2xl w-full max-w-xl shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4" onClick={onClose}>
+            <div className="bg-[#141414] border border-neutral-800 rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
 
                 {/* ── Header ────────────────────────────────────────────── */}
                 <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-neutral-800/60 shrink-0">
-                    <h2 className="text-base font-semibold text-white">{t("matches.edit_match")}</h2>
+                    <h2 className="text-base font-semibold text-white">{hasScores && match.state === "TO_COMPLETE" ? t("matches.complete_match") : t("matches.edit_match")}</h2>
                     <button
                         onClick={onClose}
                         disabled={isLocked}
@@ -249,6 +268,36 @@ export default function EditMatchModal({
                 {/* ── Scrollable body ────────────────────────────────────── */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-5">
 
+                    {/* Context summary — always visible when scores shown */}
+                    {hasScores && (
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-sm font-bold text-white truncate">{opponentName || t("matches.tba")}</span>
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[3px] bg-neutral-800 text-neutral-400 border border-neutral-700 font-mono">{format}</span>
+                                {type === "OFFICIAL" && context && (
+                                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700/50">
+                                        {t(`matches.context_${context.toLowerCase()}`)}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="text-xs text-neutral-400 tabular-nums shrink-0">
+                                {new Date(match.scheduledAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+                                {" · "}
+                                {new Date(match.scheduledAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Editable metadata — collapsed when scores are the focus */}
+                    {hasScores && (
+                        <button type="button" onClick={() => setShowMetadata(v => !v)}
+                            className="w-full flex items-center justify-between text-[10px] font-semibold text-neutral-600 hover:text-neutral-400 uppercase tracking-wider py-0.5 transition-colors">
+                            {t("matches.match_info")}
+                            <ChevronDown className={`w-3 h-3 transition-transform ${showMetadata ? "rotate-180" : ""}`} />
+                        </button>
+                    )}
+
+                    {showMetadata && (<>
                     {/* Type */}
                     <div className="space-y-2">
                         <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-wider">{t("matches.type")}</p>
@@ -347,13 +396,10 @@ export default function EditMatchModal({
                         </div>
                         <div className="space-y-1.5">
                             <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-wider">{t("matches.scheduled_at")}</p>
-                            <input
-                                type="datetime-local"
-                                value={scheduledAt}
-                                onChange={e => setScheduledAt(e.target.value)}
-                                disabled={isLocked}
-                                className="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-sm text-neutral-200 focus:outline-none focus:border-indigo-500/50 transition-colors disabled:opacity-50"
-                            />
+                            <div className="flex gap-2">
+                                <DatePicker value={scheduledDate} onChange={setScheduledDate} />
+                                <TimePicker value={scheduledTime} onChange={setScheduledTime} className="w-[110px]" />
+                            </div>
                         </div>
                     </div>
 
@@ -449,6 +495,7 @@ export default function EditMatchModal({
                             </div>
                         )}
                     </div>
+                    </>)}
 
                     {/* ── Score section ──────────────────────────────────── */}
                     {hasScores && (
@@ -638,7 +685,7 @@ export default function EditMatchModal({
                 </div>
 
                 {/* ── Footer ────────────────────────────────────────────── */}
-                <div className="px-6 pt-3 pb-5 border-t border-neutral-800/60 shrink-0">
+                <div className="px-6 pt-3 pb-5 shrink-0 space-y-3">
                     <div className="flex gap-3">
                         <button
                             onClick={onClose}
@@ -650,14 +697,16 @@ export default function EditMatchModal({
                         <button
                             onClick={handleSave}
                             disabled={isLocked}
-                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
                         >
                             {saving
                                 ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{t("common.saving")}</>
-                                : <><Save className="w-3.5 h-3.5" />{t("matches.save_changes")}</>
+                                : t("matches.save_changes")
                             }
                         </button>
                     </div>
+                    <MetaInfo createdAt={match.createdAt} updatedAt={match.updatedAt}
+                        createdBy={match.createdByNickname} updatedBy={match.updatedByNickname} />
                 </div>
             </div>
         </div>

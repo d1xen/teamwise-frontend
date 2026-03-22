@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { X, LogIn, Link as LinkIcon, Loader } from "lucide-react";
@@ -67,6 +67,14 @@ export default function JoinTeamModal({
     }
   };
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -78,7 +86,7 @@ export default function JoinTeamModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg mx-4 bg-neutral-900/95 border border-neutral-800 rounded-2xl p-8 shadow-2xl">
+      <div className="relative z-10 w-full max-w-lg mx-4 bg-[#141414] border border-neutral-800 rounded-2xl p-8">
         {/* Close Button */}
         <button
           onClick={onClose}

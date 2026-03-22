@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar, ChevronDown, Check, ClipboardCheck, Pencil, ExternalLink } from "lucide-react";
+import { Calendar, ChevronDown, Check, ClipboardCheck, ExternalLink } from "lucide-react";
 import type { MatchDto } from "@/api/types/match";
 
 interface MatchCardProps {
@@ -9,7 +9,7 @@ interface MatchCardProps {
     editMode?: boolean;
     selected?: boolean;
     onToggleSelect?: (id: number) => void;
-    onEdit?: (match: MatchDto) => void;
+    onClick?: (match: MatchDto) => void;
 }
 
 function formatDateTime(iso: string): string {
@@ -34,7 +34,7 @@ export default function MatchCard({
     editMode = false,
     selected = false,
     onToggleSelect,
-    onEdit,
+    onClick,
 }: MatchCardProps) {
     const { t } = useTranslation();
     const [expanded, setExpanded] = useState(false);
@@ -59,10 +59,14 @@ export default function MatchCard({
     const isUpcoming   = match.state === "UPCOMING";
     const isToComplete = match.state === "TO_COMPLETE";
 
-    const isCardClickable = editMode && isStaff && isScheduled && !!onToggleSelect;
+    const isCardClickable = true;
 
     const handleCardClick = () => {
-        if (editMode && isScheduled) onToggleSelect?.(match.id);
+        if (editMode && isScheduled) {
+            onToggleSelect?.(match.id);
+        } else if (!editMode) {
+            onClick?.(match);
+        }
     };
 
     const borderClass = editMode && isScheduled && selected
@@ -79,27 +83,26 @@ export default function MatchCard({
         : "text-neutral-500 bg-neutral-800/60 border-neutral-700/40";
 
     return (
-        <div
-            className={`bg-neutral-900/50 border rounded-xl p-4 transition-colors ${borderClass} ${isCardClickable ? "cursor-pointer" : ""}`}
-            onClick={handleCardClick}
-        >
-            <div className="flex items-start gap-3">
+        <div className="relative">
+            {/* Checkbox — absolute left, vertically centered */}
+            {editMode && isScheduled && isStaff && (
+                <div
+                    onClick={e => { e.stopPropagation(); onToggleSelect?.(match.id); }}
+                    className={`absolute -left-7 top-1/2 -translate-y-1/2 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer z-10 ${
+                        selected
+                            ? "bg-indigo-600 border-indigo-600"
+                            : "border-neutral-600 hover:border-neutral-400"
+                    }`}
+                >
+                    {selected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                </div>
+            )}
 
-                {/* Checkbox — SCHEDULED in edit mode only */}
-                {editMode && isScheduled && isStaff && (
-                    <div className="flex-shrink-0 pt-[3px]">
-                        <div
-                            onClick={e => { e.stopPropagation(); onToggleSelect?.(match.id); }}
-                            className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors cursor-pointer ${
-                                selected
-                                    ? "bg-indigo-600 border-indigo-600"
-                                    : "border-neutral-600 hover:border-neutral-400"
-                            }`}
-                        >
-                            {selected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
-                        </div>
-                    </div>
-                )}
+            <div
+                className={`bg-neutral-900/50 border rounded-xl p-4 transition-colors ${borderClass} ${isCardClickable ? "cursor-pointer" : ""}`}
+                onClick={handleCardClick}
+            >
+            <div className="flex items-start gap-3">
 
                 {/* Opponent logo */}
                 <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-neutral-800 border border-neutral-700 flex items-center justify-center overflow-hidden">
@@ -183,26 +186,12 @@ export default function MatchCard({
                         </span>
                     )}
 
-                    {/* Complete button — TO_COMPLETE, not in edit mode */}
-                    {isToComplete && !editMode && isStaff && onEdit && (
-                        <button
-                            onClick={e => { e.stopPropagation(); onEdit(match); }}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 text-xs font-medium transition-colors"
-                        >
+                    {/* Status badge for TO_COMPLETE */}
+                    {isToComplete && !editMode && (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-medium">
                             <ClipboardCheck className="w-3.5 h-3.5" />
-                            {t("matches.complete")}
-                        </button>
-                    )}
-
-                    {/* Edit button — only in edit mode, for all statuses */}
-                    {editMode && isStaff && onEdit && (
-                        <button
-                            onClick={e => { e.stopPropagation(); onEdit(match); }}
-                            className="p-1.5 rounded-lg border border-neutral-700 bg-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors"
-                            title={t("matches.edit_match")}
-                        >
-                            <Pencil className="w-3 h-3" />
-                        </button>
+                            {t("matches.to_complete_badge")}
+                        </span>
                     )}
 
                     {/* Result badge — static, uniform width */}
@@ -257,6 +246,7 @@ export default function MatchCard({
                     )}
                 </div>
             )}
+        </div>
         </div>
     );
 }

@@ -41,6 +41,40 @@ const COUNTRIES = [
 ];
 const COUNTRY_LABEL: Record<string, string> = Object.fromEntries(COUNTRIES.map(c => [c.value, c.label]));
 
+const TIMEZONES = [
+  { value: 'Europe/Paris', label: 'Paris (CET)' },
+  { value: 'Europe/London', label: 'London (GMT)' },
+  { value: 'Europe/Berlin', label: 'Berlin (CET)' },
+  { value: 'Europe/Madrid', label: 'Madrid (CET)' },
+  { value: 'Europe/Rome', label: 'Rome (CET)' },
+  { value: 'Europe/Amsterdam', label: 'Amsterdam (CET)' },
+  { value: 'Europe/Brussels', label: 'Brussels (CET)' },
+  { value: 'Europe/Zurich', label: 'Zurich (CET)' },
+  { value: 'Europe/Stockholm', label: 'Stockholm (CET)' },
+  { value: 'Europe/Copenhagen', label: 'Copenhagen (CET)' },
+  { value: 'Europe/Helsinki', label: 'Helsinki (EET)' },
+  { value: 'Europe/Oslo', label: 'Oslo (CET)' },
+  { value: 'Europe/Warsaw', label: 'Warsaw (CET)' },
+  { value: 'Europe/Prague', label: 'Prague (CET)' },
+  { value: 'Europe/Bucharest', label: 'Bucharest (EET)' },
+  { value: 'Europe/Athens', label: 'Athens (EET)' },
+  { value: 'Europe/Kiev', label: 'Kyiv (EET)' },
+  { value: 'Europe/Moscow', label: 'Moscow (MSK)' },
+  { value: 'Europe/Istanbul', label: 'Istanbul (TRT)' },
+  { value: 'America/New_York', label: 'New York (EST)' },
+  { value: 'America/Chicago', label: 'Chicago (CST)' },
+  { value: 'America/Denver', label: 'Denver (MST)' },
+  { value: 'America/Los_Angeles', label: 'Los Angeles (PST)' },
+  { value: 'America/Toronto', label: 'Toronto (EST)' },
+  { value: 'America/Sao_Paulo', label: 'São Paulo (BRT)' },
+  { value: 'Asia/Dubai', label: 'Dubai (GST)' },
+  { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
+  { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+  { value: 'Asia/Seoul', label: 'Seoul (KST)' },
+  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+];
+const TIMEZONE_LABEL: Record<string, string> = Object.fromEntries(TIMEZONES.map(t => [t.value, t.label]));
+
 const MONTHS = [
   { value: '01', label: 'Jan' }, { value: '02', label: 'Feb' }, { value: '03', label: 'Mar' },
   { value: '04', label: 'Apr' }, { value: '05', label: 'May' }, { value: '06', label: 'Jun' },
@@ -153,7 +187,7 @@ function isValidEmail(v: string): boolean {
 const INPUT_CLS = 'w-full h-7 text-sm text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-2.5 outline-none placeholder:text-neutral-600 focus:border-indigo-500/50 caret-indigo-400 transition-colors';
 
 function Cell({
-  label, value, editing, formValue, onChange, type = 'text', placeholder, full, options,
+  label, value, editing, formValue, onChange, type = 'text', placeholder, full, options, labelMap,
 }: {
   label: string;
   value: string | null | undefined;
@@ -164,15 +198,17 @@ function Cell({
   placeholder?: string;
   full?: boolean;
   options?: { value: string; label: string }[];
+  labelMap?: Record<string, string>;
 }) {
   const displayValue = editing ? formValue : value;
   const filled = isFilled(displayValue);
   const emailError = editing && type === 'email' && formValue && !isValidEmail(formValue);
 
+  const resolvedLabelMap = labelMap ?? (options ? COUNTRY_LABEL : undefined);
   const readValue = type === 'date'
     ? (formatDateDisplay(value) ?? '—')
-    : options && value
-      ? (COUNTRY_LABEL[value] ?? value)
+    : resolvedLabelMap && value
+      ? (resolvedLabelMap[value] ?? value)
       : (value || '—');
 
   return (
@@ -209,7 +245,7 @@ function Cell({
 export default function EditableProfileSection({
   profile: initialProfile, canEdit, game, onSuccess,
 }: EditableProfileSectionProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<UserProfileDto>(initialProfile);
@@ -225,7 +261,7 @@ export default function EditableProfileSection({
     address: profile.address ?? '', zipCode: profile.zipCode ?? '',
     city: profile.city ?? '', countryCode: profile.countryCode ?? '',
     discord: profile.discord ?? '', twitter: profile.twitter ?? '',
-    hltv: profile.hltv ?? '',
+    hltv: profile.hltv ?? '', timezone: profile.timezone ?? '',
   });
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
@@ -239,7 +275,7 @@ export default function EditableProfileSection({
         address: form.address.trim(), zipCode: form.zipCode.trim(),
         city: form.city.trim(), phone: form.phone.trim(),
         discord: form.discord.trim(), twitter: form.twitter.trim(),
-        hltv: form.hltv.trim(),
+        hltv: form.hltv.trim(), timezone: form.timezone,
       });
       setProfile(updated);
       if (updated.profileCompleted !== undefined) updateUser({ profileCompleted: updated.profileCompleted });
@@ -258,7 +294,7 @@ export default function EditableProfileSection({
       address: profile.address ?? '', zipCode: profile.zipCode ?? '',
       city: profile.city ?? '', countryCode: profile.countryCode ?? '',
       discord: profile.discord ?? '', twitter: profile.twitter ?? '',
-      hltv: profile.hltv ?? '',
+      hltv: profile.hltv ?? '', timezone: profile.timezone ?? '',
     });
     setIsEditing(false);
   };
@@ -304,7 +340,7 @@ export default function EditableProfileSection({
           e ? (
             <div className="flex items-center gap-2 shrink-0">
               <button onClick={handleSave} disabled={isSaving}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-50 text-white text-xs font-semibold transition-colors">
                 {isSaving ? t('common.saving') : t('common.save')}
               </button>
               <button onClick={handleCancel} disabled={isSaving}
@@ -332,6 +368,10 @@ export default function EditableProfileSection({
           <Cell label={t('profile.birth_date')} value={profile.birthDate} editing={e} formValue={form.birthDate} onChange={v => set('birthDate', v)} type="date" />
           <Cell label={t('profile.country')} value={profile.countryCode} editing={e} formValue={form.countryCode} onChange={v => set('countryCode', v)} options={COUNTRIES} placeholder={t('profile.select_country')} />
           <Cell label={t('profile.custom_username')} value={profile.customUsername} editing={e} formValue={form.customUsername} onChange={v => set('customUsername', v)} placeholder="s1mple, ZywOo…" />
+          {profile.createdAt && (
+            <Cell label={t('meta.created_label')} value={new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(profile.createdAt))} />
+          )}
+          <Cell label={t('meta.updated_label')} value={profile.updatedAt ? new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(profile.updatedAt)) : null} />
         </div>
 
         {/* Contact */}
@@ -342,6 +382,7 @@ export default function EditableProfileSection({
           <Cell label={t('profile.address')} value={profile.address} editing={e} formValue={form.address} onChange={v => set('address', v)} placeholder="123 Main Street" />
           <Cell label={t('profile.zip_code')} value={profile.zipCode} editing={e} formValue={form.zipCode} onChange={v => set('zipCode', v)} placeholder="75001" />
           <Cell label={t('profile.city')} value={profile.city} editing={e} formValue={form.city} onChange={v => set('city', v)} placeholder="Paris" />
+          <Cell label={t('profile.timezone')} value={profile.timezone} editing={e} formValue={form.timezone} onChange={v => set('timezone', v)} options={TIMEZONES} labelMap={TIMEZONE_LABEL} placeholder={t('profile.select_timezone')} />
         </div>
 
         {/* Gaming */}
@@ -352,6 +393,7 @@ export default function EditableProfileSection({
           {validLinks.includes('hltv') && <Cell label="HLTV" value={profile.hltv} editing={e} formValue={form.hltv} onChange={v => set('hltv', v)} placeholder={t('profile.hltv_placeholder')} />}
         </div>
       </div>
+
     </div>
   );
 }

@@ -60,6 +60,7 @@ export interface TeamMember {
     birthDate?: string;      // Format ISO 8601
     countryCode?: string;    // Code pays ISO (FR, US, etc.)
     customUsername?: string; // Pseudo personnalisé
+    joinedAt?: string;
 }
 
 export interface TeamContextType {

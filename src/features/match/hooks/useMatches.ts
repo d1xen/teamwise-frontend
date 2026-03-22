@@ -16,6 +16,7 @@ import type {
     UpdateMatchRequest,
 } from "@/api/types/match";
 import { appStorage } from "@/shared/utils/storage/appStorage";
+import { usePolling } from "@/shared/hooks/usePolling";
 
 const DEFAULT_FILTERS: MatchFilters = {
     tab: "upcoming",
@@ -105,6 +106,20 @@ export function useMatches(teamId: string) {
     useEffect(() => {
         loadFirst(appliedFilters);
     }, [loadFirst, appliedFilters]);
+
+    // Silent poll for fresh data
+    const silentReload = useCallback(async () => {
+        if (!teamId) return;
+        try {
+            const result = await getMatchesPaginated(teamId, appliedFilters, 0, PAGE_SIZE);
+            setContent(result.content);
+            setTotalElements(result.totalElements);
+            setHasMore(result.hasNext);
+            setCurrentPage(0);
+        } catch { /* silent */ }
+    }, [teamId, appliedFilters]);
+
+    usePolling(silentReload, 20_000, !isLoading);
 
     // Load next page — appends content.
     const loadMore = useCallback(async () => {

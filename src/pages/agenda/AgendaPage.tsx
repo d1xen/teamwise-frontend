@@ -1,77 +1,167 @@
-import { useTranslation } from 'react-i18next';
-import { useAgenda } from "@/contexts/agenda/useAgenda";
-import type { AgendaEvent } from "@/contexts/agenda/agenda.types";
-import { Card } from '@/design-system/components/Card';
-import { Button } from '@/design-system/components';
-import { Calendar, Plus, Clock } from 'lucide-react';
-import FeatureHeader from '@/shared/components/FeatureHeader';
-import FeatureBody from '@/shared/components/FeatureBody';
-import { useMinimumLoader } from '@/shared/hooks/useMinimumLoader';
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useTeam } from "@/contexts/team/useTeam";
+import { useCalendar } from "@/features/agenda/hooks/useCalendar";
+import CalendarToolbar from "@/features/agenda/components/CalendarToolbar";
+import MonthGrid from "@/features/agenda/components/MonthGrid";
+import WeekGrid from "@/features/agenda/components/WeekGrid";
+import AgendaActionsPanel from "@/features/agenda/components/AgendaActionsPanel";
+import MySchedulePanel from "@/features/agenda/components/MySchedulePanel";
+import ConflictsPanel from "@/features/agenda/components/ConflictsPanel";
+import CreateEventModal from "@/features/agenda/components/CreateEventModal";
+import AvailabilityModal from "@/features/agenda/components/AvailabilityModal";
+import EventDetailModal from "@/features/agenda/components/EventDetailModal";
+import UnavailDetailModal from "@/features/agenda/components/UnavailDetailModal";
+import FeatureHeader from "@/shared/components/FeatureHeader";
+import type { EventDto, AvailabilityDto } from "@/api/types/agenda";
+import { useAuth } from "@/contexts/auth/useAuth";
 
 export default function AgendaPage() {
     const { t } = useTranslation();
-    const { events, isLoading } = useAgenda();
-    const showLoader = useMinimumLoader(isLoading, 800);
+    const { team, membership, members } = useTeam();
+    const { user } = useAuth();
+    const teamId = String(team.id);
+    const isStaff = (membership?.isOwner ?? false) || membership?.role !== "PLAYER";
+    const userSteamId = user?.steamId ?? "";
+
+    const calendar = useCalendar(teamId);
+
+    const [showCreateEvent, setShowCreateEvent] = useState(false);
+    const [showAvailability, setShowAvailability] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState<EventDto | null>(null);
+    const [selectedUnavail, setSelectedUnavail] = useState<AvailabilityDto | null>(null);
+
+    const handleNavigate = (direction: -1 | 0 | 1) => {
+        if (direction === 0) {
+            calendar.setCurrentDate(new Date());
+            return;
+        }
+        const d = new Date(calendar.currentDate);
+        if (calendar.view === "month") {
+            d.setMonth(d.getMonth() + direction);
+        } else {
+            d.setDate(d.getDate() + direction * 7);
+        }
+        calendar.setCurrentDate(d);
+    };
+
+    const allEvents = calendar.data?.events ?? [];
+    const availabilities = calendar.data?.availabilities ?? [];
+    const isUnavailFilter = calendar.filterEventType === "UNAVAILABLE";
+    const events = isUnavailFilter ? [] : allEvents;
 
     return (
         <div className="flex flex-col h-full">
-            {/* Header */}
             <FeatureHeader
                 title={t("pages.planning.title")}
-                subtitle="Gérez vos événements, scrims et compétitions"
+                subtitle={t("agenda.header_subtitle")}
             />
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-gutter-stable">
-                <FeatureBody>
-                    {showLoader ? (
-                        <div className="flex items-center justify-center h-64">
-                            <p className="text-neutral-400">{t('common.loading')}</p>
-                        </div>
-                    ) : events.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-64 text-center">
-                            <Calendar className="w-16 h-16 text-neutral-600 mb-4" />
-                            <h3 className="text-lg font-semibold text-white mb-2">
-                                Aucun événement planifié
-                            </h3>
-                            <p className="text-sm text-neutral-400 mb-6">
-                                Commencez par créer votre premier événement
-                            </p>
-                            <Button variant="primary">
-                                <Plus className="w-4 h-4" />
-                                Créer un événement
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {events.map((event: AgendaEvent) => (
-                                <Card key={event.id} hover>
-                                    <div className="flex items-start gap-4">
-                                        <div className="p-3 bg-indigo-500/10 rounded-lg">
-                                            <Clock className="w-5 h-5 text-indigo-400" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-white mb-1">
-                                                {event.title}
-                                            </h3>
-                                            <p className="text-sm text-neutral-400">
-                                                {new Date(event.startsAt).toLocaleString('fr-FR', {
-                                                    dateStyle: 'full',
-                                                    timeStyle: 'short'
-                                                })}
-                                            </p>
-                                            {event.description && (
-                                                <p className="text-sm text-neutral-300 mt-2">
-                                                    {event.description}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </Card>
-                            ))}
+            {/* Toolbar */}
+            <div className="flex gap-4 px-4 pt-4 pb-2">
+                <div className="flex-1 min-w-0">
+                    <CalendarToolbar
+                        view={calendar.view}
+                        onViewChange={calendar.setView}
+                        currentDate={calendar.currentDate}
+                        onNavigate={handleNavigate}
+                        filterEventType={calendar.filterEventType}
+                        onFilterEventType={calendar.setFilterEventType}
+                        startHour={calendar.startHour}
+                        endHour={calendar.endHour}
+                        onTimeRangeChange={calendar.setTimeRange}
+                    />
+                </div>
+                <div className="w-[280px] shrink-0" />
+            </div>
+
+            {/* Main content */}
+            <div className="flex gap-4 flex-1 overflow-hidden px-4 pb-4">
+                {/* Calendar */}
+                <div className="flex-1 bg-neutral-900/50 border border-neutral-800 rounded-2xl overflow-hidden flex flex-col min-w-0 relative">
+                    {calendar.isLoading && (
+                        <div className="absolute top-2 right-3 z-30">
+                            <div className="w-3.5 h-3.5 border-2 border-indigo-500/20 border-t-indigo-400 rounded-full animate-spin" />
                         </div>
                     )}
-                </FeatureBody>
+                    {calendar.error && !calendar.data ? (
+                        <div className="flex-1 flex items-center justify-center">
+                            <p className="text-sm text-red-400">{t("common.error")}</p>
+                        </div>
+                    ) : calendar.view === "month" ? (
+                        <MonthGrid
+                            currentDate={calendar.currentDate}
+                            events={events}
+                            onEventClick={setSelectedEvent}
+                        />
+                    ) : (
+                        <WeekGrid
+                            currentDate={calendar.currentDate}
+                            events={events}
+                            availabilities={availabilities}
+                            isStaff={isStaff}
+                            onEventClick={setSelectedEvent}
+                            onUnavailClick={setSelectedUnavail}
+                            startHour={calendar.startHour}
+                            endHour={calendar.endHour}
+                        />
+                    )}
+                </div>
+
+                {/* Right panel */}
+                <div className="w-[280px] shrink-0 flex flex-col gap-4">
+                    <AgendaActionsPanel
+                        isStaff={isStaff}
+                        onCreateEvent={() => setShowCreateEvent(true)}
+                        onDeclareAvailability={() => setShowAvailability(true)}
+                    />
+                    <MySchedulePanel
+                        events={events}
+                        userSteamId={userSteamId}
+                        onEventClick={setSelectedEvent}
+                    />
+                    <ConflictsPanel
+                        events={events}
+                        onEventClick={setSelectedEvent}
+                    />
+                </div>
             </div>
+
+            {/* Modals */}
+            {showCreateEvent && (
+                <CreateEventModal
+                    teamId={teamId}
+                    members={members}
+                    game={team.game}
+                    onClose={() => setShowCreateEvent(false)}
+                    onCreated={calendar.load}
+                />
+            )}
+            {showAvailability && (
+                <AvailabilityModal
+                    teamId={teamId}
+                    onClose={() => setShowAvailability(false)}
+                    onCreated={calendar.load}
+                />
+            )}
+            {selectedEvent && (
+                <EventDetailModal
+                    event={selectedEvent}
+                    teamId={teamId}
+                    isStaff={isStaff}
+                    onClose={() => setSelectedEvent(null)}
+                    onDeleted={calendar.load}
+                />
+            )}
+            {selectedUnavail && (
+                <UnavailDetailModal
+                    unavail={selectedUnavail}
+                    teamId={teamId}
+                    isStaff={isStaff}
+                    onClose={() => setSelectedUnavail(null)}
+                    onUpdated={calendar.load}
+                />
+            )}
         </div>
     );
 }
