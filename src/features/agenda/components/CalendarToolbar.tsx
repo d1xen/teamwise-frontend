@@ -1,10 +1,11 @@
+import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, Crosshair } from "lucide-react";
+import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { cn } from "@/design-system";
 import type { CalendarView, EventType } from "@/api/types/agenda";
 
 const EVENT_TYPES: EventType[] = ["MATCH", "MEETING", "STRAT_TIME", "REST", "CUSTOM"];
-const HOUR_OPTIONS = Array.from({ length: 25 }, (_, i) => i); // 0-24
+const HOUR_OPTIONS = Array.from({ length: 25 }, (_, i) => i);
 
 interface CalendarToolbarProps {
     view: CalendarView;
@@ -23,13 +24,19 @@ export default function CalendarToolbar({
     startHour, endHour, onTimeRangeChange,
 }: CalendarToolbarProps) {
     const { t, i18n } = useTranslation();
+    const [showSettings, setShowSettings] = useState(false);
+    const settingsRef = useRef<HTMLDivElement>(null);
 
-    const getWeekNumber = (date: Date): number => {
-        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-    };
+    useEffect(() => {
+        if (!showSettings) return;
+        const handler = (e: MouseEvent) => {
+            if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+                setShowSettings(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [showSettings]);
 
     const periodLabel = (() => {
         if (view === "month") {
@@ -59,27 +66,8 @@ export default function CalendarToolbar({
 
     return (
         <div className="flex items-center justify-between gap-3 px-1">
-            {/* Left: navigation + label */}
+            {/* Left: type filter + settings */}
             <div className="flex items-center gap-2">
-                <button onClick={() => onNavigate(-1)} className="p-1.5 rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors">
-                    <ChevronLeft className="w-4 h-4" />
-                </button>
-                <h2 className="text-sm font-semibold text-white capitalize min-w-[200px] text-center">{periodLabel}</h2>
-                <button onClick={() => onNavigate(1)} className="p-1.5 rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors">
-                    <ChevronRight className="w-4 h-4" />
-                </button>
-                {!isCurrentPeriod && (
-                    <button onClick={() => onNavigate(0)}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 transition-colors ml-1">
-                        <Crosshair className="w-3 h-3" />
-                        {t("agenda.back_to_today")}
-                    </button>
-                )}
-            </div>
-
-            {/* Right: filters + toggles */}
-            <div className="flex items-center gap-2">
-                {/* Event type filter — staff sees "Unavailable" option */}
                 <select
                     value={filterEventType ?? ""}
                     onChange={e => onFilterEventType(e.target.value ? e.target.value as EventType : null)}
@@ -92,26 +80,52 @@ export default function CalendarToolbar({
                     <option value="UNAVAILABLE">{t("agenda.filter_unavailable")}</option>
                 </select>
 
-                {/* Time range (week view only) */}
                 {view === "week" && (
-                    <div className="flex items-center gap-1 text-[10px] text-neutral-500">
-                        <select value={startHour} onChange={e => onTimeRangeChange(Number(e.target.value), endHour)}
-                            className="h-7 text-xs text-neutral-400 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-1.5 outline-none focus:border-indigo-500/50 cursor-pointer transition-colors tabular-nums">
-                            {HOUR_OPTIONS.filter(h => h < endHour).map(h => (
-                                <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>
-                            ))}
-                        </select>
-                        <span className="text-neutral-600">–</span>
-                        <select value={endHour} onChange={e => onTimeRangeChange(startHour, Number(e.target.value))}
-                            className="h-7 text-xs text-neutral-400 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-1.5 outline-none focus:border-indigo-500/50 cursor-pointer transition-colors tabular-nums">
-                            {HOUR_OPTIONS.filter(h => h > startHour).map(h => (
-                                <option key={h} value={h}>{String(h % 24).padStart(2, "0")}:00</option>
-                            ))}
-                        </select>
+                    <div ref={settingsRef} className="relative">
+                        <button
+                            onClick={() => setShowSettings(v => !v)}
+                            className={cn(
+                                "p-1.5 rounded-lg transition-colors",
+                                showSettings
+                                    ? "bg-neutral-800 text-white"
+                                    : "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50"
+                            )}
+                        >
+                            <Settings className="w-4 h-4" />
+                        </button>
+                        {showSettings && (
+                            <div className="absolute top-full left-0 mt-1.5 z-50 bg-[#141414] border border-neutral-700 rounded-lg p-3 w-[200px]">
+                                <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-wide mb-2">{t("agenda.time_range")}</p>
+                                <div className="flex items-center gap-2">
+                                    <select value={startHour} onChange={e => onTimeRangeChange(Number(e.target.value), endHour)}
+                                        className="flex-1 h-7 text-xs text-neutral-300 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-1.5 outline-none focus:border-indigo-500/50 cursor-pointer tabular-nums">
+                                        {HOUR_OPTIONS.filter(h => h < endHour).map(h => (
+                                            <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>
+                                        ))}
+                                    </select>
+                                    <span className="text-neutral-600 text-xs">–</span>
+                                    <select value={endHour} onChange={e => onTimeRangeChange(startHour, Number(e.target.value))}
+                                        className="flex-1 h-7 text-xs text-neutral-300 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-1.5 outline-none focus:border-indigo-500/50 cursor-pointer tabular-nums">
+                                        {HOUR_OPTIONS.filter(h => h > startHour).map(h => (
+                                            <option key={h} value={h}>{String(h % 24).padStart(2, "0")}:00</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
+            </div>
 
-                {/* View toggle */}
+            {/* Right: today, view toggle, navigation */}
+            <div className="flex items-center gap-2">
+                {!isCurrentPeriod && (
+                    <button onClick={() => onNavigate(0)}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 transition-colors">
+                        {t("agenda.today")}
+                    </button>
+                )}
+
                 <div className="flex rounded-lg border border-neutral-700/50 overflow-hidden">
                     {(["month", "week"] as CalendarView[]).map(v => (
                         <button key={v} onClick={() => onViewChange(v)}
@@ -124,6 +138,16 @@ export default function CalendarToolbar({
                             {t(`agenda.view_${v}`)}
                         </button>
                     ))}
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <button onClick={() => onNavigate(-1)} className="p-1.5 rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors">
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <h2 className="text-sm font-semibold text-white capitalize min-w-[180px] text-center">{periodLabel}</h2>
+                    <button onClick={() => onNavigate(1)} className="p-1.5 rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors">
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
         </div>

@@ -66,7 +66,7 @@ export default function MonthGrid({ currentDate, events, onEventClick }: MonthGr
     return (
         <div className="flex flex-col flex-1">
             {/* Day headers */}
-            <div className="grid grid-cols-7 border-b border-neutral-800">
+            <div className="grid grid-cols-7 border-b border-blue-400/[0.07] bg-blue-500/[0.035]">
                 {DAY_KEYS.map(d => (
                     <div key={d} className="py-2 text-center text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">
                         {t(`agenda.day_${d}`)}

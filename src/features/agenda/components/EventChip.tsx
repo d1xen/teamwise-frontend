@@ -1,6 +1,5 @@
 import { cn } from "@/design-system";
 import type { EventDto } from "@/api/types/agenda";
-import { AlertTriangle } from "lucide-react";
 
 const TYPE_COLORS: Record<string, string> = {
     MATCH:      "bg-blue-500/20 text-blue-300 border-blue-500/30",
@@ -36,7 +35,6 @@ interface EventChipProps {
 
 export default function EventChip({ event, allDay, compact, textAlign = "top", onClick }: EventChipProps) {
     const colors = getColors(event);
-    const hasConflict = event.conflicts.length > 0;
     const time = new Date(event.startAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     return (
@@ -55,13 +53,17 @@ export default function EventChip({ event, allDay, compact, textAlign = "top", o
                 ) : (
                     <>
                         <span className="font-semibold">{time}</span>
-                        {!compact && <span className="ml-1 font-medium">{event.title}</span>}
+                        {!compact && (
+                            <span className="ml-1 font-medium">
+                                {event.match?.opponentName ? `vs ${event.match.opponentName}` : event.title}
+                            </span>
+                        )}
                     </>
                 )}
             </div>
-            {hasConflict && (
-                <div className="absolute top-0.5 right-0.5">
-                    <AlertTriangle className="w-2.5 h-2.5 text-amber-400/70" />
+            {!allDay && !compact && event.match?.result && (
+                <div className="text-[9px] opacity-70 truncate">
+                    {event.match.maps.filter(m => m.ourScore != null).map(m => `${m.ourScore}-${m.theirScore}`).join(" / ")}
                 </div>
             )}
         </button>

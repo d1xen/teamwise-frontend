@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { X, Users, AlertTriangle, Loader } from "lucide-react";
+import { X, Users, Loader } from "lucide-react";
 import MetaInfo from "@/shared/components/MetaInfo";
 import { cn } from "@/design-system";
 import type { EventDto, UpdateEventRequest } from "@/api/types/agenda";
@@ -136,12 +136,51 @@ export default function EventDetailModal({ event, teamId, isStaff, onClose, onDe
                         </>
                     ) : (
                         <>
-                            <h2 className="text-base font-bold text-white">{event.title}</h2>
+                            <h2 className="text-base font-bold text-white">
+                                {event.match?.opponentName ? `vs ${event.match.opponentName}` : event.title}
+                            </h2>
 
                             <div>
                                 <p className="text-sm text-neutral-200 capitalize">{dateFmt.format(start)}</p>
                                 <p className="text-xs text-neutral-400 tabular-nums">{timeFmt.format(start)} – {timeFmt.format(end)}</p>
                             </div>
+
+                            {/* Match info */}
+                            {event.match && (
+                                <div className="bg-neutral-900/60 border border-neutral-800 rounded-lg px-3.5 py-3 space-y-2.5">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] uppercase bg-neutral-800 border border-neutral-700/50 text-neutral-400">
+                                            {t(`matches.type_${event.match.matchType.toLowerCase()}`)}
+                                        </span>
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] uppercase bg-neutral-800 border border-neutral-700/50 text-neutral-400">
+                                            {event.match.format}
+                                        </span>
+                                        {event.match.competitionName && (
+                                            <span className="text-[10px] text-neutral-500">{event.match.competitionName}</span>
+                                        )}
+                                        {event.match.result && (
+                                            <span className={cn(
+                                                "text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] uppercase",
+                                                event.match.result === "WIN" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" :
+                                                event.match.result === "LOSE" ? "bg-red-500/15 text-red-400 border border-red-500/25" :
+                                                "bg-neutral-800 text-neutral-400 border border-neutral-700/50"
+                                            )}>
+                                                {t(`matches.result_${event.match.result.toLowerCase()}`)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {event.match.maps.some(m => m.ourScore != null) && (
+                                        <div className="flex items-center gap-2">
+                                            {event.match.maps.filter(m => m.ourScore != null).map(m => (
+                                                <div key={m.id} className="text-center">
+                                                    <p className="text-[9px] text-neutral-600 truncate max-w-[60px]">{m.mapName ?? `Map ${m.orderIndex}`}</p>
+                                                    <p className="text-xs font-bold text-neutral-200 tabular-nums">{m.ourScore} - {m.theirScore}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {event.description && (
                                 <p className="text-xs text-neutral-400 leading-relaxed whitespace-pre-line">{event.description}</p>
@@ -166,30 +205,6 @@ export default function EventDetailModal({ event, teamId, isStaff, onClose, onDe
                                 </div>
                             )}
 
-                            {/* Conflicts */}
-                            {event.conflicts.length > 0 && (
-                                <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-3">
-                                    <div className="flex items-center gap-1.5 mb-2">
-                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                                        <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-wide">
-                                            {t("agenda.conflicts")} ({event.conflicts.length})
-                                        </p>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        {event.conflicts.map((c, i) => (
-                                            <div key={`${c.steamId}-${i}`} className="flex items-center justify-between text-xs">
-                                                <span className="text-amber-300 font-medium">{c.nickname}</span>
-                                                <span className="text-neutral-500">
-                                                    {c.conflictType === "EVENT_OVERLAP"
-                                                        ? c.reason ?? t("agenda.event_overlap")
-                                                        : c.reason ?? t("agenda.unavailable")
-                                                    }
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
 
                         </>
                     )}

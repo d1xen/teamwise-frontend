@@ -1,35 +1,61 @@
-import { useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus, CalendarPlus, UserCog } from "lucide-react";
 import { useTeam } from "@/contexts/team/useTeam";
 import { useCalendar } from "@/features/agenda/hooks/useCalendar";
+import { useConflicts } from "@/features/agenda/hooks/useConflicts";
+import { useMySchedule } from "@/features/agenda/hooks/useMySchedule";
 import CalendarToolbar from "@/features/agenda/components/CalendarToolbar";
 import MonthGrid from "@/features/agenda/components/MonthGrid";
 import WeekGrid from "@/features/agenda/components/WeekGrid";
-import AgendaActionsPanel from "@/features/agenda/components/AgendaActionsPanel";
 import MySchedulePanel from "@/features/agenda/components/MySchedulePanel";
 import ConflictsPanel from "@/features/agenda/components/ConflictsPanel";
+import ConflictDetailModal from "@/features/agenda/components/ConflictDetailModal";
 import CreateEventModal from "@/features/agenda/components/CreateEventModal";
 import AvailabilityModal from "@/features/agenda/components/AvailabilityModal";
 import EventDetailModal from "@/features/agenda/components/EventDetailModal";
 import UnavailDetailModal from "@/features/agenda/components/UnavailDetailModal";
 import FeatureHeader from "@/shared/components/FeatureHeader";
-import type { EventDto, AvailabilityDto } from "@/api/types/agenda";
-import { useAuth } from "@/contexts/auth/useAuth";
+import type { EventDto, AvailabilityDto, ConflictSummaryDto } from "@/api/types/agenda";
+import { getEvent } from "@/api/endpoints/agenda.api";
 
 export default function AgendaPage() {
     const { t } = useTranslation();
     const { team, membership, members } = useTeam();
-    const { user } = useAuth();
     const teamId = String(team.id);
     const isStaff = (membership?.isOwner ?? false) || membership?.role !== "PLAYER";
-    const userSteamId = user?.steamId ?? "";
 
     const calendar = useCalendar(teamId);
+    const { conflicts: globalConflicts, totalCount: conflictCount, reload: reloadConflicts } = useConflicts(teamId);
+    const { events: myScheduleEvents } = useMySchedule(teamId);
 
+    const [showNewMenu, setShowNewMenu] = useState(false);
     const [showCreateEvent, setShowCreateEvent] = useState(false);
     const [showAvailability, setShowAvailability] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<EventDto | null>(null);
     const [selectedUnavail, setSelectedUnavail] = useState<AvailabilityDto | null>(null);
+    const [selectedConflict, setSelectedConflict] = useState<ConflictSummaryDto | null>(null);
+    const newMenuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!showNewMenu) return;
+        const handler = (e: MouseEvent) => {
+            if (newMenuRef.current && !newMenuRef.current.contains(e.target as Node)) {
+                setShowNewMenu(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [showNewMenu]);
+
+    const handleViewEventFromConflict = useCallback(async (eventId: number) => {
+        try {
+            const event = await getEvent(teamId, eventId);
+            setSelectedEvent(event);
+        } catch {
+            // silent
+        }
+    }, [teamId]);
 
     const handleNavigate = (direction: -1 | 0 | 1) => {
         if (direction === 0) {
@@ -72,7 +98,37 @@ export default function AgendaPage() {
                         onTimeRangeChange={calendar.setTimeRange}
                     />
                 </div>
-                <div className="w-[280px] shrink-0" />
+                <div className="w-[280px] shrink-0" ref={newMenuRef}>
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowNewMenu(v => !v)}
+                            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[#4338ca] hover:bg-[#4f46e5] text-white text-xs font-semibold transition-colors"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            {t("agenda.new_entry")}
+                        </button>
+                        {showNewMenu && (
+                            <div className="absolute bottom-full left-0 right-0 mb-1.5 z-50 bg-[#141414] border border-neutral-700 rounded-lg overflow-hidden">
+                                {isStaff && (
+                                    <button
+                                        onClick={() => { setShowNewMenu(false); setShowCreateEvent(true); }}
+                                        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-neutral-800/60 transition-colors text-left"
+                                    >
+                                        <CalendarPlus className="w-4 h-4 text-indigo-400" />
+                                        <span className="text-xs font-medium text-neutral-200">{t("agenda.new_team_event")}</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => { setShowNewMenu(false); setShowAvailability(true); }}
+                                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-neutral-800/60 transition-colors text-left"
+                                >
+                                    <UserCog className="w-4 h-4 text-orange-400" />
+                                    <span className="text-xs font-medium text-neutral-200">{t("agenda.new_personal")}</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Main content */}
@@ -99,6 +155,7 @@ export default function AgendaPage() {
                             currentDate={calendar.currentDate}
                             events={events}
                             availabilities={availabilities}
+                            conflicts={globalConflicts}
                             isStaff={isStaff}
                             onEventClick={setSelectedEvent}
                             onUnavailClick={setSelectedUnavail}
@@ -109,20 +166,14 @@ export default function AgendaPage() {
                 </div>
 
                 {/* Right panel */}
-                <div className="w-[280px] shrink-0 flex flex-col gap-4">
-                    <AgendaActionsPanel
-                        isStaff={isStaff}
-                        onCreateEvent={() => setShowCreateEvent(true)}
-                        onDeclareAvailability={() => setShowAvailability(true)}
-                    />
+                <div className="w-[280px] shrink-0 flex flex-col gap-3">
                     <MySchedulePanel
-                        events={events}
-                        userSteamId={userSteamId}
+                        events={myScheduleEvents}
                         onEventClick={setSelectedEvent}
                     />
                     <ConflictsPanel
-                        events={events}
-                        onEventClick={setSelectedEvent}
+                        conflicts={globalConflicts}
+                        onConflictClick={setSelectedConflict}
                     />
                 </div>
             </div>
@@ -160,6 +211,16 @@ export default function AgendaPage() {
                     isStaff={isStaff}
                     onClose={() => setSelectedUnavail(null)}
                     onUpdated={calendar.load}
+                />
+            )}
+            {selectedConflict && (
+                <ConflictDetailModal
+                    conflict={selectedConflict}
+                    teamId={teamId}
+                    isStaff={isStaff}
+                    onClose={() => setSelectedConflict(null)}
+                    onViewEvent={handleViewEventFromConflict}
+                    onAcknowledged={() => { setSelectedConflict(null); reloadConflicts(); }}
                 />
             )}
         </div>

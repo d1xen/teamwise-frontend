@@ -1,13 +1,14 @@
 import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/design-system";
-import type { EventDto, AvailabilityDto } from "@/api/types/agenda";
+import type { EventDto, AvailabilityDto, ConflictSummaryDto } from "@/api/types/agenda";
 import EventChip from "./EventChip";
 
 interface WeekGridProps {
     currentDate: Date;
     events: EventDto[];
     availabilities: AvailabilityDto[];
+    conflicts?: ConflictSummaryDto[];
     isStaff?: boolean;
     onEventClick: (event: EventDto) => void;
     onUnavailClick?: (a: AvailabilityDto) => void;
@@ -143,7 +144,7 @@ function layoutOverlappingEvents(events: EventDto[], startMin: number, endMin: n
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function WeekGrid({ currentDate, events, availabilities, isStaff, onEventClick, onUnavailClick, startHour = 10, endHour = 24 }: WeekGridProps) {
+export default function WeekGrid({ currentDate, events, availabilities, conflicts = [], isStaff, onEventClick, onUnavailClick, startHour = 10, endHour = 24 }: WeekGridProps) {
     const { t, i18n } = useTranslation();
     const today = new Date();
     const days = useMemo(() => getWeekDays(currentDate), [currentDate]);
@@ -202,6 +203,20 @@ export default function WeekGrid({ currentDate, events, availabilities, isStaff,
         return map;
     }, [availabilities, days]);
 
+    // Conflicts per day
+    const conflictsByDay = useMemo(() => {
+        const map = new Map<string, ConflictSummaryDto[]>();
+        for (const day of days) map.set(dayKey(day), []);
+        for (const c of conflicts) {
+            const s = new Date(c.eventStartAt);
+            const dk = dayKey(s);
+            if (map.has(dk)) {
+                map.get(dk)!.push(c);
+            }
+        }
+        return map;
+    }, [conflicts, days]);
+
     // Scrollbar compensation
     const scrollRef = useRef<HTMLDivElement>(null);
     const [scrollbarWidth, setScrollbarWidth] = useState(0);
@@ -226,23 +241,127 @@ export default function WeekGrid({ currentDate, events, availabilities, isStaff,
         <div className="flex flex-col flex-1 overflow-hidden">
             {/* Day headers */}
             <div
-                className="grid grid-cols-[50px_repeat(7,1fr)] border-b border-neutral-800 shrink-0"
+                className="grid grid-cols-[50px_repeat(7,1fr)] border-b border-blue-400/[0.07] bg-blue-500/[0.035] shrink-0"
                 style={{ paddingRight: scrollbarWidth }}
             >
                 <div className="border-r border-neutral-800/30" />
                 {days.map((day, i) => {
                     const isToday = isSameDay(day, today);
+                    const dayConflicts = conflictsByDay.get(dayKey(day)) ?? [];
+                    const timeFmt = new Intl.DateTimeFormat(i18n.language, { hour: "2-digit", minute: "2-digit" });
+
                     return (
                         <div key={i} className={cn(
-                            "py-2.5 text-center border-l border-neutral-800/30",
+                            "py-2.5 text-center border-l border-neutral-800/30 relative",
                             isToday && "bg-indigo-500/10"
                         )}>
-                            <span className={cn(
-                                "text-[11px] font-semibold uppercase tracking-wide",
-                                isToday ? "text-indigo-400" : "text-neutral-500"
-                            )}>
-                                {dayFmt.format(day)}
-                            </span>
+                            <div className="flex items-center justify-center gap-1.5">
+                                <span className={cn(
+                                    "text-[11px] font-semibold uppercase tracking-wide",
+                                    isToday ? "text-indigo-400" : "text-neutral-500"
+                                )}>
+                                    {dayFmt.format(day)}
+                                </span>
+                                {dayConflicts.length > 0 && (() => {
+                                    const unavailConflicts = dayConflicts.filter(c => c.conflictType === "UNAVAILABLE");
+                                    const overlapConflicts = dayConflicts.filter(c => c.conflictType === "EVENT_OVERLAP");
+
+                                    // Group UNAVAILABLE by player
+                                    const byPlayer = new Map<string, { nickname: string; events: string[] }>();
+                                    for (const c of unavailConflicts) {
+                                        const key = c.steamId ?? "unknown";
+                                        if (!byPlayer.has(key)) {
+                                            byPlayer.set(key, { nickname: c.nickname ?? "?", events: [] });
+                                        }
+                                        const label = `${timeFmt.format(new Date(c.eventStartAt))} ${c.eventTitle}`;
+                                        const entry = byPlayer.get(key)!;
+                                        if (!entry.events.includes(label)) entry.events.push(label);
+                                    }
+
+                                    // Group EVENT_OVERLAP as pairs
+                                    const overlapPairs: { eventA: string; eventB: string }[] = [];
+                                    for (const c of overlapConflicts) {
+                                        overlapPairs.push({
+                                            eventA: c.eventTitle,
+                                            eventB: c.sourceDescription ?? "?",
+                                        });
+                                    }
+
+                                    const playerEntries = [...byPlayer.entries()];
+
+                                    return (
+                                        <div className="group/conflict relative">
+                                            <div className="flex items-center gap-0.5">
+                                                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                                                <span className="text-[9px] font-bold text-amber-400 tabular-nums">{dayConflicts.length}</span>
+                                            </div>
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-[70] hidden group-hover/conflict:block">
+                                                <div className="bg-[#141414] border border-neutral-700 rounded-xl w-[340px] overflow-hidden">
+                                                    {/* Header */}
+                                                    <div className="px-5 py-3.5 border-b border-neutral-800 flex items-center justify-between">
+                                                        <span className="text-[13px] font-bold text-neutral-100">{t("agenda.conflicts")}</span>
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                                                            {dayConflicts.length}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Availability conflicts */}
+                                                    {byPlayer.size > 0 && (
+                                                        <div className="px-5 pt-4 pb-3">
+                                                            <div className="flex items-center gap-2 mb-3">
+                                                                <div className="w-1 h-3.5 rounded-full bg-orange-400 shrink-0" />
+                                                                <span className="text-[11px] font-semibold text-neutral-300 uppercase tracking-wider">{t("agenda.conflict_section_availability")}</span>
+                                                            </div>
+                                                            {playerEntries.map(([steamId, { nickname, events }], pi) => (
+                                                                <div key={steamId}>
+                                                                    {pi > 0 && <div className="border-t border-neutral-800/60 my-2.5" />}
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <div className="w-[5px] h-[5px] rounded-full bg-orange-400 shrink-0" />
+                                                                        <span className="text-[11px] font-semibold text-orange-300">{nickname}</span>
+                                                                    </div>
+                                                                    <div className="pl-[13px] space-y-0.5">
+                                                                        {events.map((ev, ei) => (
+                                                                            <div key={ei} className="flex items-center gap-2">
+                                                                                <div className="w-[3px] h-[3px] rounded-full bg-neutral-600 shrink-0" />
+                                                                                <span className="text-[10px] text-neutral-400 truncate">{ev}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Separator between sections */}
+                                                    {byPlayer.size > 0 && overlapPairs.length > 0 && (
+                                                        <div className="border-t border-neutral-700/50 mx-5" />
+                                                    )}
+
+                                                    {/* Event conflicts */}
+                                                    {overlapPairs.length > 0 && (
+                                                        <div className="px-5 pt-4 pb-3">
+                                                            <div className="flex items-center gap-2 mb-3">
+                                                                <div className="w-1 h-3.5 rounded-full bg-red-400 shrink-0" />
+                                                                <span className="text-[11px] font-semibold text-neutral-300 uppercase tracking-wider">{t("agenda.conflict_section_event")}</span>
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                {overlapPairs.map((pair, idx) => (
+                                                                    <div key={idx} className="flex items-center gap-2">
+                                                                        <div className="w-[3px] h-[3px] rounded-full bg-neutral-600 shrink-0" />
+                                                                        <span className="text-[10px] text-neutral-300 truncate">{pair.eventA}</span>
+                                                                        <span className="text-[10px] text-red-400/50 shrink-0">↔</span>
+                                                                        <span className="text-[10px] text-neutral-300 truncate">{pair.eventB}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
                         </div>
                     );
                 })}
@@ -322,8 +441,10 @@ export default function WeekGrid({ currentDate, events, availabilities, isStaff,
 
                         return (
                             <div key={di} className={cn(
-                                "relative border-l border-neutral-800/30",
-                                isToday && "bg-indigo-500/[0.03]"
+                                "relative",
+                                isToday
+                                    ? "border-x border-neutral-700/30 bg-indigo-500/[0.03]"
+                                    : "border-l border-neutral-800/30"
                             )}>
                                 {/* Unavailability blocks — always visible, behind events */}
                                 {dayUnavailabilities.filter(a => a.type === "UNAVAILABLE").map((a, ai) => {

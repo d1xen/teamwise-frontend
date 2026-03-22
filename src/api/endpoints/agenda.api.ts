@@ -8,6 +8,7 @@ import type {
     CreateRecurringEventRequest,
     CreateAvailabilityRequest,
     UpdateAvailabilityRequest,
+    ConflictSummaryDto,
     EventType,
 } from "@/api/types/agenda";
 
@@ -21,6 +22,12 @@ export function getCalendar(
     if (steamId) params.set("steamId", steamId);
     if (eventType) params.set("eventType", eventType);
     return apiClient<CalendarViewDto>(`/api/teams/${teamId}/calendar?${params}`);
+}
+
+// ── My Schedule ─────────────────────────────────────────────────────────────
+
+export function getMySchedule(teamId: string, limit: number = 5): Promise<EventDto[]> {
+    return apiClient<EventDto[]>(`/api/teams/${teamId}/events/my-schedule?limit=${limit}`);
 }
 
 // ── Events ───────────────────────────────────────────────────────────────────
@@ -100,5 +107,17 @@ export function updateAvailability(teamId: string, availabilityId: number, reque
 export function deleteAvailability(teamId: string, availabilityId: number): Promise<void> {
     return apiClient<void>(`/api/teams/${teamId}/availabilities/${availabilityId}`, {
         method: "DELETE",
+    });
+}
+
+// ── Conflicts ────────────────────────────────────────────────────────────────
+
+export function getConflicts(teamId: string): Promise<ConflictSummaryDto[]> {
+    return apiClient<ConflictSummaryDto[]>(`/api/teams/${teamId}/conflicts`);
+}
+
+export function acknowledgeConflict(teamId: string, conflictId: number): Promise<void> {
+    return apiClient<void>(`/api/teams/${teamId}/conflicts/${conflictId}/acknowledge`, {
+        method: "PATCH",
     });
 }
