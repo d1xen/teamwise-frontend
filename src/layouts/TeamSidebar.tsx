@@ -52,6 +52,7 @@ export default function TeamSidebar() {
   const kofiUrl = appConfig.externalLinks.kofi;
   const showLoader = useMinimumLoader(!team, 800);
   const [langOpen, setLangOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { toCompleteCount } = useMatchSummary(team?.id ?? "");
   const langRef = useRef<HTMLDivElement>(null);
 
@@ -148,8 +149,6 @@ export default function TeamSidebar() {
   ];
 
   const isActive = (path: string) => location.pathname === path;
-
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = () => setShowLogoutConfirm(true);
   const confirmLogout = () => { logout(); navigate('/login'); };

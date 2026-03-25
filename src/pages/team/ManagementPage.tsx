@@ -129,6 +129,21 @@ export default function ManagementPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView, hasFaceitCallbackParams, profileRetryCount]);
 
+  // Deep-link: open member detail from URL param
+  useEffect(() => {
+    const memberIdFromUrl = searchParams.get("memberId");
+    if (memberIdFromUrl && !selectedMember && members.length > 0) {
+      const found = members.find(m => m.steamId === memberIdFromUrl);
+      if (found) {
+        setSelectedMember(found);
+      } else {
+        const next = new URLSearchParams(searchParams);
+        next.delete("memberId");
+        setSearchParams(next, { replace: true });
+      }
+    }
+  }, [searchParams, selectedMember, members, setSearchParams]);
+
   // Vérifier après les hooks
   if (showLoader) {
     return (
@@ -174,21 +189,6 @@ export default function ManagementPage() {
     next.delete("memberId");
     setSearchParams(next, { replace: true });
   };
-
-  // Deep-link: open member detail from URL param
-  useEffect(() => {
-    const memberIdFromUrl = searchParams.get("memberId");
-    if (memberIdFromUrl && !selectedMember && members.length > 0) {
-      const found = members.find(m => m.steamId === memberIdFromUrl);
-      if (found) {
-        setSelectedMember(found);
-      } else {
-        const next = new URLSearchParams(searchParams);
-        next.delete("memberId");
-        setSearchParams(next, { replace: true });
-      }
-    }
-  }, [searchParams, selectedMember, members, setSearchParams]);
 
   return (
     <div className="flex flex-col h-full">

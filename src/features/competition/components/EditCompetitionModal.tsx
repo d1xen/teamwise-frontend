@@ -24,7 +24,7 @@ function chip(active: boolean) {
 const LABEL = "block text-[10px] font-semibold text-neutral-600 uppercase tracking-wider mb-2";
 const INPUT = "w-full bg-neutral-900/60 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-indigo-500/40 transition-colors disabled:opacity-50";
 
-export default function EditCompetitionModal({ competition, isStaff, onClose, onUpdate, onDelete: _onDelete }: EditCompetitionModalProps) {
+export default function EditCompetitionModal({ competition, isStaff, onClose, onUpdate }: EditCompetitionModalProps) {
     const { t } = useTranslation();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showMore, setShowMore] = useState(false);
