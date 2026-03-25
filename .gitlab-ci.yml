@@ -1,0 +1,64 @@
+# ═══════════════════════════════════════════════════════════════
+# Teamwise Frontend — GitLab CI/CD
+# ═══════════════════════════════════════════════════════════════
+
+stages:
+  - test
+  - build
+  - deploy
+
+cache:
+  key: node-${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
+
+# ── TEST (typecheck + lint) ───────────────────────────────────
+test:
+  stage: test
+  image: node:20-alpine
+  script:
+    - npm ci --prefer-offline
+    - npx tsc -b
+    - npm run lint
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+# ── BUILD ─────────────────────────────────────────────────────
+build:
+  stage: build
+  image: node:20-alpine
+  variables:
+    VITE_API_URL: $VITE_API_URL
+  script:
+    - npm ci --prefer-offline
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── DEPLOY ────────────────────────────────────────────────────
+# Uncomment and configure when server is ready.
+# deploy:
+#   stage: deploy
+#   image: alpine:latest
+#   dependencies:
+#     - build
+#   before_script:
+#     - apk add --no-cache openssh-client rsync
+#     - eval $(ssh-agent -s)
+#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+#     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+#     - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+#   script:
+#     - rsync -avz --delete dist/ $DEPLOY_USER@$DEPLOY_HOST:/var/www/teamwise/
+#   rules:
+#     - if: $CI_COMMIT_BRANCH == "main"
+#       when: manual
+#   environment:
+#     name: production
+#     url: https://teamwise.gg

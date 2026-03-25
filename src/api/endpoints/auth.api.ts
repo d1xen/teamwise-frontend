@@ -1,4 +1,5 @@
 import { apiClient } from "@/api/client/apiClient";
+import { buildApiUrl } from "@/config/appConfig";
 
 export type AuthResponseDto = {
     steamId: string;
@@ -9,7 +10,7 @@ export type AuthResponseDto = {
     profileCompleted: boolean;
 };
 
-export const STEAM_AUTH_URL = "/api/auth/steam";
+export const STEAM_AUTH_URL = buildApiUrl("/api/auth/steam");
 
 export function getMe(): Promise<AuthResponseDto> {
     return apiClient<AuthResponseDto>("/api/auth/me");
