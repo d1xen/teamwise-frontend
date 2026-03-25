@@ -6,7 +6,6 @@ import { Link, useLocation } from "react-router-dom";
 import { STEAM_AUTH_URL } from "@/api/endpoints/auth.api";
 import TeamWiseLogo from "@/shared/components/TeamWiseLogo";
 import steamLogo from "@/shared/assets/icon-steam.svg";
-import AppVersion from "@/shared/components/AppVersion";
 
 export default function LoginPage() {
     const { t } = useTranslation();
@@ -104,7 +103,6 @@ export default function LoginPage() {
                             {t("auth.terms_of_service")}
                         </Link>
                     </p>
-                    <AppVersion />
                 </div>
             </div>
         </div>
