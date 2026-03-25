@@ -7,7 +7,8 @@ import type { TeamMember } from "@/contexts/team/team.types";
 import type { UserProfileDto } from "@/api/endpoints/profile.api";
 import { useManagementPermissions } from "@/features/team/hooks/useManagementPermissions";
 import { useTeamActions } from "@/features/team/hooks/useTeamActions";
-import { LayoutDashboard, Users, User, Crown, Zap } from "lucide-react";
+import { Users, User, Crown } from "lucide-react";
+import FaceitIcon from "@/shared/components/FaceitIcon";
 import FaceitOverview from "@/features/faceit/components/FaceitOverview";
 
 
@@ -19,18 +20,18 @@ import TeamSettingsPanel from "@/features/team/components/management/panels/Team
 import { useProfilePermissions } from "@/features/profile/hooks/useProfilePermissions";
 import { getMyProfile } from "@/api/endpoints/profile.api";
 
-import TeamOverviewPanel from "@/features/team/components/management/panels/TeamOverviewPanel";
 import MembersPanel from "@/features/team/components/management/panels/MembersPanel";
-import MemberDetailModal from "@/features/team/components/management/panels/MemberDetailModal";
+import MemberDetailPanel from "@/features/team/components/management/panels/MemberDetailPanel";
 import FeatureHeader from '@/shared/components/FeatureHeader';
 import FeatureBody from '@/shared/components/FeatureBody';
 import { useMinimumLoader } from '@/shared/hooks/useMinimumLoader';
 import ManagementTabs from '@/features/team/components/management/ManagementTabs';
+import type { ManagementTabId } from '@/features/team/components/management/ManagementTabs';
 import { Button } from '@/design-system/components';
 
-type View = "overview" | "members" | "teams" | "profile" | "faceit";
+type View = ManagementTabId;
 
-const MANAGEMENT_VIEWS: View[] = ["overview", "members", "teams", "profile", "faceit"];
+const MANAGEMENT_VIEWS: View[] = ["members", "teams", "profile", "faceit"];
 
 function isManagementView(value: string | null): value is View {
   return value !== null && MANAGEMENT_VIEWS.includes(value as View);
@@ -50,7 +51,7 @@ export default function ManagementPage() {
   const showLoader = useMinimumLoader(!isReady || !user, 800);
 
   const tabFromUrl = searchParams.get("tab");
-  const resolvedTab: View = isManagementView(tabFromUrl) ? tabFromUrl : "overview";
+  const resolvedTab: View = isManagementView(tabFromUrl) ? tabFromUrl : "members";
   const hasFaceitCallbackParams = searchParams.has("faceit_result");
 
   const activeView: View = resolvedTab;
@@ -154,54 +155,75 @@ export default function ManagementPage() {
   }
 
   const tabs = [
-    { id: "overview" as View, label: t("management.overview"), icon: LayoutDashboard },
-    { id: "profile" as View, label: t("management.profile"), icon: User },
-    { id: "teams" as View, label: t("management.teams"), icon: Crown },
     { id: "members" as View, label: t("management.members"), icon: Users },
-    ...(team.game === "CS2" ? [{ id: "faceit" as View, label: "FACEIT", icon: Zap }] : []),
+    { id: "teams" as View, label: t("management.teams"), icon: Crown },
+    { id: "profile" as View, label: t("management.profile"), icon: User },
+    ...(team.game === "CS2" ? [{ id: "faceit" as View, label: "FACEIT", icon: FaceitIcon }] : []),
   ];
 
   const handleSelectMember = (member: TeamMember) => {
     setSelectedMember(member);
+    const next = new URLSearchParams(searchParams);
+    next.set("memberId", member.steamId);
+    setSearchParams(next, { replace: true });
   };
 
   const handleCloseDetail = () => {
     setSelectedMember(null);
+    const next = new URLSearchParams(searchParams);
+    next.delete("memberId");
+    setSearchParams(next, { replace: true });
   };
+
+  // Deep-link: open member detail from URL param
+  useEffect(() => {
+    const memberIdFromUrl = searchParams.get("memberId");
+    if (memberIdFromUrl && !selectedMember && members.length > 0) {
+      const found = members.find(m => m.steamId === memberIdFromUrl);
+      if (found) {
+        setSelectedMember(found);
+      } else {
+        const next = new URLSearchParams(searchParams);
+        next.delete("memberId");
+        setSearchParams(next, { replace: true });
+      }
+    }
+  }, [searchParams, selectedMember, members, setSearchParams]);
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header avec navigation tabs */}
       <FeatureHeader
-        title={t("nav.management")}
-      >
-        <ManagementTabs
-          tabs={tabs}
-          activeView={activeView}
-          onChange={handleChangeView}
-        />
-      </FeatureHeader>
+        title={t("pages.management.title")}
+        subtitle={t("pages.management.subtitle")}
+      />
 
       {/* Main content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-gutter-stable">
           <FeatureBody className="max-w-5xl">
-            {activeView === "overview" && (
-              <TeamOverviewPanel
-                team={team!}
-                membership={membership!}
-                members={members}
-                staffCount={members.filter((m) => m.role !== "PLAYER").length}
-                playerCount={members.filter((m) => m.role === "PLAYER").length}
-                onNavigateToFaceit={() => handleChangeView("faceit")}
+            <div className="mb-5 pb-4 border-b border-neutral-800/60">
+              <ManagementTabs
+                tabs={tabs}
+                activeView={activeView}
+                onChange={handleChangeView}
               />
-            )}
-
+            </div>
             {activeView === "members" && (
-              <MembersPanel
-                members={members}
-                onSelectMember={handleSelectMember}
-                selectedMemberId={selectedMember?.steamId}
-              />
+              selectedMember ? (
+                <MemberDetailPanel
+                  member={selectedMember}
+                  teamId={team.id}
+                  permissions={permissions}
+                  actions={actions}
+                  onClose={handleCloseDetail}
+                  team={team}
+                />
+              ) : (
+                <MembersPanel
+                  members={members}
+                  onSelectMember={handleSelectMember}
+                  selectedMemberId={undefined}
+                />
+              )
             )}
 
             {activeView === "teams" && (
@@ -260,17 +282,6 @@ export default function ManagementPage() {
             )}
           </FeatureBody>
 
-        {/* Member detail modal */}
-        {selectedMember && team && membership && (
-          <MemberDetailModal
-            member={selectedMember}
-            teamId={team.id}
-            permissions={permissions}
-            actions={actions}
-            onClose={handleCloseDetail}
-            team={team}
-          />
-        )}
       </div>
     </div>
   );

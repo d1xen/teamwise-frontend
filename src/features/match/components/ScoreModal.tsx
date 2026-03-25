@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
-import { X, Loader2, RotateCcw, Save } from "lucide-react";
+import { X, Loader2, RotateCcw } from "lucide-react";
 import type { MatchDto, MatchFormat, MatchMapDto, UpdateMapScoreRequest, UpdateMatchRequest } from "@/api/types/match";
 import type { Game } from "@/api/types/team";
-import { getMapsForGame } from "@/shared/config/gameConfig";
+import { getMapsForGame, getMapLabel } from "@/shared/config/gameConfig";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -49,9 +49,6 @@ function requiredWins(format: MatchFormat): number {
     return format === "BO3" ? 2 : format === "BO5" ? 3 : 1;
 }
 
-function getMapLabel(maps: { value: string; label: string }[], value: string): string {
-    return maps.find(m => m.value === value)?.label ?? value;
-}
 
 /**
  * A row is dead if it has no scores AND the series is already decided
@@ -186,11 +183,20 @@ export default function ScoreModal({ match, teamTag, game, onClose, onSaveMap, o
         if (updated) syncFromMatch(updated); // live update — modal stays open
     };
 
+    // ── Escape key ────────────────────────────────────────────────────────────
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        document.addEventListener("keydown", handleEscape);
+        return () => document.removeEventListener("keydown", handleEscape);
+    }, [onClose]);
+
     // ── Render ────────────────────────────────────────────────────────────────
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="bg-neutral-950 border border-neutral-800 rounded-2xl w-full max-w-xl shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4" onClick={onClose}>
+            <div className="bg-[#141414] border border-neutral-800 rounded-2xl w-full max-w-xl" onClick={e => e.stopPropagation()}>
 
                 {/* ── Header ────────────────────────────────────────────── */}
                 <div className="flex items-start justify-between px-6 pt-6 pb-4 gap-4">
@@ -348,7 +354,7 @@ export default function ScoreModal({ match, teamTag, game, onClose, onSaveMap, o
                                         ) : val ? (
                                             <span className="block text-sm font-medium text-neutral-200 truncate">
                                                 {row.mapName
-                                                    ? getMapLabel(gameMaps, row.mapName)
+                                                    ? getMapLabel(row.mapName, game)
                                                     : <span className="text-neutral-600 italic">{t("matches.map_unknown")}</span>
                                                 }
                                             </span>
@@ -464,11 +470,11 @@ export default function ScoreModal({ match, teamTag, game, onClose, onSaveMap, o
                             <button
                                 onClick={handleSaveAll}
                                 disabled={isLocked}
-                                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
+                                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
                             >
                                 {savingAll
                                     ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{t("common.saving")}</>
-                                    : <><Save className="w-3.5 h-3.5" />{t("matches.save_scores")}</>
+                                    : t("matches.save_scores")
                                 }
                             </button>
                         )}

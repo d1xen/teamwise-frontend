@@ -1,17 +1,20 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X, ChevronDown } from "lucide-react";
-import type { CreateMatchRequest, MatchContext, MatchFormat, MatchLevel, MatchType } from "@/api/types/match";
+import type { CreateMatchRequest, MatchFormat, MatchType } from "@/api/types/match";
+import type { CompetitionSummaryDto } from "@/api/types/competition";
+import { getActiveCompetitions } from "@/api/endpoints/competition.api";
+import { useTeam } from "@/contexts/team/useTeam";
+import DatePicker from "@/design-system/components/DatePicker";
+import TimePicker from "@/design-system/components/TimePicker";
 
 interface CreateMatchModalProps {
     onClose: () => void;
     onSubmit: (payload: CreateMatchRequest) => Promise<boolean>;
 }
 
-const MATCH_TYPES: MatchType[]         = ["OFFICIAL", "SCRIM"];
-const OFFICIAL_CONTEXTS: MatchContext[] = ["TOURNAMENT", "QUALIFIER", "LAN", "REGULAR_SEASON"];
-const MATCH_FORMATS: MatchFormat[]      = ["BO1", "BO3", "BO5"];
-const MATCH_LEVELS: MatchLevel[]        = ["S", "A", "B", "C"];
+const MATCH_TYPES: MatchType[]    = ["OFFICIAL", "SCRIM"];
+const MATCH_FORMATS: MatchFormat[] = ["BO1", "BO3", "BO5"];
 
 function chip(active: boolean) {
     return active
@@ -24,27 +27,36 @@ const INPUT  = "w-full bg-neutral-900/60 border border-neutral-800 rounded-lg px
 
 export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModalProps) {
     const { t } = useTranslation();
+    const { team } = useTeam();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
 
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        document.addEventListener("keydown", handleEscape);
+        return () => document.removeEventListener("keydown", handleEscape);
+    }, [onClose]);
+
     const [type, setType]                   = useState<MatchType>("OFFICIAL");
-    const [context, setContext]             = useState<MatchContext>("TOURNAMENT");
     const [opponentName, setOpponentName]   = useState("");
     const [opponentLogo, setOpponentLogo]   = useState("");
     const [matchUrl, setMatchUrl]           = useState("");
-    const [scheduledAt, setScheduledAt]     = useState("");
+    const [scheduledDate, setScheduledDate]   = useState("");
+    const [scheduledTime, setScheduledTime]   = useState("20:00");
     const [format, setFormat]               = useState<MatchFormat>("BO3");
-    const [competitionName, setCompetitionName] = useState("");
-    const [competitionStage, setCompetitionStage] = useState("");
-    const [level, setLevel]                 = useState<MatchLevel | "">("");
+    const [competitionId, setCompetitionId] = useState<number | null>(null);
     const [notes, setNotes]                 = useState("");
 
-    const handleTypeChange = (t: MatchType) => {
-        setType(t);
-        if (t === "SCRIM") setContext("TOURNAMENT"); // reset, won't be sent
-    };
+    const [activeCompetitions, setActiveCompetitions] = useState<CompetitionSummaryDto[]>([]);
+    useEffect(() => {
+        if (team?.id) {
+            getActiveCompetitions(team.id).then(setActiveCompetitions).catch(() => {});
+        }
+    }, [team?.id]);
 
-    const canSubmit = !!scheduledAt;
+    const canSubmit = !!scheduledDate;
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -52,15 +64,12 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
         setIsSubmitting(true);
         const ok = await onSubmit({
             type,
-            context: type === "OFFICIAL" ? context : null,
             opponentName: opponentName.trim() || null,
             opponentLogo: opponentLogo.trim() || null,
             matchUrl: matchUrl.trim() || null,
-            scheduledAt: new Date(scheduledAt).toISOString(),
+            scheduledAt: new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString(),
             format,
-            competitionName: competitionName.trim() || null,
-            competitionStage: competitionStage.trim() || null,
-            level: level || null,
+            competitionId: competitionId || null,
             notes: notes.trim() || null,
         });
         setIsSubmitting(false);
@@ -68,8 +77,8 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="bg-neutral-950 border border-neutral-800 rounded-2xl w-full max-w-xl shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4" onClick={onClose}>
+            <div className="bg-[#141414] border border-neutral-800 rounded-2xl w-full max-w-xl" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 pt-6 pb-5">
@@ -96,7 +105,7 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
                                         <button
                                             key={mt}
                                             type="button"
-                                            onClick={() => handleTypeChange(mt)}
+                                            onClick={() => setType(mt)}
                                             className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${chip(type === mt)}`}
                                         >
                                             {t(`matches.type_${mt.toLowerCase()}`)}
@@ -123,26 +132,22 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
                             </div>
                         </div>
 
-                        {/* ── Context — OFFICIAL only ────────────────────── */}
-                        {type === "OFFICIAL" && (
-                            <div>
-                                <p className={LABEL}>{t("matches.context")}</p>
-                                <div className="flex gap-2">
-                                    {OFFICIAL_CONTEXTS.map(mc => (
-                                        <button
-                                            key={mc}
-                                            type="button"
-                                            onClick={() => setContext(mc)}
-                                            className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${chip(context === mc)}`}
-                                        >
-                                            {t(`matches.context_${mc.toLowerCase()}`)}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
                         <div className="border-t border-neutral-800/60" />
+
+                        {/* ── Competition ─────────────────────────────── */}
+                        <div>
+                            <label className={LABEL}>{t("matches.competition_name")}</label>
+                            <select
+                                value={competitionId ?? ""}
+                                onChange={e => setCompetitionId(e.target.value ? Number(e.target.value) : null)}
+                                className={INPUT}
+                            >
+                                <option value="">{t("competitions.none")}</option>
+                                {activeCompetitions.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
 
                         {/* ── Required fields ───────────────────────────── */}
                         <div className="space-y-3">
@@ -167,25 +172,11 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
                                         {t("matches.scheduled_at")}
                                         <span className="ml-1 text-indigo-500 normal-case tracking-normal font-normal">*</span>
                                     </label>
-                                    <input
-                                        type="datetime-local"
-                                        value={scheduledAt}
-                                        onChange={e => setScheduledAt(e.target.value)}
-                                        required
-                                        className={`${INPUT} [color-scheme:dark]`}
-                                    />
+                                    <div className="flex gap-2">
+                                        <DatePicker value={scheduledDate} onChange={setScheduledDate} />
+                                        <TimePicker value={scheduledTime} onChange={setScheduledTime} className="w-[110px]" />
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div>
-                                <label className={LABEL}>{t("matches.match_url")}</label>
-                                <input
-                                    type="url"
-                                    value={matchUrl}
-                                    onChange={e => setMatchUrl(e.target.value)}
-                                    placeholder="https://..."
-                                    className={INPUT}
-                                />
                             </div>
                         </div>
 
@@ -206,64 +197,28 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
 
                             {showOptions && (
                                 <div className="mt-4 space-y-3">
-                                    {/* Competition */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className={LABEL}>{t("matches.competition_name")}</label>
-                                            <input
-                                                type="text"
-                                                value={competitionName}
-                                                onChange={e => setCompetitionName(e.target.value)}
-                                                placeholder={t("matches.optional")}
-                                                className={INPUT}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className={LABEL}>{t("matches.competition_stage")}</label>
-                                            <input
-                                                type="text"
-                                                value={competitionStage}
-                                                onChange={e => setCompetitionStage(e.target.value)}
-                                                placeholder={t("matches.optional")}
-                                                className={INPUT}
-                                            />
-                                        </div>
+                                    {/* Match URL */}
+                                    <div>
+                                        <label className={LABEL}>{t("matches.match_url")}</label>
+                                        <input
+                                            type="url"
+                                            value={matchUrl}
+                                            onChange={e => setMatchUrl(e.target.value)}
+                                            placeholder="https://..."
+                                            className={INPUT}
+                                        />
                                     </div>
 
-                                    {/* Level + Logo */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className={LABEL}>{t("matches.level")}</label>
-                                            <div className="flex gap-1.5">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setLevel("")}
-                                                    className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${chip(level === "")}`}
-                                                >
-                                                    —
-                                                </button>
-                                                {MATCH_LEVELS.map(ml => (
-                                                    <button
-                                                        key={ml}
-                                                        type="button"
-                                                        onClick={() => setLevel(ml)}
-                                                        className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors font-mono ${chip(level === ml)}`}
-                                                    >
-                                                        {ml}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className={LABEL}>{t("matches.opponent_logo")}</label>
-                                            <input
-                                                type="url"
-                                                value={opponentLogo}
-                                                onChange={e => setOpponentLogo(e.target.value)}
-                                                placeholder="https://..."
-                                                className={INPUT}
-                                            />
-                                        </div>
+                                    {/* Logo */}
+                                    <div>
+                                        <label className={LABEL}>{t("matches.opponent_logo")}</label>
+                                        <input
+                                            type="url"
+                                            value={opponentLogo}
+                                            onChange={e => setOpponentLogo(e.target.value)}
+                                            placeholder="https://..."
+                                            className={INPUT}
+                                        />
                                     </div>
 
                                     {/* Notes */}
@@ -294,7 +249,7 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
                         <button
                             type="submit"
                             disabled={isSubmitting || !canSubmit}
-                            className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
+                            className="flex-1 py-2.5 rounded-xl bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
                         >
                             {isSubmitting ? t("common.saving") : t("matches.create_button")}
                         </button>

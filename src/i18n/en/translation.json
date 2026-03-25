@@ -11,6 +11,10 @@
     "cancel": "Cancel",
     "close": "Close",
     "back": "Back",
+    "comments": "Comments",
+    "no_comments": "No comments yet.",
+    "note_placeholder": "Write a comment...",
+    "notes_limit_reached": "Maximum comments reached",
     "next": "Next",
     "previous": "Previous",
     "submit": "Submit",
@@ -27,15 +31,26 @@
     "age": "Age",
     "years": "years",
     "email": "Email",
-    "try_again": "Please try again"
+    "try_again": "Please try again",
+    "more": "more",
+    "page": "page"
+  },
+  "meta": {
+    "created_at": "Created on {{date}}",
+    "updated_at": "Modified on {{date}}",
+    "created_label": "Created on",
+    "updated_label": "Last updated",
+    "joined_label": "Joined on",
+    "member_since": "Member since {{date}}"
   },
 
   "auth": {
     "login": "Login",
-    "logout": "Logout",
-    "logout_confirm": "Logout?",
+    "logout": "Log out",
+    "logout_title": "Log out",
+    "logout_confirm": "Are you sure you want to log out?",
     "login_with_steam": "Login with Steam",
-    "welcome_title": "Welcome to TeamWise",
+    "welcome_title": "Welcome to Teamwise",
     "platform_tagline": "The esports team management platform",
     "features_title": "Features",
     "feature_manage_team": "Manage your team easily",
@@ -93,7 +108,7 @@
     "players": "Players",
     "members": "Members",
     "average_age": "Average age",
-    "total_members": "Total members",
+    "total_members": "Members",
     "staff_members": "Staff",
     "roster": "Roster",
     "team_overview": "Overview",
@@ -174,6 +189,8 @@
     "city": "City",
     "city_placeholder": "City",
     "city_required": "City is required",
+    "timezone": "Timezone",
+    "select_timezone": "Select timezone",
     "phone": "Phone",
     "phone_placeholder": "Phone",
     "phone_required": "Phone number is required",
@@ -240,7 +257,7 @@
     "title": "Management",
     "overview": "Overview",
     "overview_subtitle": "General overview of your team",
-    "total_members": "Total members",
+    "total_members": "Members",
     "staff_members": "Staff",
     "team_information": "Team information",
     "team_name": "Team name",
@@ -383,7 +400,8 @@
     "links": "Links",
     "next_match": "Next match",
     "to_complete": "To complete",
-    "to_complete_hint": "{{count}} match(es) awaiting score",
+    "to_complete_hint_one": "{{count}} match awaiting score",
+    "to_complete_hint_other": "{{count}} matches awaiting score",
     "up_to_date": "Up to date",
     "up_to_date_hint": "All your past matches have been completed.",
     "matches_played": "Matches played",
@@ -393,7 +411,20 @@
     "gs_password": "Server password",
     "faceit_sync": "FACEIT Sync",
     "faceit_linked_count": "{{count}} active players linked",
-    "faceit_never_synced": "Not yet synchronized"
+    "faceit_never_synced": "Not yet synchronized",
+    "strats_count": "Strategies",
+    "win_rate": "Win rate",
+    "record": "Record",
+    "active_competitions": "Active competitions",
+    "scheduling_conflicts": "Scheduling conflicts",
+    "conflicts_hint": "Players unavailable or overlapping events",
+    "upcoming_schedule": "Coming up",
+    "no_upcoming_match": "No upcoming match",
+    "role_change_confirm_title": "Role change",
+    "role_change_confirm_self": "You are about to change your own role from {{oldRole}} to {{newRole}}. This may affect your permissions.",
+    "role_change_confirm_other": "You are about to change {{nickname}}'s role from {{oldRole}} to {{newRole}}. This may affect their permissions.",
+    "no_conflicts": "No scheduling conflicts",
+    "faceit_not_available": "Available for CS2 teams"
   },
 
   "team_actions": {
@@ -423,15 +454,17 @@
   },
 
   "nav": {
+    "dashboard": "Dashboard",
     "team": "Team",
     "agenda": "Schedule",
     "schedule": "Schedule",
     "management": "Management",
     "scrims": "Scrims",
     "matches": "Matches",
-    "tournaments": "Tournaments",
+    "competitions": "Competitions",
     "results": "Results",
     "stratbook": "Stratbook",
+    "demo": "2D Demo",
     "stats": "Statistics",
     "messaging": "Messaging",
     "players": "Players",
@@ -443,12 +476,12 @@
     "expand": "Open sidebar",
     "switch_team": "Switch team",
     "language": "Language",
-    "powered_by": "TeamWise App powered by {{name}}"
+    "powered_by": "Teamwise App powered by {{name}}"
   },
 
   "donate": {
     "label": "Donate",
-    "cta": "Support TeamWise"
+    "cta": "Support Teamwise"
   },
 
   "header": {
@@ -522,36 +555,49 @@
   },
 
   "pages": {
+    "dashboard": {
+      "title": "Dashboard",
+      "subtitle": "Overview of your team at a glance"
+    },
+    "management": {
+      "title": "Management",
+      "subtitle": "Team settings, members, and integrations"
+    },
     "stratbook": {
       "title": "Stratbook",
-      "subtitle": "Manage your team strategies and tactics"
+      "subtitle": "Build and organize your team's playbook"
     },
     "stats": {
       "title": "Statistics",
-      "subtitle": "Analyze your team's performance and statistics"
+      "subtitle": "Performance insights and player analytics"
+    },
+    "demo": {
+      "title": "2D Demo",
+      "subtitle": "Replay and analyze your rounds in 2D"
     },
     "scrims": {
       "title": "Scrims",
-      "subtitle": "Organize and track your training matches"
+      "subtitle": "Organize and track practice matches"
     },
     "matches": {
       "title": "Matches",
-      "subtitle": "Plan and track your upcoming or past matches"
+      "subtitle": "Schedule, results, and match history"
     },
-    "tournaments": {
-      "title": "Tournaments",
-      "subtitle": "Centralize your tournaments and competitive events"
+    "competitions": {
+      "title": "Competitions",
+      "subtitle": "Leagues, tournaments, and competitive events"
     },
     "results": {
       "title": "Results",
-      "subtitle": "Check your team's results and performance"
+      "subtitle": "Match results and performance overview"
     },
     "messaging": {
       "title": "Messaging",
-      "subtitle": "Chat and coordinate with your team in real time"
+      "subtitle": "Team communication and coordination"
     },
     "planning": {
-      "title": "Schedule"
+      "title": "Schedule",
+      "subtitle": "Events, availability, and scheduling conflicts"
     },
     "agenda": {
       "title": "Schedule"
@@ -620,12 +666,6 @@
 
     "format": "Format",
 
-    "context": "Context",
-    "context_tournament": "Tournament",
-    "context_qualifier": "Qualifier",
-    "context_lan": "LAN",
-    "context_regular_season": "Regular Season",
-
     "filter_all": "All",
 
     "opponent_name": "Opponent",
@@ -637,8 +677,6 @@
     "match_url_link": "Link",
     "scheduled_at": "Date & time",
     "competition_name": "Competition",
-    "competition_stage": "Stage",
-    "level": "Level",
     "notes": "Notes",
     "notes_placeholder": "Optional notes...",
     "optional": "Optional",
@@ -660,14 +698,17 @@
     "empty_all_hint": "Try adjusting your filters or create a new match.",
     "empty_hint": "Try adjusting your filters.",
 
-    "result_count": "{{count}} match(es) found",
+    "result_count_one": "{{count}} match found",
+    "result_count_other": "{{count}} matches found",
+    "per_page": "matches per page",
+    "bulk_delete_confirm_title": "Delete matches",
+    "bulk_delete_confirm_desc_one": "You are about to permanently delete {{count}} match. This action cannot be undone.",
+    "bulk_delete_confirm_desc_other": "You are about to permanently delete {{count}} matches. This action cannot be undone.",
 
     "filters": "Filters",
     "clear_filters": "Clear filters",
     "filter_opponent": "Search opponent…",
-    "filter_competition": "Search competition…",
     "filter_type_all": "All types",
-    "filter_context_all": "All contexts",
     "filter_format_all": "All formats",
 
     "date_range_all": "All time",
@@ -705,11 +746,22 @@
 
     "edit_mode": "Edit",
     "exit_edit_mode": "Done",
+    "select_mode": "Select",
+    "exit_select_mode": "Done",
+    "to_complete_badge": "To complete",
+    "opponent": "Opponent",
+    "tba": "TBD",
+    "maps": "Maps",
+    "deleted": "Match deleted",
+    "to_complete_hint": "This match needs scores to be completed",
+    "upcoming_hint": "This match is scheduled",
+    "match_info": "Match details",
     "select_all": "Select all",
     "deselect_all": "Deselect all",
     "selected_count": "{{count}} selected",
     "bulk_delete": "Delete ({{count}})",
-    "bulk_delete_success": "{{count}} match(es) deleted",
+    "bulk_delete_success_one": "{{count}} match deleted",
+    "bulk_delete_success_other": "{{count}} matches deleted",
     "bulk_delete_error": "Some matches could not be deleted",
 
     "complete": "Complete",
@@ -719,12 +771,84 @@
     "map_not_played": "Not played",
     "update_error": "Failed to update match",
     "save_scores": "Save scores",
-    "scores_saved": "{{count}} score(s) saved",
+    "scores_saved_one": "{{count}} score saved",
+    "scores_saved_other": "{{count}} scores saved",
     "edit_match": "Edit match",
+    "complete_match": "Complete match",
     "save_changes": "Save changes",
     "changes_saved": "Changes saved",
     "vs": "vs",
-    "to_complete_motivation": "{{count}} match(es) awaiting scores — keep your history up to date!"
+    "to_complete_motivation_one": "{{count}} match awaiting scores — keep your history up to date!",
+    "to_complete_motivation_other": "{{count}} matches awaiting scores — keep your history up to date!"
+  },
+
+  "competitions": {
+    "new_competition": "New competition",
+    "create_title": "Add a competition",
+    "create_button": "Create",
+    "created": "Competition created",
+    "create_error": "Error creating competition",
+    "updated": "Competition updated",
+    "update_error": "Error updating competition",
+    "deleted": "Competition deleted",
+    "delete_error": "Error deleting competition",
+    "load_error": "Unable to load competitions",
+
+    "name": "Name",
+    "name_placeholder": "ESEA Season 52, IEM Katowice…",
+    "type": "Type",
+    "type_league": "League",
+    "type_tournament": "Tournament",
+    "type_cup": "Cup",
+    "type_lan": "LAN",
+    "type_qualifier": "Qualifier",
+    "type_other": "Other",
+
+    "status_upcoming": "Upcoming",
+    "status_ongoing": "Ongoing",
+    "status_completed": "Completed",
+    "status_cancelled": "Cancelled",
+
+    "status_label": "Status",
+    "stage": "Phase",
+    "delete_confirm": "Are you sure you want to delete \"{{name}}\"? This action is irreversible.",
+
+    "start_date": "Start date",
+    "end_date": "End date",
+    "no_date": "No date set",
+    "registration_date": "Registration",
+    "checkin_date": "Check-in",
+    "format": "Format",
+    "cashprize": "Cashprize",
+    "url": "Link",
+    "notes": "Notes",
+    "more_options": "More options",
+
+    "tab_active": "Active",
+    "tab_completed": "Completed",
+    "tab_all": "All",
+
+    "empty_active": "No active competitions.",
+    "per_page": "competitions per page",
+    "bulk_delete_confirm_title": "Delete competitions",
+    "bulk_delete_confirm_desc_one": "You are about to permanently delete {{count}} competition. This action cannot be undone.",
+    "bulk_delete_confirm_desc_other": "You are about to permanently delete {{count}} competitions. This action cannot be undone.",
+    "empty_completed": "No completed competitions.",
+    "empty_all": "No competitions found.",
+    "empty_hint": "Try adjusting your filters.",
+
+    "select_mode": "Select",
+    "exit_select_mode": "Done",
+    "select_all": "Select all",
+    "deselect_all": "Deselect all",
+    "selected_count": "{{count}} selected",
+    "bulk_delete": "Delete ({{count}})",
+    "bulk_delete_success_one": "{{count}} competition deleted",
+    "bulk_delete_success_other": "{{count}} competitions deleted",
+    "bulk_delete_error": "Some competitions could not be deleted",
+
+    "select_placeholder": "Select a competition…",
+    "none": "None"
   },
 
   "faceit": {
@@ -785,17 +909,21 @@
     "category_CHAMPIONSHIP": "Championship",
     "select_competition": "Select all",
     "already_imported": "Imported",
-    "import_button": "Import {{count}} match(es)",
-    "import_success": "{{count}} match(es) imported successfully",
+    "import_button_one": "Import {{count}} match",
+    "import_button_other": "Import {{count}} matches",
+    "import_success_one": "{{count}} match imported successfully",
+    "import_success_other": "{{count}} matches imported successfully",
     "import_error": "Import failed",
-    "import_error_partial": "{{count}} match(es) could not be imported",
+    "import_error_partial_one": "{{count}} match could not be imported",
+    "import_error_partial_other": "{{count}} matches could not be imported",
     "import_skipped": "{{count}} already imported",
     "match_count": "played",
     "upcoming_count": "upcoming",
-    "selected_competitions": "competition(s) selected",
-    "pending_matches": "match(es) to import",
+    "selected_competitions": "competitions selected",
+    "pending_matches": "matches to import",
     "deimport_button": "Undo import",
-    "deimport_success": "{{count}} match(es) removed from history",
+    "deimport_success_one": "{{count}} match removed from history",
+    "deimport_success_other": "{{count}} matches removed from history",
     "deimport_error": "Failed to remove matches",
     "idle_title": "FACEIT History",
     "idle_subtitle_staff": "Synchronize your team's FACEIT competition history to import matches.",
@@ -812,7 +940,8 @@
     "info_step3_body": "Select one or more competitions and import their matches into the team's match history.",
     "slots_ready": "{{count}} players linked — ready to synchronize",
     "slots_need": "{{current}} / {{needed}} active players linked",
-    "sync_need_more": "{{needed}} more player(s) required",
+    "sync_need_more_one": "{{needed}} more player required",
+    "sync_need_more_other": "{{needed}} more players required",
     "players_linked_count": "{{count}} players linked",
     "players_of_active": "/ {{total}} active players",
     "range_label": "Time range",
@@ -821,7 +950,8 @@
     "range_1y": "1 year",
     "core_players_label": "Team core",
     "core_hint_custom": "{{count}} / 5 players selected — only matches with ≥3 of these players will appear.",
-    "core_hint_need_more": "Select {{needed}} more player(s) to reach the minimum.",
+    "core_hint_need_more_one": "Select {{needed}} more player to reach the minimum.",
+    "core_hint_need_more_other": "Select {{needed}} more players to reach the minimum.",
     "core_locked_min": "Minimum 3 players required",
     "core_locked_max": "Maximum 5 players",
     "core_all_label": "All players",
@@ -856,5 +986,218 @@
     "last_sync_full": "Synced on {{date}}",
     "resync_tip": "Remember to re-sync after new competitions on FACEIT. This module detects both completed matches and upcoming scheduled matches from the platform.",
     "resync_tip_short": "Re-sync after new FACEIT competitions"
+  },
+  "agenda": {
+    "header_subtitle": "Plan events, manage availability, anticipate conflicts",
+    "today": "Today",
+    "back_to_today": "Today",
+    "week_label": "Week {{num}}",
+    "all_types": "All types",
+    "time_range": "Time range",
+    "view_month": "Month",
+    "view_week": "Week",
+    "my_schedule": "My schedule",
+    "no_upcoming": "No upcoming events",
+    "actions": "Actions",
+    "create_event": "Create event",
+    "new_entry": "New event",
+    "new_team_event": "Team event",
+    "new_personal": "Unavailability",
+    "declare_availability": "Declare availability",
+    "declare_unavailability": "Declare unavailability",
+    "unavailability_created": "Unavailability declared",
+    "unavailability_updated": "Unavailability updated",
+    "unavailability_deleted": "Unavailability deleted",
+    "unavail_detail": "Unavailability",
+    "no_reason": "No reason specified",
+    "recurring_label": "Recurring schedule",
+    "recurring_days": "Days",
+    "recurring_for": "For",
+    "create_match": "Create a match",
+    "estimated_duration": "Estimated duration",
+    "past_match": "Past match",
+    "past_match_hint": "Enter the scores to complete this match",
+    "scores": "Scores",
+    "event_created": "Event created",
+    "event_updated": "Event updated",
+    "event_deleted": "Event deleted",
+    "availability_created": "Availability declared",
+    "participants": "Participants",
+    "conflicts": "Conflicts",
+    "no_conflicts": "No scheduling conflicts",
+    "more_conflicts_one": "{{count}} more conflict",
+    "more_conflicts_other": "{{count}} more conflicts",
+    "conflict_type_unavailable": "Unavailable",
+    "conflict_type_event_overlap": "Event conflict",
+    "conflict_section_availability": "Availability conflicts",
+    "conflict_section_event": "Event conflicts",
+    "conflict_detail_title": "Conflict detail",
+    "conflict_event": "Event",
+    "conflict_player": "Player",
+    "conflict_reason": "Reason",
+    "conflict_source_event": "Conflicting event",
+    "conflict_detected": "Detected",
+    "conflict_acknowledge": "Acknowledge",
+    "conflict_acknowledged": "Acknowledged",
+    "conflict_view_event": "View event",
+    "conflict_acknowledged_toast": "Conflict acknowledged",
+    "unavailable": "Unavailable",
+    "filter_unavailable": "Unavailable",
+    "unavail_count_one": "{{count}} player unavailable",
+    "unavail_count_other": "{{count}} players unavailable",
+    "unavailable_players": "Unavailable players",
+    "view_availability": "Availability",
+    "view_events": "Events",
+    "avail_all_day": "All day",
+    "available_label": "Available",
+    "event_overlap": "Already on another event",
+    "field_type": "Type",
+    "field_title": "Title",
+    "field_date": "Date",
+    "field_start": "Start",
+    "field_end": "End",
+    "field_location": "Location",
+    "field_description": "Description",
+    "field_participants": "Participants",
+    "field_reason": "Reason",
+    "preset_everyone": "Everyone",
+    "preset_players": "Players",
+    "preset_staff": "Staff",
+    "add_participant": "Add a participant",
+    "field_link": "Link",
+    "link_placeholder": "https://docs, VOD, strat…",
+    "meeting_placeholder": "Weekly sync, debrief…",
+    "custom_category": "Category",
+    "custom_placeholder": "Event name",
+    "subtype": {
+      "LAN": "LAN",
+      "TOURNAMENT": "Tournament",
+      "QUALIFIER": "Qualifier",
+      "VACATION": "Vacation",
+      "TRAVEL": "Travel",
+      "OTHER": "Other"
+    },
+    "strat_maps": "Maps to work on",
+    "strat_objectives": "Objectives",
+    "strat_objectives_placeholder": "What to practice, focus points…",
+    "break_start": "Start date",
+    "break_end": "End date",
+    "all_day": "All day",
+    "repeat_weekly": "Repeat weekly",
+    "weeks": "weeks",
+    "title_placeholder": "Scrim vs Team X",
+    "location_placeholder": "Online, LAN venue…",
+    "description_placeholder": "Notes, objectives…",
+    "reason_placeholder": "Work, school, family…",
+    "event_type": {
+      "MATCH": "Match",
+      "COMPETITION": "Competition",
+      "MEETING": "Meeting",
+      "STRAT_TIME": "Strat",
+      "REST": "Rest day",
+      "BREAK": "Break",
+      "CUSTOM": "Custom"
+    },
+    "scope": {
+      "ACTIVE_ROSTER": "Active roster",
+      "ALL_MEMBERS": "Everyone",
+      "STAFF_ONLY": "Staff only"
+    },
+    "availability_type": {
+      "AVAILABLE": "Available",
+      "UNAVAILABLE": "Unavailable"
+    },
+    "day_mon": "Mon",
+    "day_tue": "Tue",
+    "day_wed": "Wed",
+    "day_thu": "Thu",
+    "day_fri": "Fri",
+    "day_sat": "Sat",
+    "day_sun": "Sun"
+  },
+
+  "stratbook": {
+    "new_strat": "New strategy",
+    "result_count_one": "{{count}} strategy",
+    "result_count_other": "{{count}} strategies",
+    "per_page": "strats per page",
+    "filters": "Filters",
+    "clear_filters": "Clear filters",
+    "search_placeholder": "Search strategies...",
+    "favorites_only": "Favorites",
+    "empty": "No strategies yet",
+    "empty_hint": "Create your first strategy to get started",
+    "empty_filtered": "No strategies match your filters",
+    "empty_drafts": "No drafts",
+    "view_published": "Published",
+    "view_drafts": "Drafts",
+    "filter_all": "All",
+
+    "name": "Name",
+    "name_placeholder": "A Split Fast, B Exec Late...",
+    "call_name": "Call name",
+    "call_name_placeholder": "A split 1",
+    "map": "Map",
+    "description": "Description",
+    "objective": "Objective",
+    "conditions": "Conditions",
+    "tags": "Tags",
+    "tags_placeholder": "fast, pistol, anti-eco",
+
+    "side": "Side",
+    "side_t": "T side",
+    "side_ct": "CT side",
+
+    "type": "Type",
+    "type_default": "Default",
+    "type_execute": "Execute",
+    "type_fake": "Fake",
+    "type_rush": "Rush",
+    "type_contact": "Contact",
+    "type_retake": "Retake",
+    "type_setup": "Setup",
+
+    "difficulty": "Difficulty",
+    "difficulty_easy": "Easy",
+    "difficulty_medium": "Medium",
+    "difficulty_hard": "Hard",
+
+    "status": "Status",
+    "status_draft": "Draft",
+    "status_ready": "Mastered",
+    "status_in_practice": "In Practice",
+    "status_deprecated": "Deprecated",
+
+    "more_options": "More options",
+
+    "phase_setup": "Setup",
+    "phase_mid_round": "Mid Round",
+    "phase_execute": "Execute",
+    "phase_post_plant": "Post Plant",
+    "add_phase": "Add phase",
+
+    "utility_smoke": "Smoke",
+    "utility_flash": "Flash",
+    "utility_molly": "Molotov",
+    "utility_he": "HE Grenade",
+    "utility_position": "Throw position",
+    "utility_target": "Target",
+    "utility_timing": "Timing",
+    "utility_video": "Video URL",
+    "add_utility": "Add utility",
+
+    "create_title": "New strategy",
+    "create_button": "Create",
+    "create_success": "Strategy created",
+    "create_error": "Failed to create strategy",
+    "update_success": "Strategy updated",
+    "update_error": "Failed to update strategy",
+    "delete_success": "Strategy deleted",
+    "delete_error": "Failed to delete strategy",
+    "duplicate_success": "Strategy duplicated",
+    "note_added": "Note added",
+    "note_deleted": "Note deleted",
+    "note_placeholder": "Write a note...",
+    "load_error": "Failed to load strategies"
   }
 }

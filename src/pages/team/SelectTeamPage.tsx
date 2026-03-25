@@ -79,8 +79,8 @@ export default function SelectTeamPage() {
                             id: team.id,
                             name: team.name,
                             tag: team.tag ?? "",
-                            game: team.game ?? undefined,
-                            ...(team.logoUrl && { logoUrl: team.logoUrl }),
+                            ...(team.game ? { game: team.game } : {}),
+                            ...(team.logoUrl ? { logoUrl: team.logoUrl } : {}),
                         }))
                     );
                 }
@@ -120,8 +120,8 @@ export default function SelectTeamPage() {
                 id: team.id,
                 name: team.name,
                 tag: team.tag ?? "",
-                game: team.game ?? undefined,
-                ...(team.logoUrl && { logoUrl: team.logoUrl }),
+                ...(team.game ? { game: team.game } : {}),
+                ...(team.logoUrl ? { logoUrl: team.logoUrl } : {}),
             })));
             setError(null);
         } catch {
@@ -206,7 +206,7 @@ export default function SelectTeamPage() {
                             <p className="text-sm text-neutral-500 mb-8">{t("team.no_teams_message")}</p>
                             <button
                                 onClick={() => navigate("/team/create")}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition-colors"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#4338ca] hover:bg-[#4f46e5] text-white rounded-xl text-sm font-semibold transition-colors"
                             >
                                 <Plus className="w-4 h-4" />
                                 {t("team.create_team")}
@@ -274,11 +274,11 @@ export default function SelectTeamPage() {
 
             {showLogoutConfirm && (
                 <ConfirmModal
-                    title={t("auth.logout")}
+                    title={t("auth.logout_title")}
                     description={t("auth.logout_confirm")}
                     confirmLabel={t("auth.logout")}
                     cancelLabel={t("common.cancel")}
-                    variant="danger"
+                    variant="warning"
                     onConfirm={async () => confirmLogout()}
                     onCancel={() => setShowLogoutConfirm(false)}
                 />

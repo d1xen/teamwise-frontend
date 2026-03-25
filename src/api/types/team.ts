@@ -63,9 +63,9 @@ export type TeamDto = {
     serverInfo?: ServerInfoDto | null;
     membership?: TeamMembershipDto;
     membersOverview?: MembersOverviewDto | null;
+    description?: string | null;
     createdAt?: string | null;
     updatedAt?: string | null;
-    description?: string | null;
 };
 
 export type TeamMemberDto = {
@@ -87,6 +87,7 @@ export type TeamMemberDto = {
     countryCode?: string | null; // ISO 2 letters (FR, US, GB...)
     customUsername?: string | null;
     faceitNickname?: string | null;
+    joinedAt?: string | null;
 };
 
 // ============================================================================

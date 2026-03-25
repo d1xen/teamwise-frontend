@@ -8,6 +8,7 @@ import {
     updateMatch as updateMatchApi,
     updateMapScore as updateMapScoreApi,
 } from "@/api/endpoints/match.api";
+import { invalidateMatchSummary } from "./useMatchSummary";
 import type {
     CreateMatchRequest,
     MatchDto,
@@ -15,19 +16,20 @@ import type {
     UpdateMapScoreRequest,
     UpdateMatchRequest,
 } from "@/api/types/match";
+import type { PageSize } from "@/shared/components/Pagination";
 import { appStorage } from "@/shared/utils/storage/appStorage";
+import { usePolling } from "@/shared/hooks/usePolling";
 
 const DEFAULT_FILTERS: MatchFilters = {
     tab: "upcoming",
     type: "",
-    context: "",
     format: "",
     opponent: "",
-    competition: "",
+    competitionId: "",
     dateRange: "all",
 };
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE: PageSize = 50;
 
 function loadStoredFilters(teamId: string): MatchFilters {
     try {
@@ -46,104 +48,99 @@ export function useMatches(teamId: string) {
     const [filters, setFilters] = useState<MatchFilters>(initialFilters);
     const [appliedFilters, setAppliedFilters] = useState<MatchFilters>(initialFilters);
 
-    // Accumulated content for infinite scroll
     const [content, setContent] = useState<MatchDto[]>([]);
     const [totalElements, setTotalElements] = useState(0);
-    const [hasMore, setHasMore] = useState(false);
+    const [totalPages, setTotalPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(0);
+    const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
     const [isLoading, setIsLoading] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    // Incremented on each loadFirst call — stale responses are discarded
     const fetchIdRef = useRef(0);
+    const hasContentRef = useRef(false);
 
-    // Persist filters to localStorage whenever they change
     useEffect(() => {
         if (!teamId) return;
         appStorage.setMatchFilters(teamId, JSON.stringify(filters));
     }, [teamId, filters]);
 
-    // Debounce text inputs (opponent + competition)
+    // Debounce text inputs (opponent)
     useEffect(() => {
-        if (debounceTimer.current !== null) {
-            clearTimeout(debounceTimer.current);
-        }
+        if (debounceTimer.current !== null) clearTimeout(debounceTimer.current);
         debounceTimer.current = setTimeout(() => {
-            setAppliedFilters(prev => ({
-                ...prev,
-                opponent: filters.opponent,
-                competition: filters.competition,
-            }));
+            setAppliedFilters(prev => ({ ...prev, opponent: filters.opponent }));
         }, 350);
-        return () => {
-            if (debounceTimer.current !== null) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [filters.opponent, filters.competition]);
+        return () => { if (debounceTimer.current !== null) clearTimeout(debounceTimer.current); };
+    }, [filters.opponent]);
 
-    // Load page 0 — replaces content. Old content stays visible until this resolves.
-    const loadFirst = useCallback(async (f: MatchFilters) => {
+    const loadPage = useCallback(async (f: MatchFilters, page: number, size: PageSize) => {
         if (!teamId) return;
         const id = ++fetchIdRef.current;
-        setIsLoading(true);
-        setIsLoadingMore(false);
+        if (hasContentRef.current) {
+            setIsRefreshing(true);
+        } else {
+            setIsLoading(true);
+        }
         try {
-            const result = await getMatchesPaginated(teamId, f, 0, PAGE_SIZE);
+            const result = await getMatchesPaginated(teamId, f, page, size);
             if (id !== fetchIdRef.current) return;
             setContent(result.content);
             setTotalElements(result.totalElements);
-            setHasMore(result.hasNext);
-            setCurrentPage(0);
+            setTotalPages(result.totalPages);
+            setCurrentPage(result.page);
+            hasContentRef.current = result.content.length > 0;
         } catch {
             if (id === fetchIdRef.current) toast.error(t("matches.load_error"));
         } finally {
-            if (id === fetchIdRef.current) setIsLoading(false);
+            if (id === fetchIdRef.current) {
+                setIsLoading(false);
+                setIsRefreshing(false);
+            }
         }
     }, [teamId, t]);
 
+    // Reload when filters change — reset to page 0
     useEffect(() => {
-        loadFirst(appliedFilters);
-    }, [loadFirst, appliedFilters]);
+        loadPage(appliedFilters, 0, pageSize);
+    }, [loadPage, appliedFilters, pageSize]);
 
-    // Load next page — appends content.
-    const loadMore = useCallback(async () => {
-        if (!hasMore || isLoadingMore || isLoading || !teamId) return;
-        const nextPage = currentPage + 1;
-        setIsLoadingMore(true);
+    // Silent poll
+    const silentReload = useCallback(async () => {
+        if (!teamId) return;
         try {
-            const result = await getMatchesPaginated(teamId, appliedFilters, nextPage, PAGE_SIZE);
-            setContent(prev => [...prev, ...result.content]);
-            setHasMore(result.hasNext);
-            setCurrentPage(nextPage);
-        } catch {
-            // silent — user can scroll again to retry
-        } finally {
-            setIsLoadingMore(false);
-        }
-    }, [hasMore, isLoadingMore, isLoading, teamId, appliedFilters, currentPage]);
+            const result = await getMatchesPaginated(teamId, appliedFilters, currentPage, pageSize);
+            setContent(result.content);
+            setTotalElements(result.totalElements);
+            setTotalPages(result.totalPages);
+        } catch { /* silent */ }
+    }, [teamId, appliedFilters, currentPage, pageSize]);
 
-    const reload = useCallback(() => loadFirst(appliedFilters), [loadFirst, appliedFilters]);
+    usePolling(silentReload, 20_000, !isLoading);
+
+    const goToPage = useCallback((page: number) => {
+        loadPage(appliedFilters, page, pageSize);
+    }, [loadPage, appliedFilters, pageSize]);
+
+    const changePageSize = useCallback((size: PageSize) => {
+        setPageSize(size);
+        // pageSize change triggers reload via useEffect (resets to page 0)
+    }, []);
+
+    const reload = useCallback(() => loadPage(appliedFilters, currentPage, pageSize), [loadPage, appliedFilters, currentPage, pageSize]);
 
     // Non-text filter changes bypass debounce
     const updateFilters = useCallback((patch: Partial<MatchFilters>) => {
         setFilters(prev => ({ ...prev, ...patch }));
-        const { opponent, competition, ...rest } = patch;
+        const { opponent, ...rest } = patch;
         if (Object.keys(rest).length > 0) {
-            if (debounceTimer.current !== null) {
-                clearTimeout(debounceTimer.current);
-            }
+            if (debounceTimer.current !== null) clearTimeout(debounceTimer.current);
             setAppliedFilters(prev => ({ ...prev, ...rest }));
         }
-        void opponent;    // handled by debounce effect
-        void competition; // handled by debounce effect
+        void opponent;
     }, []);
 
-    // Tab change: preserve active filters, only update tab
     const changeTab = useCallback((tab: MatchFilters["tab"]) => {
-        if (debounceTimer.current !== null) {
-            clearTimeout(debounceTimer.current);
-        }
+        if (debounceTimer.current !== null) clearTimeout(debounceTimer.current);
         setFilters(prev => {
             const next = { ...prev, tab };
             setAppliedFilters(next);
@@ -151,18 +148,16 @@ export function useMatches(teamId: string) {
         });
     }, []);
 
-    // ── Mutations ────────────────────────────────────────────────────────────
+    // ── Mutations ──
 
     const createMatch = async (payload: CreateMatchRequest): Promise<boolean> => {
         try {
             await createMatchApi(teamId, payload);
             toast.success(t("matches.create_success"));
             await reload();
+            invalidateMatchSummary();
             return true;
-        } catch {
-            toast.error(t("matches.create_error"));
-            return false;
-        }
+        } catch { toast.error(t("matches.create_error")); return false; }
     };
 
     const deleteMatch = async (matchId: number): Promise<void> => {
@@ -170,9 +165,8 @@ export function useMatches(teamId: string) {
             await deleteMatchApi(matchId);
             toast.success(t("matches.delete_success"));
             await reload();
-        } catch {
-            toast.error(t("matches.delete_error"));
-        }
+            invalidateMatchSummary();
+        } catch { toast.error(t("matches.delete_error")); }
     };
 
     const bulkDeleteMatches = async (matchIds: number[]): Promise<void> => {
@@ -180,54 +174,34 @@ export function useMatches(teamId: string) {
             await Promise.all(matchIds.map(id => deleteMatchApi(id)));
             toast.success(t("matches.bulk_delete_success", { count: matchIds.length }));
             await reload();
-        } catch {
-            toast.error(t("matches.bulk_delete_error"));
-        }
+            invalidateMatchSummary();
+        } catch { toast.error(t("matches.bulk_delete_error")); }
     };
 
     const updateMatch = async (matchId: number, payload: UpdateMatchRequest): Promise<MatchDto | null> => {
         try {
             const updated = await updateMatchApi(matchId, payload);
             await reload();
+            invalidateMatchSummary();
             return updated;
-        } catch {
-            toast.error(t("matches.update_error"));
-            return null;
-        }
+        } catch { toast.error(t("matches.update_error")); return null; }
     };
 
-    const updateMapScore = async (
-        matchId: number,
-        mapId: number,
-        payload: UpdateMapScoreRequest,
-        silent?: boolean
-    ): Promise<boolean> => {
+    const updateMapScore = async (matchId: number, mapId: number, payload: UpdateMapScoreRequest, silent?: boolean): Promise<boolean> => {
         try {
             await updateMapScoreApi(matchId, mapId, payload);
             if (!silent) toast.success(t("matches.score_saved"));
             await reload();
+            invalidateMatchSummary();
             return true;
-        } catch {
-            toast.error(t("matches.score_error"));
-            return false;
-        }
+        } catch { toast.error(t("matches.score_error")); return false; }
     };
 
     return {
-        content,
-        totalElements,
-        isLoading,
-        isLoadingMore,
-        hasMore,
-        loadMore,
-        filters,
-        updateFilters,
-        changeTab,
-        reload,
-        createMatch,
-        deleteMatch,
-        bulkDeleteMatches,
-        updateMatch,
-        updateMapScore,
+        content, totalElements, totalPages, currentPage, pageSize,
+        isLoading, isRefreshing,
+        filters, updateFilters, changeTab,
+        goToPage, changePageSize,
+        reload, createMatch, deleteMatch, bulkDeleteMatches, updateMatch, updateMapScore,
     };
 }

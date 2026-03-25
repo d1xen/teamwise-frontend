@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    RefreshCw, Download, Loader, Zap,
+    RefreshCw, Download, Loader,
     Settings2, ChevronDown, ChevronUp, Clock,
     Link2, Check, ArrowRight, Users, HelpCircle,
 } from "lucide-react";
+import FaceitIcon from "@/shared/components/FaceitIcon";
 import { useTeam } from "@/contexts/team/useTeam";
 import { useFaceitOverview } from "../hooks/useFaceitOverview";
 import { useFaceitImport } from "../hooks/useFaceitImport";
 import CompetitionCard from "./CompetitionCard";
 import { cn } from "@/design-system";
-import type { CompetitionCategory, CompetitionSummaryDto, SyncConfig } from "@/api/types/faceit";
+import type { CompetitionCategory, CompetitionSummaryDto } from "@/api/types/faceit";
 import type { TeamMemberDto } from "@/api/types/team";
 
 const MIN_LINKED = 3;
@@ -139,12 +140,12 @@ function useSyncDateLabel(date: Date | null, lang: string): string | null {
 export default function FaceitOverview({ teamId }: { teamId: string }) {
     const { t, i18n } = useTranslation();
     const { membership, members } = useTeam();
-    const { overview, isLoading, hasLoaded, error, config, setConfig, lastSyncedAt, sync, reload, patchImportedIds } =
+    const { overview, isLoading, hasLoaded, error, config, setConfig, lastSyncedAt, sync, reload, patchImportedIds, invalidate } =
         useFaceitOverview(teamId);
     const importState                 = useFaceitImport();
     const [filter, setFilter]         = useState<Filter>("all");
     const [configOpen, setConfigOpen] = useState(false);
-    const [guideOpen, setGuideOpen]   = useState(true);
+    const [guideOpen, setGuideOpen]   = useState(!hasLoaded);
     const prevHasLoaded               = useRef(hasLoaded);
 
     const isStaff = (membership?.isOwner ?? false) || membership?.role !== "PLAYER";
@@ -167,10 +168,24 @@ export default function FaceitOverview({ teamId }: { teamId: string }) {
         prevHasLoaded.current = hasLoaded;
     }, [hasLoaded]);
 
-    // Init core from linked roster
+    // Init or validate core players against current linked roster
     useEffect(() => {
-        if (linkedPlayers.length > 0 && config.corePlayerSteamIds.length === 0) {
-            setConfig({ ...config, corePlayerSteamIds: linkedPlayers.slice(0, MAX_CORE).map(p => p.steamId) });
+        const linkedIds = new Set(linkedPlayers.map(p => p.steamId));
+
+        if (config.corePlayerSteamIds.length === 0) {
+            // First init: auto-select up to MAX_CORE linked players
+            if (linkedPlayers.length > 0) {
+                setConfig({ ...config, corePlayerSteamIds: linkedPlayers.slice(0, MAX_CORE).map(p => p.steamId) });
+            }
+            return;
+        }
+
+        // Check if any stored core player is no longer active+linked
+        const validCore = config.corePlayerSteamIds.filter(id => linkedIds.has(id));
+        if (validCore.length < config.corePlayerSteamIds.length) {
+            setConfig({ ...config, corePlayerSteamIds: validCore });
+            invalidate();
+            setGuideOpen(true);
         }
     }, [linkedPlayers.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -225,7 +240,7 @@ export default function FaceitOverview({ teamId }: { teamId: string }) {
         <div className="flex flex-col gap-5 pb-28">
             {/* Header */}
             <div className="flex items-center gap-2.5">
-                <Zap className="w-5 h-5 text-orange-400 shrink-0" />
+                <FaceitIcon className="w-5 h-5 shrink-0" />
                 <h3 className="text-base font-semibold text-white">{t("faceit.idle_title")}</h3>
             </div>
 

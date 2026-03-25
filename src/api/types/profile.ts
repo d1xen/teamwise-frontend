@@ -16,7 +16,10 @@ export type UserProfileDto = {
     twitter: string | null;
     hltv: string | null;
     customUsername: string | null;
+    timezone: string | null;
     profileCompleted: boolean;
+    createdAt: string | null;
+    updatedAt: string | null;
 };
 
 export type UserProfileUpdateDto = {
@@ -33,4 +36,5 @@ export type UserProfileUpdateDto = {
     twitter?: string | null;
     discord?: string | null;
     hltv?: string | null;
+    timezone?: string | null;
 };

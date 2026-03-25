@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { CheckCircle2, Circle, ExternalLink, Link2, Unlink } from 'lucide-react';
+import { CheckCircle2, Circle, ExternalLink, Link2, X } from 'lucide-react';
 import {
     getFaceitStatus,
     initiateFaceitConnect,
     disconnectFaceit,
 } from '@/api/endpoints/faceit.api';
-import type { FaceitStatusDto } from '@/api/endpoints/faceit.api';
+import type { FaceitStatusDto } from '@/api/types/faceit';
 import { useOptionalTeam } from '@/contexts/team/useOptionalTeam';
 
 interface FaceitConnectSectionProps {
@@ -57,7 +57,7 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
         }
         popupRef.current = null;
         reloadStatus();
-        void teamCtx?.refreshTeam();
+        teamCtx?.refreshTeam?.().catch(() => {});
     };
 
     const reloadStatus = () => {
@@ -189,14 +189,15 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
         setIsActing(true);
         try {
             await disconnectFaceit();
-            setStatus({ linked: false, faceitNickname: null });
-            toast.success(t('faceit.disconnect_success'));
-            void teamCtx?.refreshTeam();
         } catch {
             toast.error(t('faceit.disconnect_error'));
-        } finally {
             setIsActing(false);
+            return;
         }
+        setStatus({ linked: false, faceitNickname: null });
+        toast.success(t('faceit.disconnect_success'));
+        setIsActing(false);
+        teamCtx?.refreshTeam?.().catch(() => {/* silent */});
     };
 
     if (isLoading || status === null) return null;
@@ -210,9 +211,10 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
                     <button
                         onClick={handleDisconnect}
                         disabled={isActing}
-                        className="ml-1 px-1.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/30 text-[10px] font-semibold text-orange-300 hover:text-white hover:bg-orange-500/20 transition-colors disabled:opacity-50"
+                        className="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full bg-neutral-600/40 text-neutral-400 hover:bg-neutral-500/50 hover:text-neutral-200 transition-colors disabled:opacity-50"
+                        title={t('faceit.disconnect_button')}
                     >
-                        {t('faceit.disconnect_button')}
+                        <X className="w-2.5 h-2.5" />
                     </button>
                 )}
             </span>
@@ -262,10 +264,10 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
                         <button
                             onClick={handleDisconnect}
                             disabled={isActing}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-red-500/10 hover:border-red-500/30 border border-neutral-700 text-neutral-400 hover:text-red-400 text-xs font-medium transition-colors disabled:opacity-50"
+                            className="w-5 h-5 flex items-center justify-center rounded-full bg-neutral-700/50 text-neutral-500 hover:bg-neutral-600/60 hover:text-neutral-300 transition-colors disabled:opacity-50"
+                            title={t('faceit.disconnect_button')}
                         >
-                            <Unlink className="w-3 h-3" />
-                            {t('faceit.disconnect_button')}
+                            <X className="w-3 h-3" />
                         </button>
                     )}
                 </div>

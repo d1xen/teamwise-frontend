@@ -12,11 +12,14 @@ import {
   Settings,
   LogOut,
   Globe,
+  LayoutDashboard,
   Home,
   ArrowLeftRight,
   Heart,
   Crosshair,
+  Trophy,
   MessagesSquare,
+  MonitorPlay,
 } from 'lucide-react';
 import Flag from 'react-world-flags';
 import { cn } from '@/design-system';
@@ -24,7 +27,7 @@ import { appConfig } from '@/config/appConfig';
 import TeamWiseLogo from '@/shared/components/TeamWiseLogo';
 import { useMinimumLoader } from '@/shared/hooks/useMinimumLoader';
 import { appStorage } from '@/shared/utils/storage/appStorage';
-import { getAvatarUrl } from '@/shared/utils/avatarUtils';
+import { UserAvatar } from '@/shared/components/UserAvatar';
 
 import ConfirmModal from '@/shared/components/ConfirmModal';
 import AppVersion from '@/shared/components/AppVersion';
@@ -44,13 +47,12 @@ export default function TeamSidebar() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { team, isLoading } = useTeam();
+  const { team } = useTeam();
   const { user, logout } = useAuth();
   const kofiUrl = appConfig.externalLinks.kofi;
   const showLoader = useMinimumLoader(!team, 800);
   const [langOpen, setLangOpen] = useState(false);
   const { toCompleteCount } = useMatchSummary(team?.id ?? "");
-  const footerAvatarUrl = user ? getAvatarUrl(user) : null;
   const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function TeamSidebar() {
 
   if (showLoader) {
     return (
-      <div className="w-60 flex-shrink-0 bg-neutral-900/50 border-r border-neutral-800 flex items-center justify-center">
+      <div className="w-52 flex-shrink-0 bg-neutral-900/50 border-r border-neutral-800 flex items-center justify-center">
         <div className="text-sm text-neutral-400">{t("common.loading")}</div>
       </div>
     );
@@ -77,6 +79,12 @@ export default function TeamSidebar() {
   }
 
   const navItems: NavItem[] = [
+    {
+      id: 'dashboard',
+      label: t('nav.dashboard'),
+      icon: LayoutDashboard,
+      path: `/team/${team.id}/dashboard`,
+    },
     {
       id: 'team',
       label: t('nav.team'),
@@ -102,10 +110,22 @@ export default function TeamSidebar() {
       path: `/team/${team.id}/matches`,
     },
     {
+      id: 'competitions',
+      label: t('nav.competitions'),
+      icon: Trophy,
+      path: `/team/${team.id}/competitions`,
+    },
+    {
       id: 'stratbook',
       label: t('nav.stratbook'),
       icon: BookOpen,
       path: `/team/${team.id}/stratbook`,
+    },
+    {
+      id: 'demo',
+      label: t('nav.demo'),
+      icon: MonitorPlay,
+      path: `/team/${team.id}/demo`,
     },
     {
       id: 'scrims',
@@ -141,34 +161,35 @@ export default function TeamSidebar() {
   };
 
   return (
-    <div className="w-60 flex-shrink-0 bg-neutral-900/50 border-r border-neutral-800 flex flex-col">
+    <div className="w-52 flex-shrink-0 bg-neutral-900/50 border-r border-neutral-800 flex flex-col">
       {/* Header - Brand & Team Info */}
       <div className="flex-shrink-0 border-b border-neutral-800">
-        <div className="pl-8 pr-5 flex flex-col justify-center gap-2 h-[132px]">
+        <div className="px-5 flex flex-col justify-center gap-1.5 h-[132px]">
 
-          <div className="flex items-center gap-2">
-            <TeamWiseLogo size={30} />
+          <div className="flex flex-col gap-0.5">
+            <TeamWiseLogo size={32} />
             <AppVersion />
           </div>
 
           <p className="text-sm font-bold text-white truncate leading-tight">{team.name}</p>
 
-          <div className="flex items-center gap-1.5">
-            {team.tag && (
-              <span className="px-1.5 py-0.5 bg-neutral-800 text-neutral-400 rounded text-[10px] font-bold border border-neutral-700/80">
-                {team.tag}
+          {team.game && (() => {
+            const GAME_STYLE: Record<string, string> = {
+              CS2:      "bg-yellow-500/10 text-yellow-300 border-yellow-500/20",
+              VALORANT: "bg-red-500/10 text-red-300 border-red-500/20",
+            };
+            return (
+              <span className={`self-start px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${GAME_STYLE[team.game] ?? "bg-neutral-800 text-neutral-400 border-neutral-700"}`}>
+                {team.game}
               </span>
-            )}
-            {team.game && (
-              <span className="text-[11px] text-neutral-600">{team.game}</span>
-            )}
-          </div>
+            );
+          })()}
 
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 pl-5 pr-3 space-y-1 overflow-y-auto custom-scrollbar scrollbar-gutter-stable">
+      <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto custom-scrollbar scrollbar-gutter-stable">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
@@ -213,7 +234,7 @@ export default function TeamSidebar() {
         {/* Donate */}
         <button
           onClick={() => window.open(kofiUrl, '_blank', 'noopener,noreferrer')}
-          className="w-full flex items-center gap-3 px-8 py-2.5 text-neutral-500 hover:text-emerald-300 hover:bg-neutral-800/50 transition-all duration-150"
+          className="w-full flex items-center gap-3 px-6 py-2.5 text-neutral-500 hover:text-emerald-300 hover:bg-neutral-800/50 transition-all duration-150"
         >
           <Heart className="w-4 h-4 flex-shrink-0" />
           <span className="text-sm font-medium">{t('donate.label')}</span>
@@ -221,12 +242,13 @@ export default function TeamSidebar() {
 
         {/* Profile bar */}
         {user && (
-          <div className="border-t border-neutral-800 px-5 py-3 flex items-center gap-2.5">
+          <div className="border-t border-neutral-800 px-3 py-3 flex items-center gap-2">
             <div className="relative shrink-0">
-              <img
-                src={footerAvatarUrl ?? ''}
-                alt={user.nickname}
-                className="w-7 h-7 rounded-md object-cover"
+              <UserAvatar
+                profileImageUrl={user.profileImageUrl}
+                avatarUrl={user.avatarUrl}
+                nickname={user.nickname}
+                size={28}
               />
               <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border-2 border-neutral-900" />
             </div>
@@ -295,11 +317,11 @@ export default function TeamSidebar() {
 
       {showLogoutConfirm && (
         <ConfirmModal
-          title={t('auth.logout')}
+          title={t('auth.logout_title')}
           description={t('auth.logout_confirm')}
           confirmLabel={t('auth.logout')}
           cancelLabel={t('common.cancel')}
-          variant="danger"
+          variant="warning"
           onConfirm={async () => confirmLogout()}
           onCancel={() => setShowLogoutConfirm(false)}
         />

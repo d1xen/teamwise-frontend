@@ -4,16 +4,11 @@ import { calculateAge } from '@/shared/utils/dateUtils';
 import { Crown } from 'lucide-react';
 import Flag from 'react-world-flags';
 import { UserAvatar } from '@/shared/components/UserAvatar';
+import { ROLE_BADGE_STYLES } from '@/shared/constants/roleStyles';
 
 interface StaffCardProps {
   member: TeamMember;
 }
-
-const ROLE_STYLES: Record<string, string> = {
-  MANAGER:  'bg-indigo-500/10 text-indigo-300 border-indigo-500/20',
-  COACH:    'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-  ANALYST:  'bg-amber-500/10 text-amber-300 border-amber-500/20',
-};
 
 export function StaffCard({ member }: StaffCardProps) {
   const { t } = useTranslation();
@@ -25,7 +20,7 @@ export function StaffCard({ member }: StaffCardProps) {
     ? `${member.firstName || ''} ${member.lastName || ''}`.trim()
     : null;
 
-  const roleStyle = ROLE_STYLES[member.role] ?? 'bg-neutral-800 text-neutral-400 border-neutral-700';
+  const roleStyle = ROLE_BADGE_STYLES[member.role] ?? 'bg-neutral-800 text-neutral-400 border-neutral-700';
 
   return (
     <div className="flex items-center gap-3.5 px-4 py-3 bg-neutral-900/50 border border-neutral-800 rounded-xl hover:border-neutral-700 hover:bg-neutral-900/70 transition-all duration-200 group">

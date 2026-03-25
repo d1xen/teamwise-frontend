@@ -4,7 +4,7 @@ import {
     useState,
     useCallback,
 } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/contexts/auth/useAuth";
 import { getMembers, getTeam } from "@/api/endpoints/team.api";
@@ -25,6 +25,8 @@ export function TeamProvider({
 }) {
     const { user } = useAuth();
     const { teamId } = useParams<{ teamId: string }>();
+    const navigate = useNavigate();
+    const wasReadyRef = useRef(false);
 
     const [team, setTeam] = useState<Team | null>(null);
     const [membership, setMembership] =
@@ -81,6 +83,7 @@ export function TeamProvider({
                 ...(m.countryCode && { countryCode: m.countryCode }),
                 ...(m.customUsername && { customUsername: m.customUsername }),
                 faceitNickname: m.faceitNickname ?? null,
+                ...(m.joinedAt && { joinedAt: m.joinedAt }),
             }));
 
             // Calculer la nationalité de l'équipe basée sur les joueurs
@@ -102,22 +105,32 @@ export function TeamProvider({
                 nationality: teamNationality,
             });
 
-            setMembership(
-                teamData.membership
-                    ? {
-                          role: teamData.membership.role,
-                          isOwner: teamData.membership.isOwner,
-                      }
-                    : null
-            );
+            const newMembership = teamData.membership
+                ? { role: teamData.membership.role, isOwner: teamData.membership.isOwner }
+                : null;
 
+            setMembership(newMembership);
             setMembers(convertedMembers);
-        } catch (err) {
+
+            // Detect kicked: was ready (not first load) but membership is now null
+            if (wasReadyRef.current && !newMembership) {
+                appStorage.clearLastTeamId();
+                navigate("/select-team", { replace: true });
+                return;
+            }
+        } catch (err: unknown) {
+            // 403 = no longer a member of this team
+            if (wasReadyRef.current && err && typeof err === "object" && "status" in err && (err as { status: number }).status === 403) {
+                appStorage.clearLastTeamId();
+                navigate("/select-team", { replace: true });
+                return;
+            }
             console.error("Failed to load team context", err);
         } finally {
             if (loadIdRef.current === currentLoadId) {
                 setIsLoading(false);
                 setIsReady(true);
+                wasReadyRef.current = true;
             }
         }
     }, [user, teamId]);

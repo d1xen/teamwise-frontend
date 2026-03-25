@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import i18n from '@/i18n';
 import Flag from "react-world-flags";
 import { Swords, Users, Calendar } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { STEAM_AUTH_URL } from "@/api/endpoints/auth.api";
 import TeamWiseLogo from "@/shared/components/TeamWiseLogo";
 import steamLogo from "@/shared/assets/icon-steam.svg";
@@ -10,6 +10,7 @@ import AppVersion from "@/shared/components/AppVersion";
 
 export default function LoginPage() {
     const { t } = useTranslation();
+    const location = useLocation();
 
     const changeLanguage = (lng: "en" | "fr") => {
         i18n.changeLanguage(lng);
@@ -17,6 +18,11 @@ export default function LoginPage() {
     };
 
     const handleSteamLogin = () => {
+        // Preserve intended destination across Steam OAuth redirect
+        const from = (location.state as { from?: string } | null)?.from;
+        if (from) {
+            sessionStorage.setItem("tw_return_url", from);
+        }
         window.location.href = STEAM_AUTH_URL;
     };
 
