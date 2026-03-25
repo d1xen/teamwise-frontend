@@ -207,15 +207,13 @@ export default function StratbookPage() {
                                 )}
                             </div>
 
-                            {isStaff && (
-                                <button
-                                    onClick={() => setShowForm(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#4338ca]/40 bg-[#4338ca]/10 text-[#8b83f7] hover:bg-[#4338ca]/20 text-xs font-medium transition-colors"
-                                >
-                                    <Plus className="w-3 h-3" />
-                                    {t("stratbook.new_strat")}
-                                </button>
-                            )}
+                            <button
+                                onClick={() => setShowForm(true)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#4338ca]/40 bg-[#4338ca]/10 text-[#8b83f7] hover:bg-[#4338ca]/20 text-xs font-medium transition-colors"
+                            >
+                                <Plus className="w-3 h-3" />
+                                {t("stratbook.new_strat")}
+                            </button>
                         </div>
                     </div>
 

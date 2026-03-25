@@ -11,6 +11,8 @@ import { useTeam } from "@/contexts/team/useTeam";
 import { useAuth } from "@/contexts/auth/useAuth";
 import { Toggle } from "@/shared/components/Toggle";
 import { UserAvatar } from "@/shared/components/UserAvatar";
+import BirthDateSelect from "@/shared/components/BirthDateSelect";
+import PhoneInput from "@/shared/components/PhoneInput";
 import { getAvailableInGameRoles, IN_GAME_ROLE_LABELS, getMaxActivePlayers, getValidLinksForGame } from "@/shared/config/gameConfig";
 import { ROLE_BADGE_STYLES } from "@/shared/constants/roleStyles";
 import { Crown, Loader, ArrowLeft } from "lucide-react";
@@ -49,43 +51,12 @@ const INPUT_CLASS = "w-full h-7 text-sm text-neutral-100 bg-neutral-800/50 borde
 const VALUE_CLASS_FILLED = "h-7 flex items-center text-sm truncate text-neutral-200 px-1";
 const VALUE_CLASS_EMPTY  = "h-7 flex items-center text-sm truncate text-neutral-700 px-1";
 
-const MONTHS_LIST = [
-  { value: "01", label: "Jan" }, { value: "02", label: "Feb" }, { value: "03", label: "Mar" },
-  { value: "04", label: "Apr" }, { value: "05", label: "May" }, { value: "06", label: "Jun" },
-  { value: "07", label: "Jul" }, { value: "08", label: "Aug" }, { value: "09", label: "Sep" },
-  { value: "10", label: "Oct" }, { value: "11", label: "Nov" }, { value: "12", label: "Dec" },
-];
-
-function formatDateDisplay(iso: string | null | undefined): string | null {
+function formatDateDisplay(iso: string | null | undefined, locale: string): string | null {
   if (!iso) return null;
   const [y, m, d] = iso.split("-");
   if (!y || !m || !d) return iso;
-  const month = MONTHS_LIST[parseInt(m, 10) - 1];
-  return `${parseInt(d, 10)} ${month?.label ?? m} ${y}`;
-}
-
-function DateEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const parts = (value || "").split("-");
-  const year = parts[0] ?? "", month = parts[1] ?? "", day = parts[2] ?? "";
-  const update = (y: string, m: string, d: string) => {
-    if (y.length === 4 && m && d) onChange(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`);
-    else if (!y && !m && !d) onChange("");
-  };
-  const numCls = "h-7 text-sm text-center text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] outline-none focus:border-indigo-500/50 caret-indigo-400 transition-colors placeholder:text-neutral-600 tabular-nums";
-  const selCls = "h-7 text-sm text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-1.5 outline-none focus:border-indigo-500/50 cursor-pointer transition-colors";
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <input value={day} onChange={e => update(year, month, e.target.value.replace(/\D/g, "").slice(0, 2))}
-        placeholder="DD" maxLength={2} className={cn(numCls, "w-[40px]")} />
-      <select value={month} onChange={e => update(year, e.target.value, day)} className={cn(selCls, "w-[64px]")}>
-        <option value="">—</option>
-        {MONTHS_LIST.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-      </select>
-      <input value={year} onChange={e => update(e.target.value.replace(/\D/g, "").slice(0, 4), month, day)}
-        placeholder="YYYY" maxLength={4} className={cn(numCls, "w-[52px]")} />
-    </div>
-  );
+  const date = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }).format(date);
 }
 
 function isValidEmail(v: string): boolean {
@@ -94,7 +65,7 @@ function isValidEmail(v: string): boolean {
 
 /** Grid cell — label above value. Works for read and edit mode. */
 function Cell({
-  label, value, editing, onChange, type = "text", placeholder, full,
+  label, value, editing, onChange, type = "text", placeholder, full, locale,
 }: {
   label: string;
   value: string | null | undefined;
@@ -103,6 +74,7 @@ function Cell({
   type?: string;
   placeholder?: string;
   full?: boolean;
+  locale?: string | undefined;
 }) {
   const filled = Boolean(value);
   const emailError = editing && type === "email" && value && !isValidEmail(value);
@@ -114,7 +86,9 @@ function Cell({
       </div>
       {editing && onChange ? (
         type === "date" ? (
-          <DateEditor value={value ?? ""} onChange={onChange} />
+          <BirthDateSelect value={value ?? ""} onChange={onChange} />
+        ) : type === "phone" ? (
+          <PhoneInput value={value ?? ""} onChange={onChange} defaultCountry={locale} />
         ) : (
           <input
             type="text"
@@ -126,7 +100,7 @@ function Cell({
         )
       ) : (
         <p className={filled ? VALUE_CLASS_FILLED : VALUE_CLASS_EMPTY}>
-          {type === "date" ? (formatDateDisplay(value) ?? "—") : (value || "—")}
+          {type === "date" ? (formatDateDisplay(value, locale ?? "en") ?? "—") : (value || "—")}
         </p>
       )}
     </div>
@@ -395,7 +369,7 @@ export default function MemberDetailPanel({
               <Cell label={t("profile.email")} value={editing ? form.email : (memberProfile?.email ?? "")}
                 editing={editing} onChange={v => setForm(p => ({ ...p, email: v }))} type="email" placeholder="john@example.com" />
               <Cell label={t("profile.phone")} value={editing ? form.phone : (memberProfile?.phone ?? "")}
-                editing={editing} onChange={v => setForm(p => ({ ...p, phone: v }))} placeholder="+33 6 12 34 56 78" />
+                editing={editing} onChange={v => setForm(p => ({ ...p, phone: v }))} type="phone" locale={memberProfile?.countryCode ?? member.countryCode ?? undefined} />
               {validLinks.includes("discord") && <Cell label="Discord" value={editing ? form.discord : (memberProfile?.discord ?? member.discord)}
                 editing={editing} onChange={v => setForm(p => ({ ...p, discord: v }))} />}
               {validLinks.includes("twitter") && <Cell label="Twitter / X" value={editing ? form.twitter : (memberProfile?.twitter ?? member.twitter)}
@@ -480,7 +454,7 @@ export default function MemberDetailPanel({
               <p className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-4">{t("member_detail.tab_private")}</p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                 <Cell label={t("profile.birth_date")} value={editing ? form.birthDate : memberProfile.birthDate}
-                  editing={editing} onChange={v => setForm(p => ({ ...p, birthDate: v }))} type="date" />
+                  editing={editing} onChange={v => setForm(p => ({ ...p, birthDate: v }))} type="date" locale={i18n.language} />
                 <Cell label={t("profile.address")} value={editing ? form.address : memberProfile.address}
                   editing={editing} onChange={v => setForm(p => ({ ...p, address: v }))} placeholder="123 Main Street" />
                 <Cell label={t("profile.zip_code")} value={editing ? form.zipCode : memberProfile.zipCode}

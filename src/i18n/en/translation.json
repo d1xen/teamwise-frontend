@@ -238,7 +238,10 @@
     "avatar": "Profile photo",
     "avatar_hint": "JPEG or PNG · max 2 MB",
     "avatar_updated": "Profile photo updated",
-    "avatar_deleted": "Profile photo removed"
+    "avatar_deleted": "Profile photo removed",
+    "day": "Day",
+    "month": "Month",
+    "year": "Year"
   },
 
   "upload": {
@@ -1029,6 +1032,7 @@
     "more_conflicts_other": "{{count}} more conflicts",
     "conflict_type_unavailable": "Unavailable",
     "conflict_type_event_overlap": "Event conflict",
+    "members_affected": "members affected",
     "conflict_section_availability": "Availability conflicts",
     "conflict_section_event": "Event conflicts",
     "conflict_detail_title": "Conflict detail",
@@ -1101,8 +1105,10 @@
     "scope": {
       "ACTIVE_ROSTER": "Active roster",
       "ALL_MEMBERS": "Everyone",
-      "STAFF_ONLY": "Staff only"
+      "STAFF_ONLY": "Staff only",
+      "INDIVIDUAL": "Selected members"
     },
+    "former_member": "Former member",
     "availability_type": {
       "AVAILABLE": "Available",
       "UNAVAILABLE": "Unavailable"

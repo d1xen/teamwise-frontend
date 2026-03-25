@@ -112,3 +112,65 @@ a {
         @apply grid grid-cols-[96px_1fr] gap-3;
     }
 }
+
+/* ======================
+   Phone Input Dark Theme
+   ====================== */
+.phone-input-dark .PhoneInput {
+    --PhoneInputCountryFlag-height: 14px;
+    --PhoneInputCountryFlag-borderColor: rgba(64, 64, 64, 0.4);
+    --PhoneInputCountrySelectArrow-color: #a3a3a3;
+    --PhoneInputCountrySelectArrow-opacity: 0.6;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.phone-input-dark .PhoneInputCountry {
+    display: flex;
+    align-items: center;
+    background: rgba(38, 38, 38, 0.5);
+    border: 1px solid rgba(64, 64, 64, 0.4);
+    border-radius: 4px;
+    padding: 0 8px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.phone-input-dark .PhoneInputInput {
+    flex: 1;
+    min-width: 0;
+    height: 28px;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    color: #f5f5f5;
+    background: rgba(38, 38, 38, 0.5);
+    border: 1px solid rgba(64, 64, 64, 0.4);
+    border-radius: 4px;
+    padding: 0 10px;
+    outline: none;
+    caret-color: #818cf8;
+    transition: border-color 0.15s;
+}
+
+.phone-input-dark .PhoneInputInput::placeholder {
+    color: #525252;
+}
+
+.phone-input-dark .PhoneInputInput:focus {
+    border-color: rgba(99, 102, 241, 0.5);
+}
+
+.phone-input-dark .PhoneInputCountrySelect {
+    color: #f5f5f5;
+    background: #262626;
+}
+
+.phone-input-dark .PhoneInputCountrySelectArrow {
+    border-color: #a3a3a3;
+    opacity: 0.5;
+}
+
+.phone-input-dark .PhoneInputCountryIconImg {
+    display: block;
+}

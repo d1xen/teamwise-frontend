@@ -238,7 +238,10 @@
     "avatar": "Photo de profil",
     "avatar_hint": "JPEG ou PNG · max 2 Mo",
     "avatar_updated": "Photo de profil mise à jour",
-    "avatar_deleted": "Photo de profil supprimée"
+    "avatar_deleted": "Photo de profil supprimée",
+    "day": "Jour",
+    "month": "Mois",
+    "year": "Année"
   },
 
   "upload": {
@@ -1032,6 +1035,7 @@
     "more_conflicts_other": "{{count}} conflits supplémentaires",
     "conflict_type_unavailable": "Indisponible",
     "conflict_type_event_overlap": "Conflit d'événement",
+    "members_affected": "membres concernés",
     "conflict_section_availability": "Conflits de disponibilité",
     "conflict_section_event": "Conflits d'événements",
     "conflict_detail_title": "Détail du conflit",
@@ -1104,8 +1108,10 @@
     "scope": {
       "ACTIVE_ROSTER": "Roster actif",
       "ALL_MEMBERS": "Tout le monde",
-      "STAFF_ONLY": "Staff uniquement"
+      "STAFF_ONLY": "Staff uniquement",
+      "INDIVIDUAL": "Membres sélectionnés"
     },
+    "former_member": "Ancien membre",
     "availability_type": {
       "AVAILABLE": "Disponible",
       "UNAVAILABLE": "Indisponible"

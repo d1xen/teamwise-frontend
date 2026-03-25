@@ -9,6 +9,8 @@ import type { Game } from '@/api/types/team';
 import { getValidLinksForGame } from '@/shared/config/gameConfig';
 import { useAuth } from '@/contexts/auth/useAuth';
 import ImageUpload from '@/shared/components/ImageUpload';
+import BirthDateSelect from '@/shared/components/BirthDateSelect';
+import PhoneInput from '@/shared/components/PhoneInput';
 import { getAvatarUrl } from '@/shared/utils/avatarUtils';
 import FaceitConnectSection from './FaceitConnectSection';
 import { cn } from '@/design-system';
@@ -75,13 +77,6 @@ const TIMEZONES = [
 ];
 const TIMEZONE_LABEL: Record<string, string> = Object.fromEntries(TIMEZONES.map(t => [t.value, t.label]));
 
-const MONTHS = [
-  { value: '01', label: 'Jan' }, { value: '02', label: 'Feb' }, { value: '03', label: 'Mar' },
-  { value: '04', label: 'Apr' }, { value: '05', label: 'May' }, { value: '06', label: 'Jun' },
-  { value: '07', label: 'Jul' }, { value: '08', label: 'Aug' }, { value: '09', label: 'Sep' },
-  { value: '10', label: 'Oct' }, { value: '11', label: 'Nov' }, { value: '12', label: 'Dec' },
-];
-
 const TRACKED_FIELDS = [
   'firstName', 'lastName', 'email', 'birthDate', 'countryCode',
   'phone', 'customUsername', 'discord', 'twitter', 'hltv',
@@ -143,36 +138,12 @@ function CompletionBadge({ pct, completeLabel }: { pct: number; completeLabel: s
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
-function formatDateDisplay(iso: string | null | undefined): string | null {
+function formatDateDisplay(iso: string | null | undefined, locale: string): string | null {
   if (!iso) return null;
   const [y, m, d] = iso.split('-');
   if (!y || !m || !d) return iso;
-  const month = MONTHS[parseInt(m, 10) - 1];
-  return `${parseInt(d, 10)} ${month?.label ?? m} ${y}`;
-}
-
-function DateEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const parts = (value || '').split('-');
-  const year = parts[0] ?? '', month = parts[1] ?? '', day = parts[2] ?? '';
-  const update = (y: string, m: string, d: string) => {
-    if (y.length === 4 && m && d) onChange(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`);
-    else if (!y && !m && !d) onChange('');
-  };
-  const numCls = 'h-7 text-sm text-center text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] outline-none focus:border-indigo-500/50 caret-indigo-400 transition-colors placeholder:text-neutral-600 tabular-nums';
-  const selCls = 'h-7 text-sm text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-1.5 outline-none focus:border-indigo-500/50 cursor-pointer transition-colors';
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <input value={day} onChange={e => update(year, month, e.target.value.replace(/\D/g, '').slice(0, 2))}
-        placeholder="DD" maxLength={2} className={cn(numCls, 'w-[40px]')} />
-      <select value={month} onChange={e => update(year, e.target.value, day)} className={cn(selCls, 'w-[64px]')}>
-        <option value="">—</option>
-        {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-      </select>
-      <input value={year} onChange={e => update(e.target.value.replace(/\D/g, '').slice(0, 4), month, day)}
-        placeholder="YYYY" maxLength={4} className={cn(numCls, 'w-[52px]')} />
-    </div>
-  );
+  const date = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -186,7 +157,7 @@ function isValidEmail(v: string): boolean {
 const INPUT_CLS = 'w-full h-7 text-sm text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-2.5 outline-none placeholder:text-neutral-600 focus:border-indigo-500/50 caret-indigo-400 transition-colors';
 
 function Cell({
-  label, value, editing, formValue, onChange, type = 'text', placeholder, full, options, labelMap,
+  label, value, editing, formValue, onChange, type = 'text', placeholder, full, options, labelMap, locale, defaultCountry,
 }: {
   label: string;
   value: string | null | undefined;
@@ -198,6 +169,8 @@ function Cell({
   full?: boolean;
   options?: { value: string; label: string }[];
   labelMap?: Record<string, string>;
+  locale?: string | undefined;
+  defaultCountry?: string | undefined;
 }) {
   const displayValue = editing ? formValue : value;
   const filled = isFilled(displayValue);
@@ -205,7 +178,7 @@ function Cell({
 
   const resolvedLabelMap = labelMap ?? (options ? COUNTRY_LABEL : undefined);
   const readValue = type === 'date'
-    ? (formatDateDisplay(value) ?? '—')
+    ? (formatDateDisplay(value, locale ?? 'en') ?? '—')
     : resolvedLabelMap && value
       ? (resolvedLabelMap[value] ?? value)
       : (value || '—');
@@ -218,7 +191,9 @@ function Cell({
       </div>
       {editing && onChange ? (
         type === 'date' ? (
-          <DateEditor value={formValue ?? ''} onChange={onChange} />
+          <BirthDateSelect value={formValue ?? ''} onChange={onChange} />
+        ) : type === 'phone' ? (
+          <PhoneInput value={formValue ?? ''} onChange={onChange} defaultCountry={defaultCountry} />
         ) : options ? (
           <select value={formValue ?? ''} onChange={e => onChange(e.target.value)}
             className={cn(INPUT_CLS, 'cursor-pointer')}>
@@ -364,7 +339,7 @@ export default function EditableProfileSection({
           <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t('profile.identity')}</p>
           <Cell label={t('profile.first_name')} value={profile.firstName} editing={e} formValue={form.firstName} onChange={v => set('firstName', v)} placeholder="John" />
           <Cell label={t('profile.last_name')} value={profile.lastName} editing={e} formValue={form.lastName} onChange={v => set('lastName', v)} placeholder="Doe" />
-          <Cell label={t('profile.birth_date')} value={profile.birthDate} editing={e} formValue={form.birthDate} onChange={v => set('birthDate', v)} type="date" />
+          <Cell label={t('profile.birth_date')} value={profile.birthDate} editing={e} formValue={form.birthDate} onChange={v => set('birthDate', v)} type="date" locale={i18n.language} />
           <Cell label={t('profile.country')} value={profile.countryCode} editing={e} formValue={form.countryCode} onChange={v => set('countryCode', v)} options={COUNTRIES} placeholder={t('profile.select_country')} />
           <Cell label={t('profile.custom_username')} value={profile.customUsername} editing={e} formValue={form.customUsername} onChange={v => set('customUsername', v)} placeholder="s1mple, ZywOo…" />
           {profile.createdAt && (
@@ -377,7 +352,7 @@ export default function EditableProfileSection({
         <div className="p-5 space-y-2.5">
           <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t('profile.contact')}</p>
           <Cell label={t('profile.email')} value={profile.email} editing={e} formValue={form.email} onChange={v => set('email', v)} type="email" placeholder="john@example.com" />
-          <Cell label={t('profile.phone')} value={profile.phone} editing={e} formValue={form.phone} onChange={v => set('phone', v)} placeholder="+33 6 12 34 56 78" />
+          <Cell label={t('profile.phone')} value={profile.phone} editing={e} formValue={form.phone} onChange={v => set('phone', v)} type="phone" defaultCountry={profile.countryCode ?? undefined} />
           <Cell label={t('profile.address')} value={profile.address} editing={e} formValue={form.address} onChange={v => set('address', v)} placeholder="123 Main Street" />
           <Cell label={t('profile.zip_code')} value={profile.zipCode} editing={e} formValue={form.zipCode} onChange={v => set('zipCode', v)} placeholder="75001" />
           <Cell label={t('profile.city')} value={profile.city} editing={e} formValue={form.city} onChange={v => set('city', v)} placeholder="Paris" />

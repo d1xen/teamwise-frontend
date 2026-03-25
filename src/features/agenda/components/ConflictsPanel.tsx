@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { UserX, CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ConflictSummaryDto } from "@/api/types/agenda";
@@ -10,13 +10,45 @@ interface ConflictsPanelProps {
     onConflictClick?: (conflict: ConflictSummaryDto) => void;
 }
 
+type GroupedConflict = {
+    key: string;
+    representative: ConflictSummaryDto;
+    count: number;
+};
+
+function deduplicateConflicts(conflicts: ConflictSummaryDto[]): GroupedConflict[] {
+    const groups = new Map<string, GroupedConflict>();
+
+    for (const c of conflicts) {
+        let key: string;
+        if (c.conflictType === "EVENT_OVERLAP") {
+            const lo = Math.min(c.eventId, c.sourceId);
+            const hi = Math.max(c.eventId, c.sourceId);
+            key = `overlap:${lo}:${hi}`;
+        } else {
+            key = `unavail:${c.id}`;
+        }
+
+        const existing = groups.get(key);
+        if (existing) {
+            existing.count++;
+        } else {
+            groups.set(key, { key, representative: c, count: 1 });
+        }
+    }
+
+    return Array.from(groups.values());
+}
+
 export default function ConflictsPanel({ conflicts, onConflictClick }: ConflictsPanelProps) {
     const { t, i18n } = useTranslation();
     const [page, setPage] = useState(0);
 
-    const totalPages = Math.max(1, Math.ceil(conflicts.length / PAGE_SIZE));
+    const grouped = useMemo(() => deduplicateConflicts(conflicts), [conflicts]);
+
+    const totalPages = Math.max(1, Math.ceil(grouped.length / PAGE_SIZE));
     const safePage = Math.min(page, totalPages - 1);
-    const pageConflicts = conflicts.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+    const pageConflicts = grouped.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
     const dateFmt = new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "short" });
 
@@ -26,7 +58,7 @@ export default function ConflictsPanel({ conflicts, onConflictClick }: Conflicts
             <div className="px-3.5 py-2.5 border-b border-blue-400/[0.07] bg-blue-500/[0.035] shrink-0">
                 <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                        {t("agenda.conflicts")}{conflicts.length > 0 && ` (${conflicts.length})`}
+                        {t("agenda.conflicts")}{grouped.length > 0 && ` (${grouped.length})`}
                     </p>
                     {totalPages > 1 && (
                         <div className="flex items-center gap-1">
@@ -53,19 +85,20 @@ export default function ConflictsPanel({ conflicts, onConflictClick }: Conflicts
             </div>
 
             {/* Content */}
-            {conflicts.length === 0 ? (
+            {grouped.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center">
                     <p className="text-xs text-neutral-600">{t("agenda.no_conflicts")}</p>
                 </div>
             ) : (
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    {pageConflicts.map((c, i) => {
+                    {pageConflicts.map((g, i) => {
+                        const c = g.representative;
                         const start = new Date(c.eventStartAt);
                         const isUnavailable = c.conflictType === "UNAVAILABLE";
 
                         return (
                             <button
-                                key={c.id}
+                                key={g.key}
                                 onClick={() => onConflictClick?.(c)}
                                 className={`w-full text-left px-3.5 py-2.5 hover:bg-neutral-800/30 transition-colors flex items-center${i > 0 ? " border-t border-neutral-800/50" : ""}`}
                             >
@@ -86,7 +119,7 @@ export default function ConflictsPanel({ conflicts, onConflictClick }: Conflicts
                                         <p className="text-[10px] text-neutral-500 truncate">
                                             {isUnavailable
                                                 ? `${c.nickname}${c.sourceDescription ? ` — ${c.sourceDescription}` : ""}`
-                                                : `↔ ${c.sourceDescription}`
+                                                : `↔ ${c.sourceDescription}${g.count > 1 ? ` · ${g.count} ${t("agenda.members_affected")}` : ""}`
                                             }
                                         </p>
                                     </div>

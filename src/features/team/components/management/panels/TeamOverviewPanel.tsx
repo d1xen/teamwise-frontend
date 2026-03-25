@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { Team, TeamMember, TeamMembership } from "@/contexts/team/team.types";
@@ -49,13 +49,26 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
   const { nextMatch, toCompleteCount, summary } = useMatchSummary(team.id);
   const { events: sched } = useMySchedule(String(team.id));
 
-  const [conflicts, setConflicts] = useState<ConflictSummaryDto[]>([]);
+  const [rawConflicts, setRawConflicts] = useState<ConflictSummaryDto[]>([]);
+  const conflictCount = useMemo(() => {
+    const seen = new Set<string>();
+    for (const c of rawConflicts) {
+      if (c.conflictType === "EVENT_OVERLAP") {
+        const lo = Math.min(c.eventId, c.sourceId);
+        const hi = Math.max(c.eventId, c.sourceId);
+        seen.add(`overlap:${lo}:${hi}`);
+      } else {
+        seen.add(`unavail:${c.id}`);
+      }
+    }
+    return seen.size;
+  }, [rawConflicts]);
   const [comps, setComps] = useState<CompetitionSummaryDto[]>([]);
   const [stratCount, setStratCount] = useState(0);
 
   useEffect(() => {
     const id = String(team.id);
-    getConflicts(id).then(setConflicts).catch(() => {});
+    getConflicts(id).then(setRawConflicts).catch(() => {});
     getActiveCompetitions(id).then(setComps).catch(() => {});
     getStrats(id, { map: "", side: "", type: "", status: "", difficulty: "", search: "", tag: "", favoritesOnly: false }, 0, 1)
       .then(r => setStratCount(r.totalElements)).catch(() => {});
@@ -243,7 +256,7 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
           )}
         </button>
 
-        {conflicts.length > 0 ? (
+        {conflictCount > 0 ? (
           <button onClick={() => go("agenda")} className="group text-left bg-orange-500/5 border border-orange-500/20 hover:border-orange-500/30 rounded-2xl p-4 transition-all">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1.5 text-orange-500/70">
@@ -253,7 +266,7 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
               <ArrowRight className="w-3.5 h-3.5 text-orange-700/40 group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all" />
             </div>
             <div className="flex items-center gap-2.5">
-              <p className="text-2xl font-black text-orange-400 tabular-nums">{conflicts.length}</p>
+              <p className="text-2xl font-black text-orange-400 tabular-nums">{conflictCount}</p>
               <p className="text-xs text-orange-600 leading-snug">{t("management.conflicts_hint")}</p>
             </div>
           </button>

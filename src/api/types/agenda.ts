@@ -54,6 +54,7 @@ export type EventDto = {
     faceitMatchId: string | null;
     linkedMatchId: number | null;
     recurrenceGroupId: string | null;
+    participantScope: ParticipantScope | null;
     createdByNickname: string | null;
     updatedByNickname: string | null;
     createdAt: string;
