@@ -20,7 +20,7 @@ function getMonthDays(date: Date): Date[][] {
     const startOffset = (firstDay.getDay() + 6) % 7; // Monday = 0
 
     const weeks: Date[][] = [];
-    let current = new Date(year, month, 1 - startOffset);
+    const current = new Date(year, month, 1 - startOffset);
 
     for (let w = 0; w < 6; w++) {
         const week: Date[] = [];

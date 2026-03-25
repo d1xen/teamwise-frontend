@@ -76,6 +76,7 @@ export default function MatchesPage() {
     // Edit mode
     const [editMode, setEditMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
     const scrollByTabRef = useRef<Record<MatchFilters["tab"], number>>({
         upcoming: 0,
@@ -155,8 +156,6 @@ export default function MatchesPage() {
         if (allSelected) setSelectedIds(new Set());
         else setSelectedIds(new Set(scheduledInView.map(m => m.id)));
     };
-
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const handleBulkDelete = async () => {
         await bulkDeleteMatches(Array.from(selectedIds));

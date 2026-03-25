@@ -61,12 +61,12 @@ export default function StratbookPage() {
         updateFilters(patch);
         const next = new URLSearchParams(searchParams);
         const merged = { ...filters, ...patch };
-        merged.map ? next.set("map", merged.map) : next.delete("map");
-        merged.side ? next.set("side", merged.side) : next.delete("side");
-        merged.type ? next.set("type", merged.type) : next.delete("type");
-        merged.status ? next.set("status", merged.status) : next.delete("status");
-        merged.search ? next.set("search", merged.search) : next.delete("search");
-        merged.favoritesOnly ? next.set("fav", "1") : next.delete("fav");
+        if (merged.map) next.set("map", merged.map); else next.delete("map");
+        if (merged.side) next.set("side", merged.side); else next.delete("side");
+        if (merged.type) next.set("type", merged.type); else next.delete("type");
+        if (merged.status) next.set("status", merged.status); else next.delete("status");
+        if (merged.search) next.set("search", merged.search); else next.delete("search");
+        if (merged.favoritesOnly) next.set("fav", "1"); else next.delete("fav");
         setSearchParams(next, { replace: true });
     };
 

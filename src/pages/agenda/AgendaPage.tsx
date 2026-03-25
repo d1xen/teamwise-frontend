@@ -26,10 +26,8 @@ export default function AgendaPage() {
     const { eventId: eventIdParam } = useParams<{ eventId?: string }>();
     const navigate = useNavigate();
 
-    if (!team || !membership) return null;
-
-    const teamId = String(team.id);
-    const isStaff = membership.isOwner || membership.role !== "PLAYER";
+    const teamId = team ? String(team.id) : "";
+    const isStaff = membership ? (membership.isOwner || membership.role !== "PLAYER") : false;
 
     const calendar = useCalendar(teamId);
     const { conflicts: globalConflicts, reload: reloadConflicts } = useConflicts(teamId);
@@ -40,18 +38,19 @@ export default function AgendaPage() {
     const [showAvailability, setShowAvailability] = useState(false);
     const [quickAddDate, setQuickAddDate] = useState<string | null>(null);
     const [selectedEvent, setSelectedEvent] = useState<EventDto | null>(null);
+    const [selectedUnavail, setSelectedUnavail] = useState<AvailabilityDto | null>(null);
+    const [selectedConflict, setSelectedConflict] = useState<ConflictSummaryDto | null>(null);
+    const newMenuRef = useRef<HTMLDivElement>(null);
 
     // Deep-link: load event from URL param
     useEffect(() => {
+        if (!team) return;
         if (eventIdParam && !selectedEvent) {
             getEvent(teamId, Number(eventIdParam)).then(setSelectedEvent).catch(() => {
                 navigate(`/team/${team.id}/agenda`, { replace: true });
             });
         }
-    }, [eventIdParam, selectedEvent, teamId, team.id, navigate]);
-    const [selectedUnavail, setSelectedUnavail] = useState<AvailabilityDto | null>(null);
-    const [selectedConflict, setSelectedConflict] = useState<ConflictSummaryDto | null>(null);
-    const newMenuRef = useRef<HTMLDivElement>(null);
+    }, [eventIdParam, selectedEvent, teamId, team, navigate]);
 
     useEffect(() => {
         if (!showNewMenu) return;
@@ -77,14 +76,16 @@ export default function AgendaPage() {
     }, [calendar, reloadMySchedule, reloadConflicts]);
 
     const handleEventClick = useCallback((event: EventDto) => {
+        if (!team) return;
         setSelectedEvent(event);
         navigate(`/team/${team.id}/agenda/event/${event.id}`);
-    }, [navigate, team.id]);
+    }, [navigate, team]);
 
     const handleEventClose = useCallback(() => {
+        if (!team) return;
         setSelectedEvent(null);
         navigate(`/team/${team.id}/agenda`);
-    }, [navigate, team.id]);
+    }, [navigate, team]);
 
     const handleViewEventFromConflict = useCallback(async (eventId: number) => {
         try {
@@ -93,9 +94,9 @@ export default function AgendaPage() {
         } catch {
             // silent
         }
-    }, [teamId]);
+    }, [teamId, handleEventClick]);
 
-    const handleNavigate = (direction: -1 | 0 | 1) => {
+    const handleNavigate = useCallback((direction: -1 | 0 | 1) => {
         if (direction === 0) {
             calendar.setCurrentDate(new Date());
             return;
@@ -107,7 +108,9 @@ export default function AgendaPage() {
             d.setDate(d.getDate() + direction * 7);
         }
         calendar.setCurrentDate(d);
-    };
+    }, [calendar]);
+
+    if (!team || !membership) return null;
 
     const allEvents = calendar.data?.events ?? [];
     const availabilities = calendar.data?.availabilities ?? [];

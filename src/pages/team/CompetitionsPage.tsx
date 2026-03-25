@@ -85,7 +85,7 @@ export default function CompetitionsPage() {
     const setFilterType = (v: CompetitionType | "") => {
         setFilterTypeState(v);
         const next = new URLSearchParams(searchParams);
-        v ? next.set("type", v) : next.delete("type");
+        if (v) next.set("type", v); else next.delete("type");
         setSearchParams(next, { replace: true });
     };
 
