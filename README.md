@@ -51,6 +51,13 @@ npm run lint
 
 In development, the Vite dev server proxies `/api` requests to `localhost:8080` — no `VITE_API_URL` needed.
 
+### Deployment
+
+- **Hosting**: Vercel (auto-deploy from `main`)
+- **Production URL**: `https://teamwise.gg`
+- Set `VITE_API_URL` in Vercel environment variables (build-time injection)
+- SPA routing handled by `vercel.json` rewrites
+
 ---
 
 ## Architecture
