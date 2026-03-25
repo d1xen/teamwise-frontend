@@ -3,11 +3,14 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { X, Loader2, RotateCcw, ChevronDown } from "lucide-react";
 import type {
-    MatchDto, MatchFormat, MatchType, MatchContext, MatchLevel,
+    MatchDto, MatchFormat, MatchType,
     MatchMapDto, UpdateMapScoreRequest, UpdateMatchRequest,
 } from "@/api/types/match";
+import type { CompetitionSummaryDto } from "@/api/types/competition";
+import { getActiveCompetitions } from "@/api/endpoints/competition.api";
 import type { Game } from "@/api/types/team";
-import { getMapsForGame } from "@/shared/config/gameConfig";
+import { getMapsForGame, getMapLabel } from "@/shared/config/gameConfig";
+import { useTeam } from "@/contexts/team/useTeam";
 import DatePicker from "@/design-system/components/DatePicker";
 import TimePicker from "@/design-system/components/TimePicker";
 import MetaInfo from "@/shared/components/MetaInfo";
@@ -70,9 +73,6 @@ function computeDeadRows(rows: MapRow[], validated: Set<number>, req: number): S
     return dead;
 }
 
-function getMapLabel(maps: { value: string; label: string }[], value: string): string {
-    return maps.find(m => m.value === value)?.label ?? value;
-}
 
 function toLocalDate(iso: string): string {
     const d = new Date(iso);
@@ -87,8 +87,6 @@ function toLocalTime(iso: string): string {
 }
 
 const FORMATS: MatchFormat[] = ["BO1", "BO3", "BO5"];
-const CONTEXTS: MatchContext[] = ["TOURNAMENT", "QUALIFIER", "LAN", "REGULAR_SEASON"];
-const LEVELS: MatchLevel[] = ["S", "A", "B", "C"];
 
 // Grid: [24px index] [1fr map] [64px our] [20px sep] [64px their] [28px badge] [32px action]
 const GRID = "24px 1fr 64px 20px 64px 28px 32px";
@@ -99,6 +97,7 @@ export default function EditMatchModal({
     match, teamTag, game, onClose, onUpdateMatch, onSaveMap,
 }: EditMatchModalProps) {
     const { t } = useTranslation();
+    const { team } = useTeam();
     const gameMaps = getMapsForGame(game);
 
     useEffect(() => {
@@ -111,17 +110,21 @@ export default function EditMatchModal({
 
     // ── Metadata state ────────────────────────────────────────────────────────
     const [type, setType]                       = useState<MatchType>(match.type);
-    const [context, setContext]                 = useState<MatchContext | null>(match.context);
     const [format, setFormat]                   = useState<MatchFormat>(match.format);
     const [opponentName, setOpponentName]       = useState(match.opponentName ?? "");
     const [scheduledDate, setScheduledDate]     = useState(() => toLocalDate(match.scheduledAt));
     const [scheduledTime, setScheduledTime]     = useState(() => toLocalTime(match.scheduledAt));
     const [matchUrl, setMatchUrl]               = useState(match.matchUrl ?? "");
-    const [competitionName, setCompetitionName] = useState(match.competitionName ?? "");
-    const [competitionStage, setCompetitionStage] = useState(match.competitionStage ?? "");
-    const [level, setLevel]                     = useState<MatchLevel | "">(match.level ?? "");
+    const [competitionId, setCompetitionId]       = useState<number | null>(match.competitionId ?? null);
     const [notes, setNotes]                     = useState(match.notes ?? "");
     const [showMore, setShowMore]               = useState(false);
+
+    const [activeCompetitions, setActiveCompetitions] = useState<CompetitionSummaryDto[]>([]);
+    useEffect(() => {
+        if (team?.id) {
+            getActiveCompetitions(team.id).then(setActiveCompetitions).catch(() => {});
+        }
+    }, [team?.id]);
 
     // ── Score state (TO_COMPLETE and COMPLETED only) ──────────────────────────
     const hasScores = match.state === "TO_COMPLETE" || match.state === "COMPLETED";
@@ -175,7 +178,6 @@ export default function EditMatchModal({
 
     const handleTypeChange = (tp: MatchType) => {
         setType(tp);
-        if (tp === "SCRIM") setContext(null);
     };
 
     const updateScore = (id: number, field: "ourScore" | "theirScore", raw: string) => {
@@ -208,13 +210,12 @@ export default function EditMatchModal({
 
         const payload: UpdateMatchRequest = {
             type,
-            context: type === "OFFICIAL" ? (context ?? undefined) : null,
             opponentName: opponentName.trim() || null,
             matchUrl: matchUrl.trim() || null,
             scheduledAt: scheduledDate ? new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString() : undefined,
-            competitionName: competitionName.trim() || null,
-            competitionStage: competitionStage.trim() || null,
-            level: level || null,
+            competitionId: competitionId !== match.competitionId
+                ? (competitionId ?? -1)
+                : undefined,
             notes: notes.trim() || null,
         };
 
@@ -274,11 +275,6 @@ export default function EditMatchModal({
                             <div className="flex items-center gap-2 min-w-0">
                                 <span className="text-sm font-bold text-white truncate">{opponentName || t("matches.tba")}</span>
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[3px] bg-neutral-800 text-neutral-400 border border-neutral-700 font-mono">{format}</span>
-                                {type === "OFFICIAL" && context && (
-                                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700/50">
-                                        {t(`matches.context_${context.toLowerCase()}`)}
-                                    </span>
-                                )}
                             </div>
                             <div className="text-xs text-neutral-400 tabular-nums shrink-0">
                                 {new Date(match.scheduledAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
@@ -319,42 +315,6 @@ export default function EditMatchModal({
                             ))}
                         </div>
                     </div>
-
-                    {/* Context (OFFICIAL only) */}
-                    {type === "OFFICIAL" && (
-                        <div className="space-y-2">
-                            <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-wider">{t("matches.context")}</p>
-                            <div className="flex flex-wrap gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setContext(null)}
-                                    disabled={isLocked}
-                                    className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors disabled:opacity-50 ${
-                                        context === null
-                                            ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
-                                            : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-neutral-300 hover:border-neutral-700"
-                                    }`}
-                                >
-                                    {t("matches.filter_all")}
-                                </button>
-                                {CONTEXTS.map(ctx => (
-                                    <button
-                                        key={ctx}
-                                        type="button"
-                                        onClick={() => setContext(ctx)}
-                                        disabled={isLocked}
-                                        className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors disabled:opacity-50 ${
-                                            context === ctx
-                                                ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
-                                                : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-neutral-300 hover:border-neutral-700"
-                                        }`}
-                                    >
-                                        {t(`matches.context_${ctx.toLowerCase()}`)}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Format */}
                     <div className="space-y-2">
@@ -429,56 +389,22 @@ export default function EditMatchModal({
 
                         {showMore && (
                             <div className="mt-4 space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-wider">{t("matches.competition_name")}</p>
-                                        <input
-                                            type="text"
-                                            value={competitionName}
-                                            onChange={e => setCompetitionName(e.target.value)}
-                                            disabled={isLocked}
-                                            className="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-indigo-500/50 transition-colors disabled:opacity-50"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-wider">{t("matches.competition_stage")}</p>
-                                        <input
-                                            type="text"
-                                            value={competitionStage}
-                                            onChange={e => setCompetitionStage(e.target.value)}
-                                            disabled={isLocked}
-                                            className="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-indigo-500/50 transition-colors disabled:opacity-50"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-wider">{t("matches.level")}</p>
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setLevel("")}
-                                            disabled={isLocked}
-                                            className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors disabled:opacity-50 ${
-                                                level === ""
-                                                    ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
-                                                    : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-neutral-300 hover:border-neutral-700"
-                                            }`}
-                                        >—</button>
-                                        {LEVELS.map(lv => (
-                                            <button
-                                                key={lv}
-                                                type="button"
-                                                onClick={() => setLevel(lv)}
-                                                disabled={isLocked}
-                                                className={`px-3 py-1.5 rounded-lg border text-xs font-bold font-mono transition-colors disabled:opacity-50 ${
-                                                    level === lv
-                                                        ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
-                                                        : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-neutral-300 hover:border-neutral-700"
-                                                }`}
-                                            >{lv}</button>
+                                <div className="space-y-1.5">
+                                    <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-wider">{t("matches.competition_name")}</p>
+                                    <select
+                                        value={competitionId ?? ""}
+                                        onChange={e => setCompetitionId(e.target.value ? Number(e.target.value) : null)}
+                                        disabled={isLocked}
+                                        className="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-sm text-neutral-200 focus:outline-none focus:border-indigo-500/50 transition-colors disabled:opacity-50"
+                                    >
+                                        <option value="">{t("competitions.none")}</option>
+                                        {activeCompetitions.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
                                         ))}
-                                    </div>
+                                        {match.competitionId && !activeCompetitions.some(c => c.id === match.competitionId) && (
+                                            <option value={match.competitionId}>{match.competitionName ?? `#${match.competitionId}`}</option>
+                                        )}
+                                    </select>
                                 </div>
 
                                 <div className="space-y-1.5">
@@ -590,7 +516,7 @@ export default function EditMatchModal({
                                                     ) : val ? (
                                                         <span className="block text-sm font-medium text-neutral-200 truncate">
                                                             {row.mapName
-                                                                ? getMapLabel(gameMaps, row.mapName)
+                                                                ? getMapLabel(row.mapName, game)
                                                                 : <span className="text-neutral-600 italic">{t("matches.map_unknown")}</span>
                                                             }
                                                         </span>

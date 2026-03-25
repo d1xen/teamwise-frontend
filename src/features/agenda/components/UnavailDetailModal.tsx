@@ -7,7 +7,7 @@ import { updateAvailability, deleteAvailability } from "@/api/endpoints/agenda.a
 import DatePicker from "@/design-system/components/DatePicker";
 import TimePicker from "@/design-system/components/TimePicker";
 import type { AvailabilityDto } from "@/api/types/agenda";
-import { cn } from "@/design-system";
+
 
 interface UnavailDetailModalProps {
     unavail: AvailabilityDto;

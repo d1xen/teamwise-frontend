@@ -138,25 +138,13 @@ export default function MatchDetailModal({
                         </div>
                     )}
 
-                    {/* Context + Competition */}
-                    {(match.context || match.competitionName) && (
+                    {/* Competition */}
+                    {match.competitionName && (
                         <div className="flex flex-wrap gap-1.5">
-                            {match.context && (
-                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-300 border border-neutral-700/50">
-                                    {t(`matches.context_${match.context.toLowerCase()}`)}
-                                </span>
-                            )}
-                            {match.competitionName && (
-                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-300 border border-neutral-700/50">
-                                    {match.competitionName}
-                                    {match.competitionStage && ` · ${match.competitionStage}`}
-                                </span>
-                            )}
-                            {match.level && (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-300 border border-neutral-700/50 font-mono">
-                                    {match.level}
-                                </span>
-                            )}
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-300 border border-neutral-700/50">
+                                {match.competitionName}
+                                {match.competitionStage && ` · ${match.competitionStage}`}
+                            </span>
                         </div>
                     )}
 

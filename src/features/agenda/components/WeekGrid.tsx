@@ -1,5 +1,6 @@
-import { useMemo, useRef, useEffect, useState, useCallback } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus, CalendarPlus, UserCog } from "lucide-react";
 import { cn } from "@/design-system";
 import type { EventDto, AvailabilityDto, ConflictSummaryDto } from "@/api/types/agenda";
 import EventChip from "./EventChip";
@@ -12,6 +13,7 @@ interface WeekGridProps {
     isStaff?: boolean;
     onEventClick: (event: EventDto) => void;
     onUnavailClick?: (a: AvailabilityDto) => void;
+    onQuickAdd?: (date: string, type: "event" | "availability") => void;
     startHour?: number;
     endHour?: number;
 }
@@ -38,18 +40,25 @@ function dayKey(d: Date): string {
     return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
+function toDateStr(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function minutesFromMidnight(date: Date): number {
     return date.getHours() * 60 + date.getMinutes();
 }
 
 function isAllDayEvent(event: EventDto): boolean {
+    // COMPETITION events are always all-day
+    if (event.type === "COMPETITION") return true;
     const s = new Date(event.startAt);
     const e = new Date(event.endAt);
-    // All-day if starts at midnight and ends at 23:59 or later, or spans multiple days
+    const diffHours = (e.getTime() - s.getTime()) / (1000 * 60 * 60);
+    // All-day if duration >= 23h (covers both local midnight and UTC midnight events)
+    if (diffHours >= 23) return true;
+    // Fallback: starts at midnight local and long duration
     const startsAtMidnight = s.getHours() === 0 && s.getMinutes() === 0;
-    const diffMs = e.getTime() - s.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    return startsAtMidnight && diffHours >= 23;
+    return startsAtMidnight && diffHours >= 12;
 }
 
 function getDayIndex(day: Date, weekDays: Date[]): number {
@@ -142,9 +151,45 @@ function layoutOverlappingEvents(events: EventDto[], startMin: number, endMin: n
     });
 }
 
+// ── Quick add menu ────────────────────────────────────────────────────────────
+
+function QuickAddMenu({ date, isStaff, onSelect, onClose }: {
+    date: string; isStaff: boolean;
+    onSelect: (date: string, type: "event" | "availability") => void;
+    onClose: () => void;
+}) {
+    const { t } = useTranslation();
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [onClose]);
+
+    return (
+        <div ref={ref} className="absolute left-1/2 -translate-x-1/2 top-full mt-0.5 z-50 bg-[#141414] border border-neutral-700 rounded-lg overflow-hidden min-w-[150px]">
+            {isStaff && (
+                <button onClick={() => { onSelect(date, "event"); onClose(); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-neutral-800/60 transition-colors text-left">
+                    <CalendarPlus className="w-3.5 h-3.5 text-indigo-400" />
+                    <span className="text-[11px] font-medium text-neutral-200">{t("agenda.new_team_event")}</span>
+                </button>
+            )}
+            <button onClick={() => { onSelect(date, "availability"); onClose(); }}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-neutral-800/60 transition-colors text-left">
+                <UserCog className="w-3.5 h-3.5 text-orange-400" />
+                <span className="text-[11px] font-medium text-neutral-200">{t("agenda.new_personal")}</span>
+            </button>
+        </div>
+    );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function WeekGrid({ currentDate, events, availabilities, conflicts = [], isStaff, onEventClick, onUnavailClick, startHour = 10, endHour = 24 }: WeekGridProps) {
+export default function WeekGrid({ currentDate, events, availabilities, conflicts = [], isStaff, onEventClick, onUnavailClick, onQuickAdd, startHour = 10, endHour = 24 }: WeekGridProps) {
     const { t, i18n } = useTranslation();
     const today = new Date();
     const days = useMemo(() => getWeekDays(currentDate), [currentDate]);
@@ -155,6 +200,8 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
     const startMinutes = startHour * 60;
 
     const dayFmt = new Intl.DateTimeFormat(i18n.language, { weekday: "short", day: "numeric" });
+    const [quickAddKey, setQuickAddKey] = useState<string | null>(null);
+    const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
     // Separate all-day vs timed events, and expand multi-day timed events
     const { allDayEvents, timedByDay } = useMemo(() => {
@@ -249,12 +296,38 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
                     const isToday = isSameDay(day, today);
                     const dayConflicts = conflictsByDay.get(dayKey(day)) ?? [];
                     const timeFmt = new Intl.DateTimeFormat(i18n.language, { hour: "2-digit", minute: "2-digit" });
+                    const dateStr = toDateStr(day);
+                    const isDayHovered = hoveredDay === dateStr;
 
                     return (
-                        <div key={i} className={cn(
-                            "py-2.5 text-center border-l border-neutral-800/30 relative",
-                            isToday && "bg-indigo-500/10"
-                        )}>
+                        <div
+                            key={i}
+                            onMouseEnter={() => setHoveredDay(dateStr)}
+                            onMouseLeave={() => hoveredDay === dateStr && setHoveredDay(null)}
+                            className={cn(
+                                "py-2.5 text-center border-l border-neutral-800/30 relative transition-colors",
+                                isToday && "bg-indigo-500/10",
+                                isDayHovered && !isToday && "bg-white/[0.02]"
+                            )}
+                        >
+                            {onQuickAdd && isDayHovered && (
+                                <>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setQuickAddKey(quickAddKey === dateStr ? null : dateStr); }}
+                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-neutral-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all z-10"
+                                    >
+                                        <Plus className="w-3 h-3" />
+                                    </button>
+                                    {quickAddKey === dateStr && (
+                                        <QuickAddMenu
+                                            date={dateStr}
+                                            isStaff={isStaff ?? false}
+                                            onSelect={(d, type) => { onQuickAdd(d, type); setQuickAddKey(null); }}
+                                            onClose={() => setQuickAddKey(null)}
+                                        />
+                                    )}
+                                </>
+                            )}
                             <div className="flex items-center justify-center gap-1.5">
                                 <span className={cn(
                                     "text-[11px] font-semibold uppercase tracking-wide",
@@ -410,7 +483,7 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
                             <div className="absolute left-0 right-0 z-[2] pointer-events-none grid grid-cols-[50px_repeat(7,1fr)]"
                                 style={{ top: nowTop }}>
                                 <div />
-                                {days.map((day, i) => (
+                                {days.map((_day, i) => (
                                     <div key={i} className="relative">
                                         {i === todayIdx && (
                                             <div className="absolute inset-x-0 flex items-center">
@@ -438,14 +511,22 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
                         const dayEvents = timedByDay.get(dayKey(day)) ?? [];
                         const dayUnavailabilities = unavailByDay.get(dayKey(day)) ?? [];
                         const isToday = isSameDay(day, today);
+                        const dateStr = toDateStr(day);
+                        const isDayHovered = hoveredDay === dateStr;
 
                         return (
-                            <div key={di} className={cn(
-                                "relative",
-                                isToday
-                                    ? "border-x border-neutral-700/30 bg-indigo-500/[0.03]"
-                                    : "border-l border-neutral-800/30"
-                            )}>
+                            <div
+                                key={di}
+                                onMouseEnter={() => setHoveredDay(dateStr)}
+                                onMouseLeave={() => hoveredDay === dateStr && setHoveredDay(null)}
+                                className={cn(
+                                    "relative transition-colors",
+                                    isToday
+                                        ? "border-x border-neutral-700/30 bg-indigo-500/[0.03]"
+                                        : "border-l border-neutral-800/30",
+                                    isDayHovered && !isToday && "bg-white/[0.02]"
+                                )}
+                            >
                                 {/* Unavailability blocks — always visible, behind events */}
                                 {dayUnavailabilities.filter(a => a.type === "UNAVAILABLE").map((a, ai) => {
                                     const s = new Date(a.startAt);

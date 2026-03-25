@@ -1,4 +1,4 @@
-export type EventType = "MATCH" | "MEETING" | "STRAT_TIME" | "REST" | "CUSTOM";
+export type EventType = "MATCH" | "COMPETITION" | "MEETING" | "STRAT_TIME" | "REST" | "BREAK" | "CUSTOM";
 export type AvailabilityType = "UNAVAILABLE";
 export type RecurrenceFrequency = "DAILY" | "WEEKLY";
 export type ParticipantScope = "INDIVIDUAL" | "ACTIVE_ROSTER" | "ALL_MEMBERS" | "STAFF_ONLY";
@@ -8,6 +8,7 @@ export type EventParticipantDto = {
     steamId: string;
     nickname: string;
     avatarUrl: string | null;
+    profileImageUrl: string | null;
     activePlayer: boolean;
 };
 
@@ -22,7 +23,6 @@ export type EventMatchMapDto = {
 export type EventMatchDto = {
     matchId: number;
     matchType: "OFFICIAL" | "SCRIM";
-    context: "TOURNAMENT" | "QUALIFIER" | "LAN" | "REGULAR_SEASON" | null;
     opponentName: string | null;
     opponentLogo: string | null;
     format: "BO1" | "BO3" | "BO5";
@@ -30,8 +30,8 @@ export type EventMatchDto = {
     state: "UPCOMING" | "TO_COMPLETE" | "COMPLETED" | "CANCELLED";
     result: "WIN" | "LOSE" | "DRAW" | null;
     competitionName: string | null;
+    competitionType: string | null;
     competitionStage: string | null;
-    level: "S" | "A" | "B" | "C" | null;
     matchUrl: string | null;
     notes: string | null;
     ignored: boolean;
@@ -84,13 +84,13 @@ export type CalendarViewDto = {
 export type CreateEventRequest = {
     type: EventType;
     title: string;
-    description?: string;
+    description?: string | undefined;
     startAt: string;
     endAt: string;
-    location?: string;
-    tags?: string;
+    location?: string | undefined;
+    tags?: string | undefined;
     participantScope: ParticipantScope;
-    participantSteamIds?: string[];
+    participantSteamIds?: string[] | undefined;
 };
 
 export type UpdateEventRequest = Partial<CreateEventRequest>;
@@ -106,9 +106,9 @@ export type CreateRecurringEventRequest = {
 export type CreateAvailabilityRequest = {
     startAt: string;
     endAt: string;
-    reason?: string;
-    recurringDays?: string[];
-    recurringWeeks?: number;
+    reason?: string | undefined;
+    recurringDays?: string[] | undefined;
+    recurringWeeks?: number | undefined;
 };
 
 export type UpdateAvailabilityRequest = {

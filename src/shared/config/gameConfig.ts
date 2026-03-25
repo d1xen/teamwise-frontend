@@ -34,6 +34,26 @@ export function getMapsForGame(game?: Game): { value: string; label: string }[] 
     return GAME_MAPS[game] ?? GAME_MAPS.CS2;
 }
 
+/**
+ * Get the display label for a map value (e.g. "de_mirage" → "Mirage").
+ * Falls back to capitalised name without prefix.
+ */
+export function getMapLabel(mapValue: string, game?: Game): string {
+    const maps = getMapsForGame(game);
+    const found = maps.find(m => m.value === mapValue);
+    if (found) return found.label;
+    const raw = mapValue.replace(/^de_/, "");
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+/**
+ * Convention-based map image URL.
+ * Images stored in public/maps/{game}/{mapValue}.jpg
+ */
+export function getMapImageUrl(mapValue: string, game: Game = "CS2"): string {
+    return `/maps/${game.toLowerCase()}/${mapValue}.jpg`;
+}
+
 // ─── In-game roles by game ────────────────────────────────────────────────────
 
 export const GAME_IN_GAME_ROLES: Record<Game, InGameRole[]> = {

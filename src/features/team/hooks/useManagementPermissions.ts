@@ -1,15 +1,16 @@
 import type { TeamMember, TeamMembership } from "@/contexts/team/team.types.ts";
 
 /**
- * Permissions hook – Contrat UX v1.1
+ * Permissions hook – Contrat UX v1.2
  *
  * Règles :
- * - role ≠ isOwner (Owner peut avoir n'importe quel role)
- * - Manager peut modifier role/profil de tous (Owner inclus)
- * - Manager ne peut jamais modifier isOwner
- * - Owner ne peut pas quitter sans transférer
- * - Seul Owner peut transférer propriété
- * - Tout staff (MANAGER, COACH, ANALYST, OWNER) peut inviter
+ * - Owner = statut de propriété (indépendant du rôle)
+ * - Owner a tous les droits
+ * - Manager peut changer les rôles (y compris celui d'un owner)
+ * - Manager ne peut PAS transférer/prendre la propriété
+ * - Tout staff (MANAGER, COACH, ANALYST) peut : modifier roster, voir infos privées, modifier in-game role
+ * - Seuls Owner + Manager peuvent : changer les rôles, kick, modifier profil d'un autre
+ * - Tout staff peut inviter
  */
 export function useManagementPermissions({
     currentSteamId,
@@ -19,131 +20,81 @@ export function useManagementPermissions({
     membership: TeamMembership;
 }) {
     const isOwner = membership.isOwner;
+    const isStaff = membership.role !== "PLAYER";
     const isManager = membership.role === "MANAGER";
-    const isPlayer = membership.role === "PLAYER";
 
-    /* ─────────────────────────────────────────────────── */
-    /* TEAM ACTIONS                                         */
-    /* ─────────────────────────────────────────────────── */
+    /* ── TEAM ── */
 
-    /** Éditer infos équipe (nom, tag, URLs, logo) */
     const canEditTeam = (): boolean => isOwner || isManager;
+    const canInvite = (): boolean => isOwner || isStaff;
 
-    /** Générer lien invitation — tous les membres staff (MANAGER, COACH, ANALYST, OWNER) */
-    const canInvite = (): boolean => isOwner || !isPlayer;
+    /* ── MEMBER PROFILE ── */
 
-    /* ─────────────────────────────────────────────────── */
-    /* MEMBER PROFILE ACTIONS                              */
-    /* ─────────────────────────────────────────────────── */
-
-    /** Voir les informations personnelles d'un membre (nom, email, téléphone, adresse) */
+    /** Voir les informations personnelles (nom, email, téléphone, adresse) */
     const canViewPersonalInfo = (member: TeamMember): boolean => {
-        // Chacun peut voir ses propres infos
         if (member.steamId === currentSteamId) return true;
-        // Tout le staff (non-joueur) + owner peut voir
-        if (isOwner || !isPlayer) return true;
-        return false;
+        return isOwner || isStaff;
     };
 
-    /** Éditer profil d'un membre (firstName, lastName, email, etc.) — staff uniquement, pas soi-même */
+    /** Éditer profil d'un membre — Owner + Manager (pas soi-même, utiliser page profil) */
     const canEditMemberProfile = (member: TeamMember): boolean => {
-        // Soi-même : voir uniquement (éditer via la page profil)
         if (member.steamId === currentSteamId) return false;
-        // Owner peut éditer tous les profils
-        if (isOwner) return true;
-        // Manager peut éditer tous les profils (Owner inclus)
-        if (isManager) return true;
-        return false;
+        return isOwner || isManager;
     };
 
-    /* ─────────────────────────────────────────────────── */
-    /* MEMBER ROLE ACTIONS                                 */
-    /* ─────────────────────────────────────────────────── */
+    /* ── MEMBER ROLE ── */
 
-    /** Modifier le role d'un membre (PLAYER, COACH, ANALYST, MANAGER) */
-    const canEditMemberRole = (): boolean => {
-        // Owner peut modifier tous les roles
-        if (isOwner) return true;
-        // Manager peut modifier tous les roles (Owner inclus)
-        if (isManager) return true;
-        return false;
-    };
+    /** Modifier le rôle d'un membre — Owner + Manager uniquement */
+    const canEditMemberRole = (): boolean => isOwner || isManager;
 
-    /* ─────────────────────────────────────────────────── */
-    /* MEMBER OWNERSHIP ACTIONS                            */
-    /* ─────────────────────────────────────────────────── */
+    /* ── ROSTER ── */
 
-    /** Transférer propriété à un membre */
+    /** Modifier roster (actif/inactif, in-game role) — tout staff */
+    const canEditRoster = (): boolean => isOwner || isStaff;
+
+    /* ── OWNERSHIP ── */
+
     const canTransferOwnership = (member: TeamMember): boolean => {
-        // Seul Owner peut transférer
         if (!isOwner) return false;
-        // Cible ne doit pas être déjà Owner
         if (member.isOwner) return false;
-        // Pas se transférer à soi-même
         if (member.steamId === currentSteamId) return false;
         return true;
     };
 
-    /* ─────────────────────────────────────────────────── */
-    /* MEMBER KICK/LEAVE ACTIONS                           */
-    /* ─────────────────────────────────────────────────── */
+    /* ── KICK/LEAVE ── */
 
-    /** Exclure un membre (kick) */
     const canKickMember = (member: TeamMember): boolean => {
-        // Ne peut pas se kick soi-même (utiliser canLeave)
         if (member.steamId === currentSteamId) return false;
-        // Ne peut pas exclure Owner
         if (member.isOwner) return false;
-        // Owner peut kick
-        if (isOwner) return true;
-        // Manager peut kick
-        if (isManager) return true;
-        return false;
+        return isOwner || isManager;
     };
 
-    /** Quitter l'équipe (leave) */
     const canLeave = (member: TeamMember): boolean => {
-        // Doit être soi-même
         if (member.steamId !== currentSteamId) return false;
-        // Owner ne peut pas quitter (doit transférer d'abord)
         if (member.isOwner) return false;
         return true;
     };
 
-    /* ─────────────────────────────────────────────────── */
-    /* HELPERS                                              */
-    /* ─────────────────────────────────────────────────── */
+    /* ── HELPERS ── */
 
-    /** Vérifie si un membre a au moins une action possible */
     const hasAnyAction = (member: TeamMember): boolean =>
         canKickMember(member) ||
         canTransferOwnership(member) ||
         canLeave(member);
 
     return {
-        // Status courant
         isOwner,
         isManager,
-
-        // Team actions
+        isStaff,
         canEditTeam,
         canInvite,
-
-        // Member profile
         canViewPersonalInfo,
         canEditMemberProfile,
-
-        // Member role
         canEditMemberRole,
-
-        // Member ownership
+        canEditRoster,
         canTransferOwnership,
-
-        // Member kick/leave
         canKickMember,
         canLeave,
-
-        // Helpers
         hasAnyAction,
     };
 }

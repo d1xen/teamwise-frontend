@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
     Plus, Clock, AlertCircle, CheckCircle2, Loader2,
@@ -12,9 +12,13 @@ import { useMatchSummary } from "@/features/match/hooks/useMatchSummary";
 import FeatureHeader from "@/shared/components/FeatureHeader";
 import MatchCard from "@/features/match/components/MatchCard";
 import CreateMatchModal from "@/features/match/components/CreateMatchModal";
-import MatchDetailModal from "@/features/match/components/MatchDetailModal";
+import MatchDetail from "@/features/match/components/MatchDetail";
 import { useMatches } from "@/features/match/hooks/useMatches";
 import type { MatchDto, MatchFilters } from "@/api/types/match";
+import ConfirmModal from "@/shared/components/ConfirmModal";
+import { PaginationTop, PaginationBottom } from "@/shared/components/Pagination";
+import type { CompetitionDto } from "@/api/types/competition";
+import { getCompetitions } from "@/api/endpoints/competition.api";
 
 // ── Tab config ────────────────────────────────────────────────────────────────
 
@@ -42,13 +46,32 @@ function isMatchTab(value: string | null): value is MatchFilters["tab"] {
 export default function MatchesPage() {
     const { t } = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
+    const { matchId: matchIdParam } = useParams<{ matchId?: string }>();
+    const navigate = useNavigate();
     const { team, membership } = useTeam();
     const { user } = useAuth();
     const { toCompleteCount } = useMatchSummary(team?.id ?? "");
 
     const [showCreate, setShowCreate] = useState(false);
     const [detailMatch, setDetailMatch] = useState<MatchDto | null>(null);
+
+    // Deep-link: load match from URL param
+    useEffect(() => {
+        if (matchIdParam && !detailMatch) {
+            import("@/api/endpoints/match.api").then(({ getMatch }) => {
+                getMatch(Number(matchIdParam)).then(setDetailMatch).catch(() => {
+                    navigate(`/team/${team?.id}/matches`, { replace: true });
+                });
+            });
+        }
+    }, [matchIdParam, detailMatch, team?.id, navigate]);
     const [showFilters, setShowFilters] = useState(false);
+    const [allCompetitions, setAllCompetitions] = useState<CompetitionDto[]>([]);
+    useEffect(() => {
+        if (team?.id) {
+            getCompetitions(team.id).then(setAllCompetitions).catch(() => {});
+        }
+    }, [team?.id]);
 
     // Edit mode
     const [editMode, setEditMode] = useState(false);
@@ -62,19 +85,11 @@ export default function MatchesPage() {
     });
 
     const {
-        content,
-        totalElements,
-        isLoading,
-        isLoadingMore,
-        hasMore,
-        loadMore,
-        filters,
-        updateFilters,
-        changeTab,
-        createMatch,
-        bulkDeleteMatches,
-        updateMatch,
-        updateMapScore,
+        content, totalElements, totalPages, currentPage, pageSize,
+        isLoading, isRefreshing,
+        filters, updateFilters, changeTab,
+        goToPage, changePageSize,
+        reload, createMatch, bulkDeleteMatches,
     } = useMatches(team?.id ?? "");
 
     const tabFromUrl = searchParams.get("tab");
@@ -87,8 +102,8 @@ export default function MatchesPage() {
     }, [changeTab, filters.tab, tabFromUrl]);
 
     const hasActiveFilters =
-        !!(filters.type || filters.context || filters.format ||
-        filters.opponent || filters.dateRange !== "all");
+        !!(filters.type || filters.format ||
+        filters.opponent || filters.competitionId || filters.dateRange !== "all");
 
     // ── Edit mode ─────────────────────────────────────────────────────────────
 
@@ -141,11 +156,47 @@ export default function MatchesPage() {
         else setSelectedIds(new Set(scheduledInView.map(m => m.id)));
     };
 
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
     const handleBulkDelete = async () => {
         await bulkDeleteMatches(Array.from(selectedIds));
         setSelectedIds(new Set());
         setEditMode(false);
+        setShowDeleteConfirm(false);
     };
+
+    const handleBackFromDetail = () => {
+        setDetailMatch(null);
+        navigate(`/team/${team?.id}/matches`);
+        reload();
+    };
+
+    // Detail view — inline, replaces list
+    if (matchIdParam || detailMatch) {
+        const mId = matchIdParam ? Number(matchIdParam) : detailMatch?.id;
+        if (mId) {
+            return (
+                <div className="flex flex-col h-full">
+                    <FeatureHeader
+                        title={t("pages.matches.title")}
+                        subtitle={t("pages.matches.subtitle")}
+                    />
+                    <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-gutter-stable">
+                        <div className="max-w-5xl mx-auto px-8 py-6">
+                            <MatchDetail
+                                matchId={mId}
+                                teamTag={team?.tag ?? team?.name ?? ""}
+                                game={team?.game ?? "CS2"}
+                                isStaff={isStaff}
+                                onBack={handleBackFromDetail}
+                                onDeleted={handleBackFromDetail}
+                            />
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+    }
 
     return (
         <div className="flex flex-col h-full">
@@ -184,7 +235,7 @@ export default function MatchesPage() {
                         })}
 
                         <div className="ml-auto pb-2 flex items-center gap-2">
-                            {isLoading && (
+                            {(isLoading || isRefreshing) && (
                                 <Loader2 className="w-3.5 h-3.5 text-neutral-600 animate-spin" />
                             )}
 
@@ -205,7 +256,7 @@ export default function MatchesPage() {
                                 </button>
                                 {hasActiveFilters && (
                                     <button
-                                        onClick={() => updateFilters({ type: "", context: "", format: "", dateRange: "all" })}
+                                        onClick={() => updateFilters({ type: "", format: "", opponent: "", competitionId: "", dateRange: "all" })}
                                         className="pr-2 pl-0.5 py-1.5 hover:text-white transition-colors"
                                         title={t("matches.clear_filters")}
                                     >
@@ -213,17 +264,6 @@ export default function MatchesPage() {
                                     </button>
                                 )}
                             </div>
-
-                            {/* New match */}
-                            {isStaff && (
-                                <button
-                                    onClick={() => setShowCreate(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#4338ca]/40 bg-[#4338ca]/10 text-[#8b83f7] hover:bg-[#4338ca]/20 text-xs font-medium transition-colors"
-                                >
-                                    <Plus className="w-3 h-3" />
-                                    {t("matches.new_match")}
-                                </button>
-                            )}
 
                             {/* Select mode toggle */}
                             {isStaff && (
@@ -240,6 +280,17 @@ export default function MatchesPage() {
                                     {editMode ? t("matches.exit_select_mode") : t("matches.select_mode")}
                                 </button>
                             )}
+
+                            {/* New match — last */}
+                            {isStaff && (
+                                <button
+                                    onClick={() => setShowCreate(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#4338ca]/40 bg-[#4338ca]/10 text-[#8b83f7] hover:bg-[#4338ca]/20 text-xs font-medium transition-colors"
+                                >
+                                    <Plus className="w-3 h-3" />
+                                    {t("matches.new_match")}
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -249,13 +300,24 @@ export default function MatchesPage() {
                             filters={filters}
                             onUpdate={updateFilters}
                             showDateRange={filters.tab === "results" || filters.tab === "all"}
+                            competitions={allCompetitions}
                         />
                     )}
 
-                    {/* Results count */}
-                    <p className={`text-xs transition-colors duration-150 ${isLoading ? "text-neutral-800" : "text-neutral-600"}`}>
-                        {t("matches.result_count", { count: totalElements })}
-                    </p>
+                    {/* Results count + pagination */}
+                    <div className="flex items-center justify-between">
+                        <p className={`text-xs transition-colors duration-150 ${isLoading || isRefreshing ? "text-neutral-800" : "text-neutral-600"}`}>
+                            {t("matches.result_count", { count: totalElements })}
+                        </p>
+                        <PaginationTop
+                            page={currentPage}
+                            totalPages={totalPages}
+                            pageSize={pageSize}
+                            onPageChange={goToPage}
+                            onPageSizeChange={changePageSize}
+                            label={t("matches.per_page")}
+                        />
+                    </div>
 
                     {/* Select-all — below count, only in select mode */}
                     {editMode && scheduledInView.length > 0 && (
@@ -280,16 +342,21 @@ export default function MatchesPage() {
                     <MatchList
                         content={content}
                         isLoading={isLoading}
-                        isLoadingMore={isLoadingMore}
-                        hasMore={hasMore}
-                        loadMore={loadMore}
+                        isRefreshing={isRefreshing}
                         isStaff={isStaff}
                         editMode={editMode}
                         selectedIds={selectedIds}
                         onToggleSelect={toggleSelect}
-                        onClick={setDetailMatch}
+                        onClick={(m: MatchDto) => navigate(`/team/${team?.id}/matches/${m.id}`)}
                         tab={filters.tab}
                         onNew={() => setShowCreate(true)}
+                    />
+                    <PaginationBottom
+                        page={currentPage}
+                        totalPages={totalPages}
+                        totalElements={totalElements}
+                        pageSize={pageSize}
+                        onPageChange={goToPage}
                     />
                 </div>
             </div>
@@ -309,7 +376,7 @@ export default function MatchesPage() {
                                 {t("matches.deselect_all")}
                             </button>
                             <button
-                                onClick={handleBulkDelete}
+                                onClick={() => setShowDeleteConfirm(true)}
                                 className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-sm font-semibold text-white transition-colors"
                             >
                                 {t("matches.bulk_delete", { count: selectedIds.size })}
@@ -319,6 +386,18 @@ export default function MatchesPage() {
                 </div>
             )}
 
+            {showDeleteConfirm && (
+                <ConfirmModal
+                    title={t("matches.bulk_delete_confirm_title")}
+                    description={t("matches.bulk_delete_confirm_desc", { count: selectedIds.size, tab: t(`matches.tab_${filters.tab}`) })}
+                    confirmLabel={t("matches.bulk_delete", { count: selectedIds.size })}
+                    cancelLabel={t("common.cancel")}
+                    variant="danger"
+                    onConfirm={handleBulkDelete}
+                    onCancel={() => setShowDeleteConfirm(false)}
+                />
+            )}
+
             {showCreate && (
                 <CreateMatchModal
                     onClose={() => setShowCreate(false)}
@@ -326,43 +405,19 @@ export default function MatchesPage() {
                 />
             )}
 
-            {detailMatch && (
-                <MatchDetailModal
-                    match={detailMatch}
-                    teamTag={team.tag ?? team.name}
-                    game={team.game ?? "CS2"}
-                    isStaff={isStaff}
-                    onClose={() => setDetailMatch(null)}
-                    onUpdateMatch={updateMatch}
-                    onSaveMap={updateMapScore}
-                    onDelete={deleteMatch}
-                />
-            )}
         </div>
     );
 }
 
-// ── Match list with infinite scroll ──────────────────────────────────────────
+// ── Match list with pagination ───────────────────────────────────────────────
 
 function MatchList({
-    content,
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    loadMore,
-    isStaff,
-    editMode,
-    selectedIds,
-    onToggleSelect,
-    onClick,
-    tab,
-    onNew,
+    content, isLoading, isRefreshing,
+    isStaff, editMode, selectedIds, onToggleSelect, onClick, tab, onNew,
 }: {
     content: MatchDto[];
     isLoading: boolean;
-    isLoadingMore: boolean;
-    hasMore: boolean;
-    loadMore: () => void;
+    isRefreshing: boolean;
     isStaff: boolean;
     editMode: boolean;
     selectedIds: Set<number>;
@@ -371,32 +426,14 @@ function MatchList({
     tab: MatchFilters["tab"];
     onNew: () => void;
 }) {
-    const sentinelRef = useRef<HTMLDivElement>(null);
+    if (isLoading && content.length === 0) return null;
 
-    // Trigger loadMore when sentinel enters viewport
-    useEffect(() => {
-        const sentinel = sentinelRef.current;
-        if (!sentinel || !hasMore) return;
-        const observer = new IntersectionObserver(
-            entries => { if (entries[0].isIntersecting) loadMore(); },
-            { rootMargin: "150px" }
-        );
-        observer.observe(sentinel);
-        return () => observer.disconnect();
-    }, [hasMore, loadMore]);
-
-    // Initial load with no content yet — show skeletons
-    if (isLoading && content.length === 0) {
-        return <MatchListSkeleton />;
-    }
-
-    // Empty state
     if (!isLoading && content.length === 0) {
         return <EmptyState tab={tab} isStaff={isStaff} onNew={onNew} />;
     }
 
     return (
-        <div className="space-y-3">
+        <div className={`space-y-3 transition-opacity duration-150 ${isRefreshing ? "opacity-60" : "opacity-100"}`}>
             {content.map(m => (
                 <MatchCard
                     key={m.id}
@@ -408,51 +445,6 @@ function MatchList({
                     onClick={onClick}
                 />
             ))}
-
-            {/* Sentinel + loading indicator for next page */}
-            <div ref={sentinelRef} className="space-y-3 pt-0">
-                {isLoadingMore && (
-                    <>
-                        <MatchCardSkeleton />
-                        <MatchCardSkeleton />
-                    </>
-                )}
-            </div>
-        </div>
-    );
-}
-
-// ── Skeleton ──────────────────────────────────────────────────────────────────
-
-function MatchCardSkeleton() {
-    return (
-        <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 animate-pulse">
-            <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-neutral-800/80" />
-                <div className="flex-1 min-w-0 space-y-2.5 pt-0.5">
-                    <div className="flex items-center gap-2">
-                        <div className="h-4 w-28 bg-neutral-800/80 rounded" />
-                        <div className="h-4 w-10 bg-neutral-800/80 rounded" />
-                        <div className="h-4 w-8 bg-neutral-800/80 rounded" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 bg-neutral-800/80 rounded" />
-                        <div className="h-3 w-20 bg-neutral-800/80 rounded" />
-                    </div>
-                </div>
-                <div className="flex-shrink-0 flex flex-col items-end gap-2 pt-0.5">
-                    <div className="h-5 w-14 bg-neutral-800/80 rounded" />
-                    <div className="h-3 w-8 bg-neutral-800/80 rounded" />
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function MatchListSkeleton() {
-    return (
-        <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => <MatchCardSkeleton key={i} />)}
         </div>
     );
 }
@@ -477,20 +469,20 @@ function FilterChip({ label, active, onClick }: FilterChipProps) {
     );
 }
 
-const OFFICIAL_CONTEXTS: MatchFilters["context"][] = ["TOURNAMENT", "QUALIFIER", "LAN", "REGULAR_SEASON"];
-const MATCH_FORMATS: MatchFilters["format"][]       = ["BO1", "BO3", "BO5"];
+const MATCH_FORMATS: MatchFilters["format"][] = ["BO1", "BO3", "BO5"];
 
 function FilterPanel({
     filters,
     onUpdate,
     showDateRange,
+    competitions,
 }: {
     filters: MatchFilters;
     onUpdate: (patch: Partial<MatchFilters>) => void;
     showDateRange: boolean;
+    competitions: CompetitionDto[];
 }) {
     const { t } = useTranslation();
-    const showContextFilter = filters.type !== "SCRIM";
 
     return (
         <div className="p-4 bg-neutral-900/60 border border-neutral-800 rounded-2xl space-y-3">
@@ -505,16 +497,16 @@ function FilterPanel({
                         className="w-full pl-8 pr-3 py-2 rounded-lg bg-neutral-800 border border-neutral-700 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
                     />
                 </div>
-                <div className="relative flex-1 max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-600 pointer-events-none" />
-                    <input
-                        type="text"
-                        value={filters.competition}
-                        onChange={e => onUpdate({ competition: e.target.value })}
-                        placeholder={t("matches.filter_competition")}
-                        className="w-full pl-8 pr-3 py-2 rounded-lg bg-neutral-800 border border-neutral-700 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
-                    />
-                </div>
+                <select
+                    value={filters.competitionId}
+                    onChange={e => onUpdate({ competitionId: e.target.value ? Number(e.target.value) : "" })}
+                    className="flex-1 max-w-xs px-3 py-2 rounded-lg bg-neutral-800 border border-neutral-700 text-sm text-neutral-400 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                >
+                    <option value="">{t("competitions.select_placeholder")}</option>
+                    {competitions.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                </select>
                 {showDateRange && (
                     <select
                         value={filters.dateRange}
@@ -533,28 +525,11 @@ function FilterPanel({
             <div className="flex items-center gap-2">
                 <span className="text-[10px] font-semibold text-neutral-700 uppercase tracking-wider w-16 shrink-0">{t("matches.type")}</span>
                 <div className="flex flex-wrap gap-1.5">
-                    <FilterChip label={t("matches.filter_all")}    active={filters.type === ""}         onClick={() => onUpdate({ type: "", context: "" })} />
+                    <FilterChip label={t("matches.filter_all")}    active={filters.type === ""}         onClick={() => onUpdate({ type: "" })} />
                     <FilterChip label={t("matches.type_official")} active={filters.type === "OFFICIAL"} onClick={() => onUpdate({ type: "OFFICIAL" })} />
-                    <FilterChip label={t("matches.type_scrim")}    active={filters.type === "SCRIM"}    onClick={() => onUpdate({ type: "SCRIM", context: "" })} />
+                    <FilterChip label={t("matches.type_scrim")}    active={filters.type === "SCRIM"}    onClick={() => onUpdate({ type: "SCRIM" })} />
                 </div>
             </div>
-
-            {showContextFilter && (
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-semibold text-neutral-700 uppercase tracking-wider w-16 shrink-0">{t("matches.context")}</span>
-                    <div className="flex flex-wrap gap-1.5">
-                        <FilterChip label={t("matches.filter_all")} active={filters.context === ""} onClick={() => onUpdate({ context: "" })} />
-                        {OFFICIAL_CONTEXTS.map(ctx => (
-                            <FilterChip
-                                key={ctx}
-                                label={t(`matches.context_${ctx.toLowerCase()}`)}
-                                active={filters.context === ctx}
-                                onClick={() => onUpdate({ context: ctx })}
-                            />
-                        ))}
-                    </div>
-                </div>
-            )}
 
             <div className="flex items-center gap-2">
                 <span className="text-[10px] font-semibold text-neutral-700 uppercase tracking-wider w-16 shrink-0">{t("matches.format")}</span>
@@ -571,7 +546,7 @@ function FilterPanel({
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 
-function EmptyState({ tab, isStaff, onNew }: { tab: MatchFilters["tab"]; isStaff: boolean; onNew: () => void }) {
+function EmptyState({ tab }: { tab: MatchFilters["tab"]; isStaff: boolean; onNew: () => void }) {
     const { t } = useTranslation();
     const tabDef = TABS.find(tb => tb.id === tab)!;
     const Icon = tabDef.icon;
@@ -583,15 +558,6 @@ function EmptyState({ tab, isStaff, onNew }: { tab: MatchFilters["tab"]; isStaff
             </div>
             <p className="text-neutral-400 font-medium">{t(`matches.empty_${tab}`)}</p>
             <p className="text-neutral-600 text-sm mt-1">{t("matches.empty_hint")}</p>
-            {tab === "upcoming" && isStaff && (
-                <button
-                    onClick={onNew}
-                    className="mt-5 flex items-center gap-2 px-4 py-2 bg-[#4338ca] hover:bg-[#4f46e5] rounded-xl text-sm font-semibold text-white transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    {t("matches.new_match")}
-                </button>
-            )}
         </div>
     );
 }

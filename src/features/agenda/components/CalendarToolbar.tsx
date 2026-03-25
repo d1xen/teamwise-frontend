@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { cn } from "@/design-system";
 import type { CalendarView, EventType } from "@/api/types/agenda";
 
-const EVENT_TYPES: EventType[] = ["MATCH", "MEETING", "STRAT_TIME", "REST", "CUSTOM"];
+const EVENT_TYPES: EventType[] = ["MATCH", "COMPETITION", "MEETING", "STRAT_TIME", "REST", "BREAK", "CUSTOM"];
 const HOUR_OPTIONS = Array.from({ length: 25 }, (_, i) => i);
 
 interface CalendarToolbarProps {

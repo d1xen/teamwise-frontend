@@ -16,14 +16,16 @@ import { TermsOfServicePage } from "@/pages/legal/TermsOfServicePage";
 
 import AgendaPage from "@/pages/agenda/AgendaPage";
 import TeamPage from "@/pages/team/TeamPage";
+import DashboardPage from "@/pages/team/DashboardPage";
 import ManagementPage from "@/pages/team/ManagementPage";
 import ScrimsPage from "@/pages/team/ScrimsPage";
 import ResultsPage from "@/pages/team/ResultsPage";
 import StratbookPage from "@/pages/team/StratbookPage";
 import StatsPage from "@/pages/team/StatsPage";
 import MatchesPage from "@/pages/team/MatchesPage";
-import TournamentsPage from "@/pages/team/TournamentsPage";
+import CompetitionsPage from "@/pages/team/CompetitionsPage";
 import MessagingPage from "@/pages/team/MessagingPage";
+import DemoPage from "@/pages/team/DemoPage";
 import FaceitPopupCallbackPage from "@/pages/auth/FaceitPopupCallbackPage";
 
 const appRouter = createBrowserRouter([
@@ -68,7 +70,15 @@ const appRouter = createBrowserRouter([
                                         element: <TeamPage />,
                                     },
                                     {
+                                        path: "dashboard",
+                                        element: <DashboardPage />,
+                                    },
+                                    {
                                         path: "agenda",
+                                        element: <AgendaPage />,
+                                    },
+                                    {
+                                        path: "agenda/event/:eventId",
                                         element: <AgendaPage />,
                                     },
                                     {
@@ -84,8 +94,16 @@ const appRouter = createBrowserRouter([
                                         element: <MatchesPage />,
                                     },
                                     {
-                                        path: "tournaments",
-                                        element: <TournamentsPage />,
+                                        path: "matches/:matchId",
+                                        element: <MatchesPage />,
+                                    },
+                                    {
+                                        path: "competitions",
+                                        element: <CompetitionsPage />,
+                                    },
+                                    {
+                                        path: "competitions/:competitionId",
+                                        element: <CompetitionsPage />,
                                     },
                                     {
                                         path: "results",
@@ -96,12 +114,20 @@ const appRouter = createBrowserRouter([
                                         element: <StratbookPage />,
                                     },
                                     {
+                                        path: "stratbook/:stratId",
+                                        element: <StratbookPage />,
+                                    },
+                                    {
                                         path: "stats",
                                         element: <StatsPage />,
                                     },
                                     {
                                         path: "messaging",
                                         element: <MessagingPage />,
+                                    },
+                                    {
+                                        path: "demo",
+                                        element: <DemoPage />,
                                     },
                                 ],
                             },

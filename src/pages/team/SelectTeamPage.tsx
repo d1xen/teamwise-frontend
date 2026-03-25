@@ -79,8 +79,8 @@ export default function SelectTeamPage() {
                             id: team.id,
                             name: team.name,
                             tag: team.tag ?? "",
-                            game: team.game ?? undefined,
-                            ...(team.logoUrl && { logoUrl: team.logoUrl }),
+                            ...(team.game ? { game: team.game } : {}),
+                            ...(team.logoUrl ? { logoUrl: team.logoUrl } : {}),
                         }))
                     );
                 }
@@ -120,8 +120,8 @@ export default function SelectTeamPage() {
                 id: team.id,
                 name: team.name,
                 tag: team.tag ?? "",
-                game: team.game ?? undefined,
-                ...(team.logoUrl && { logoUrl: team.logoUrl }),
+                ...(team.game ? { game: team.game } : {}),
+                ...(team.logoUrl ? { logoUrl: team.logoUrl } : {}),
             })));
             setError(null);
         } catch {

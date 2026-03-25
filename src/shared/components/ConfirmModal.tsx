@@ -5,6 +5,7 @@ import { cn } from "@/design-system";
 interface ConfirmModalProps {
   title: string;
   description?: string;
+  children?: React.ReactNode;
   confirmLabel: string;
   cancelLabel: string;
   /** "danger" = red (destructive), "warning" = neutral (logout, leave), "default" = indigo. */
@@ -14,7 +15,7 @@ interface ConfirmModalProps {
 }
 
 export default function ConfirmModal({
-  title, description, confirmLabel, cancelLabel,
+  title, description, children, confirmLabel, cancelLabel,
   variant = "default", onConfirm, onCancel,
 }: ConfirmModalProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +47,7 @@ export default function ConfirmModal({
             </button>
           </div>
           {description && <p className="text-xs text-neutral-400 leading-relaxed mb-4">{description}</p>}
+          {children && <div className="mb-4">{children}</div>}
         </div>
         <div className="flex gap-2.5 px-5 pb-5">
           <button onClick={onCancel} disabled={isLoading}

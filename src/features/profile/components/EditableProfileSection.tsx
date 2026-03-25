@@ -1,10 +1,10 @@
 import { useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { Loader, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import type { UserProfileDto } from '@/api/endpoints/profile.api';
 import { updateMyProfile, uploadAvatar, deleteAvatar } from '@/api/endpoints/profile.api';
-import type { UserProfileUpdateDto } from '@/api/types/profile';
+
 import type { Game } from '@/api/types/team';
 import { getValidLinksForGame } from '@/shared/config/gameConfig';
 import { useAuth } from '@/contexts/auth/useAuth';
@@ -21,7 +21,7 @@ const FaceitInline = FaceitConnectSection as unknown as ComponentType<{
 interface EditableProfileSectionProps {
   profile: UserProfileDto;
   canEdit: boolean;
-  game?: Game;
+  game?: Game | undefined;
   onSuccess?: () => void;
 }
 
@@ -82,7 +82,6 @@ const MONTHS = [
   { value: '10', label: 'Oct' }, { value: '11', label: 'Nov' }, { value: '12', label: 'Dec' },
 ];
 
-const REQUIRED_FIELDS = ['firstName', 'lastName', 'email'] as const;
 const TRACKED_FIELDS = [
   'firstName', 'lastName', 'email', 'birthDate', 'countryCode',
   'phone', 'customUsername', 'discord', 'twitter', 'hltv',

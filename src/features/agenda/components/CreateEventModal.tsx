@@ -1,13 +1,14 @@
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
-import { X, Loader, ChevronDown, Swords, Coffee, MessageSquare, Crosshair, Layers, Palmtree, Monitor, Trophy, Award, Plane } from "lucide-react";
+import { X, Loader, ChevronDown, Swords, Coffee, Moon, MessageSquare, Crosshair, Layers, Palmtree, Monitor, Trophy, Award, Plane } from "lucide-react";
 import DatePicker from "@/design-system/components/DatePicker";
 import TimePicker from "@/design-system/components/TimePicker";
 import { createEvent } from "@/api/endpoints/agenda.api";
 import { createMatch, getMaps, updateMapScore } from "@/api/endpoints/match.api";
+import { invalidateMatchSummary } from "@/features/match/hooks/useMatchSummary";
 import type { EventType, ParticipantScope } from "@/api/types/agenda";
-import type { MatchType, MatchContext, MatchFormat, MatchLevel } from "@/api/types/match";
+import type { MatchType, MatchFormat } from "@/api/types/match";
 import type { TeamMember } from "@/contexts/team/team.types";
 import type { Game } from "@/api/types/team";
 import { getMapsForGame } from "@/shared/config/gameConfig";
@@ -15,14 +16,13 @@ import { cn } from "@/design-system";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const OFFICIAL_CONTEXTS: MatchContext[] = ["TOURNAMENT", "QUALIFIER", "LAN", "REGULAR_SEASON"];
 const MATCH_FORMATS: MatchFormat[] = ["BO1", "BO3", "BO5"];
-const MATCH_LEVELS: MatchLevel[] = ["S", "A", "B", "C"];
 
 interface CreateEventModalProps {
     teamId: string;
     members: TeamMember[];
-    game?: Game;
+    game?: Game | undefined;
+    initialDate?: string | undefined;
     onClose: () => void;
     onCreated: () => void;
 }
@@ -46,7 +46,8 @@ const EVENT_TYPE_OPTIONS: { type: EventType; icon: React.ElementType; color: str
     { type: "MATCH", icon: Swords, color: "blue" },
     { type: "STRAT_TIME", icon: Crosshair, color: "yellow" },
     { type: "MEETING", icon: MessageSquare, color: "emerald" },
-    { type: "REST", icon: Coffee, color: "neutral" },
+    { type: "REST", icon: Moon, color: "neutral" },
+    { type: "BREAK", icon: Coffee, color: "teal" },
     { type: "CUSTOM", icon: Layers, color: "slate" },
 ];
 
@@ -55,6 +56,7 @@ const TYPE_ACTIVE: Record<string, string> = {
     yellow: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400",
     emerald: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
     neutral: "bg-neutral-500/10 border-neutral-600/30 text-neutral-400",
+    teal: "bg-teal-500/10 border-teal-500/30 text-teal-400",
     slate: "bg-slate-500/10 border-slate-500/30 text-slate-400",
 };
 const TYPE_INACTIVE = "bg-neutral-800/40 border-neutral-700/40 text-neutral-500 hover:text-neutral-300 hover:border-neutral-600";
@@ -163,7 +165,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export default function CreateEventModal({ teamId, members, game, onClose, onCreated }: CreateEventModalProps) {
+export default function CreateEventModal({ teamId, members, game, initialDate, onClose, onCreated }: CreateEventModalProps) {
     const { t } = useTranslation();
     const [isSaving, setIsSaving] = useState(false);
     const [type, setType] = useState<EventType | null>(null);
@@ -175,8 +177,8 @@ export default function CreateEventModal({ teamId, members, game, onClose, onCre
     }, [onClose]);
 
     // Common
-    const [date, setDate] = useState("");
-    const [endDate, setEndDate] = useState("");
+    const [date, setDate] = useState(initialDate ?? "");
+    const [endDate, setEndDate] = useState(initialDate ?? "");
     const [startTime, setStartTime] = useState("20:00");
     const [endTime, setEndTime] = useState("22:00");
     const [allDay, setAllDay] = useState(false);
@@ -187,12 +189,8 @@ export default function CreateEventModal({ teamId, members, game, onClose, onCre
     // Match
     const [matchType, setMatchType] = useState<MatchType>("OFFICIAL");
     const [matchFormat, setMatchFormat] = useState<MatchFormat>("BO3");
-    const [matchContext, setMatchContext] = useState<MatchContext>("TOURNAMENT");
     const [opponentName, setOpponentName] = useState("");
     const [showMatchOptions, setShowMatchOptions] = useState(false);
-    const [competitionName, setCompetitionName] = useState("");
-    const [competitionStage, setCompetitionStage] = useState("");
-    const [matchLevel, setMatchLevel] = useState<MatchLevel | "">("");
     const [matchUrl, setMatchUrl] = useState("");
     const [notes, setNotes] = useState("");
     const [scores, setScores] = useState<{ mapName: string; ourScore: string; theirScore: string }[]>([]);
@@ -239,6 +237,7 @@ export default function CreateEventModal({ teamId, members, game, onClose, onCre
 
     const canSave = (() => {
         if (!type || !date) return false;
+        if (type === "REST") return true; // all-day, no time needed
         if (!allDay && (!startTime || !endTime)) return false;
         if (type === "MEETING") return !!title.trim();
         if (type === "CUSTOM") return !!title.trim() && !!customSubtype;
@@ -249,7 +248,7 @@ export default function CreateEventModal({ teamId, members, game, onClose, onCre
         if (!canSave || !type) return;
         setIsSaving(true);
         try {
-            if (type === "MATCH") await handleCreateMatch();
+            if (type === "MATCH") { await handleCreateMatch(); invalidateMatchSummary(); }
             else await handleCreateEvent();
             toast.success(t("agenda.event_created"));
             onCreated();
@@ -261,11 +260,10 @@ export default function CreateEventModal({ teamId, members, game, onClose, onCre
     const handleCreateMatch = async () => {
         const scheduledAt = new Date(`${date}T${startTime}:00`).toISOString();
         const match = await createMatch(teamId, {
-            type: matchType, context: matchType === "OFFICIAL" ? matchContext : null,
+            type: matchType,
             opponentName: opponentName.trim() || null, opponentLogo: null,
             matchUrl: matchUrl.trim() || null, scheduledAt, format: matchFormat,
-            competitionName: competitionName.trim() || null, competitionStage: competitionStage.trim() || null,
-            level: matchLevel || null, notes: notes.trim() || null,
+            notes: notes.trim() || null,
         });
         if (isPast && scores.some(s => s.ourScore || s.theirScore)) {
             const maps = await getMaps(match.id);
@@ -279,9 +277,15 @@ export default function CreateEventModal({ teamId, members, game, onClose, onCre
     };
 
     const handleCreateEvent = async () => {
-        const startAt = allDay ? new Date(`${date}T00:00:00`).toISOString() : new Date(`${date}T${startTime}:00`).toISOString();
-        const endAt = allDay ? new Date(`${endDate || date}T23:59:59`).toISOString() : new Date(`${date}T${endTime}:00`).toISOString();
-        const autoTitle = type === "REST" ? "Break"
+        const isRestAllDay = type === "REST";
+        const startAt = isRestAllDay ? new Date(`${date}T00:00:00`).toISOString()
+            : allDay ? new Date(`${date}T00:00:00`).toISOString()
+            : new Date(`${date}T${startTime}:00`).toISOString();
+        const endAt = isRestAllDay ? new Date(`${endDate || date}T23:59:59`).toISOString()
+            : allDay ? new Date(`${endDate || date}T23:59:59`).toISOString()
+            : new Date(`${date}T${endTime}:00`).toISOString();
+        const autoTitle = type === "REST" ? t("agenda.event_type.REST")
+            : type === "BREAK" ? t("agenda.event_type.BREAK")
             : type === "STRAT_TIME" ? `Strat${stratMaps.length ? " — " + stratMaps.map(m => m.replace("de_", "")).join(", ") : ""}`
             : title.trim();
         const descParts = [
@@ -315,7 +319,7 @@ export default function CreateEventModal({ teamId, members, game, onClose, onCre
 
                 <div className="p-5 space-y-4">
                     {/* Type selector */}
-                    <div className="grid grid-cols-5 gap-2">
+                    <div className="grid grid-cols-6 gap-2">
                         {EVENT_TYPE_OPTIONS.map(opt => {
                             const Icon = opt.icon;
                             const active = type === opt.type;
@@ -355,19 +359,6 @@ export default function CreateEventModal({ teamId, members, game, onClose, onCre
                                 </div>
                             </div>
                         </div>
-                        {matchType === "OFFICIAL" && (
-                            <div>
-                                <label className={LABEL}>{t("matches.context")}</label>
-                                <div className="flex gap-1.5">
-                                    {OFFICIAL_CONTEXTS.map(mc => (
-                                        <button key={mc} type="button" onClick={() => setMatchContext(mc)}
-                                            className={cn("flex-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-colors", chip(matchContext === mc))}>
-                                            {t(`matches.context_${mc.toLowerCase()}`)}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                         <div className="grid grid-cols-2 gap-2">
                             <div><label className={LABEL}>{t("matches.opponent_name")}</label>
                                 <input value={opponentName} onChange={e => setOpponentName(e.target.value)} placeholder={t("matches.opponent_name_placeholder")} autoFocus className={INPUT_CLS} /></div>
@@ -410,20 +401,9 @@ export default function CreateEventModal({ teamId, members, game, onClose, onCre
                             </button>
                             {showMatchOptions && (
                                 <div className="mt-3 space-y-3">
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div><label className={LABEL}>{t("matches.competition_name")}</label>
-                                            <input value={competitionName} onChange={e => setCompetitionName(e.target.value)} placeholder={t("matches.optional")} className={INPUT_CLS} /></div>
-                                        <div><label className={LABEL}>{t("matches.competition_stage")}</label>
-                                            <input value={competitionStage} onChange={e => setCompetitionStage(e.target.value)} placeholder={t("matches.optional")} className={INPUT_CLS} /></div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div><label className={LABEL}>{t("matches.level")}</label>
-                                            <div className="flex gap-1">
-                                                <button type="button" onClick={() => setMatchLevel("")} className={cn("px-2 py-1 rounded-lg text-xs font-medium border transition-colors", chip(matchLevel === ""))}>—</button>
-                                                {MATCH_LEVELS.map(ml => (<button key={ml} type="button" onClick={() => setMatchLevel(ml)} className={cn("flex-1 py-1 rounded-lg text-xs font-bold border transition-colors font-mono", chip(matchLevel === ml))}>{ml}</button>))}
-                                            </div></div>
-                                        <div><label className={LABEL}>{t("matches.match_url")}</label>
-                                            <input value={matchUrl} onChange={e => setMatchUrl(e.target.value)} placeholder="https://..." className={INPUT_CLS} /></div>
+                                    <div>
+                                        <label className={LABEL}>{t("matches.match_url")}</label>
+                                        <input value={matchUrl} onChange={e => setMatchUrl(e.target.value)} placeholder="https://..." className={INPUT_CLS} />
                                     </div>
                                     <div><label className={LABEL}>{t("matches.notes")}</label>
                                         <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={t("matches.notes_placeholder")} rows={2} className={cn(INPUT_CLS, "h-auto py-2 resize-none")} /></div>
@@ -483,7 +463,7 @@ export default function CreateEventModal({ teamId, members, game, onClose, onCre
                         <ParticipantSelector members={members} selected={participantIds} onChange={setParticipantIds} />
                     </>)}
 
-                    {/* ── BREAK ──────────────────────────────────────────── */}
+                    {/* ── REST (all-day rest / day off) ────────────────── */}
                     {type === "REST" && (<>
                         <div className="grid grid-cols-2 gap-2">
                             <div><label className={LABEL}>{t("agenda.break_start")}<span className="ml-1 text-indigo-500">*</span></label>
@@ -491,15 +471,30 @@ export default function CreateEventModal({ teamId, members, game, onClose, onCre
                             <div><label className={LABEL}>{t("agenda.break_end")}</label>
                                 <DatePicker value={endDate} onChange={setEndDate} /></div>
                         </div>
-                        <Toggle checked={allDay} onChange={setAllDay} label={t("agenda.all_day")} />
-                        {!allDay && (
-                            <div className="grid grid-cols-2 gap-2">
-                                <div><label className={LABEL}>{t("agenda.field_start")}</label>
-                                    <TimePicker value={startTime} onChange={setStartTime} /></div>
-                                <div><label className={LABEL}>{t("agenda.field_end")}</label>
-                                    <TimePicker value={endTime} onChange={setEndTime} /></div>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-3">
+                            <Toggle checked={breakRecurrence} onChange={setBreakRecurrence} label={t("agenda.repeat_weekly")} />
+                            {breakRecurrence && (
+                                <div className="flex items-center gap-1.5">
+                                    <input type="number" min={1} max={52} value={breakWeeks}
+                                        onChange={e => setBreakWeeks(parseInt(e.target.value) || 1)}
+                                        className={cn(INPUT_CLS, "w-14 text-center")} />
+                                    <span className="text-xs text-neutral-500">{t("agenda.weeks")}</span>
+                                </div>
+                            )}
+                        </div>
+                        <ParticipantSelector members={members} selected={participantIds} onChange={setParticipantIds} />
+                    </>)}
+
+                    {/* ── BREAK (time-based pause) ────────────────────── */}
+                    {type === "BREAK" && (<>
+                        <div className="grid grid-cols-3 gap-2">
+                            <div><label className={LABEL}>{t("agenda.field_date")}<span className="ml-1 text-indigo-500">*</span></label>
+                                <DatePicker value={date} onChange={setDate} /></div>
+                            <div><label className={LABEL}>{t("agenda.field_start")}</label>
+                                <TimePicker value={startTime} onChange={setStartTime} /></div>
+                            <div><label className={LABEL}>{t("agenda.field_end")}</label>
+                                <TimePicker value={endTime} onChange={setEndTime} /></div>
+                        </div>
                         <div className="flex items-center gap-3">
                             <Toggle checked={breakRecurrence} onChange={setBreakRecurrence} label={t("agenda.repeat_weekly")} />
                             {breakRecurrence && (

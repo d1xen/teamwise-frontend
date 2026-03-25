@@ -1,8 +1,10 @@
 import type { Team } from '@/contexts/team/team.types';
 import type { ReactNode } from 'react';
-import { Globe, Twitter } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import { cn } from '@/design-system';
 import { TeamAvatar } from '@/shared/components/TeamAvatar';
+import FaceitIcon from '@/shared/components/FaceitIcon';
+import hltvLogo from '@/shared/assets/hltv.png';
 
 interface TeamHeaderProps {
   team: Team;
@@ -15,11 +17,30 @@ const GAME_BADGE: Record<string, { label: string; style: string }> = {
   VALORANT: { label: 'VALORANT', style: 'bg-red-500/10 text-red-300 border-red-500/20' },
 };
 
-const LINK_ICONS: Record<string, typeof Globe> = {
-  TWITTER: Twitter,
-  HLTV:    Globe,
-  FACEIT:  Globe,
-};
+function XIcon({ className }: { className?: string | undefined }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+function HltvIcon({ className }: { className?: string | undefined }) {
+  return (
+    <span className={`inline-flex items-center justify-center ${className}`}>
+      <img src={hltvLogo} alt="HLTV" className="max-w-full max-h-full object-contain" />
+    </span>
+  );
+}
+
+function LinkIcon({ type, className }: { type: string; className?: string | undefined }) {
+  switch (type) {
+    case 'TWITTER': return <XIcon className={className} />;
+    case 'HLTV': return <HltvIcon className={className} />;
+    case 'FACEIT': return <FaceitIcon className={className} />;
+    default: return <Globe className={className} />;
+  }
+}
 
 export function TeamHeader({ team, actions, children }: TeamHeaderProps) {
   const externalLinks = (team.links ?? []).filter((l) => l.url);
@@ -65,22 +86,18 @@ export function TeamHeader({ team, actions, children }: TeamHeaderProps) {
 
               {externalLinks.length > 0 && (
                 <div className="flex items-center gap-1 ml-1">
-                  {externalLinks.map((link) => {
-                    const Icon = LINK_ICONS[link.type] ?? Globe;
-                    return (
-                      <a
-                        key={link.type}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={link.type}
-                        className="flex items-center gap-1 h-6 px-2 rounded text-xs font-medium text-neutral-500 hover:text-neutral-300 transition-colors"
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                        <span>{link.type}</span>
-                      </a>
-                    );
-                  })}
+                  {externalLinks.map((link) => (
+                    <a
+                      key={link.type}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={link.type}
+                      className="flex items-center justify-center w-7 h-7 rounded-md text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50 transition-colors"
+                    >
+                      <LinkIcon type={link.type} className="w-4 h-4" />
+                    </a>
+                  ))}
                 </div>
               )}
             </div>

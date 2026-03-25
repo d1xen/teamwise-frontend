@@ -1,8 +1,9 @@
 import {
-    Trophy, Zap, CheckCircle2, Loader, Calendar,
+    Trophy, CheckCircle2, Loader, Calendar,
     Swords, Flame, GitBranch, Award, Undo2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import FaceitIcon from "@/shared/components/FaceitIcon";
 import { format } from "date-fns";
 import type { CompetitionCategory, CompetitionSummaryDto } from "@/api/types/faceit";
 import type { UseFaceitImportReturn } from "../hooks/useFaceitImport";
@@ -169,7 +170,7 @@ export default function CompetitionCard({
                         </span>
                         {competition.isCurrent && (
                             <span className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shrink-0 uppercase tracking-wide">
-                                <Zap className="w-2.5 h-2.5" />
+                                <FaceitIcon className="w-2.5 h-2.5" />
                                 {t("faceit.current_season")}
                             </span>
                         )}

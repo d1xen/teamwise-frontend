@@ -9,6 +9,7 @@ import { cn } from "@/design-system";
 
 interface AvailabilityModalProps {
     teamId: string;
+    initialDate?: string | undefined;
     onClose: () => void;
     onCreated: () => void;
 }
@@ -37,7 +38,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
     );
 }
 
-export default function AvailabilityModal({ teamId, onClose, onCreated }: AvailabilityModalProps) {
+export default function AvailabilityModal({ teamId, initialDate, onClose, onCreated }: AvailabilityModalProps) {
     const { t } = useTranslation();
     const [isSaving, setIsSaving] = useState(false);
 
@@ -47,7 +48,7 @@ export default function AvailabilityModal({ teamId, onClose, onCreated }: Availa
         return () => document.removeEventListener("keydown", handleEscape);
     }, [onClose]);
 
-    const [date, setDate] = useState("");
+    const [date, setDate] = useState(initialDate ?? "");
     const [startTime, setStartTime] = useState("09:00");
     const [endTime, setEndTime] = useState("18:00");
     const [reason, setReason] = useState("");

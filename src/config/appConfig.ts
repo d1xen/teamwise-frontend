@@ -11,6 +11,10 @@ const apiBaseUrl = (import.meta.env.PROD
   ? (import.meta.env.VITE_API_URL ?? '').trim()
   : '');
 
+if (import.meta.env.PROD && !apiBaseUrl) {
+  console.error('[Teamwise] VITE_API_URL is required in production. API calls will fail.');
+}
+
 export const appConfig: AppConfig = {
   apiBaseUrl,
   externalLinks: {

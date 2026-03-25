@@ -41,7 +41,7 @@ type UseCalendarResult = {
     filterSteamId: string | null;
     setFilterSteamId: (id: string | null) => void;
     filterEventType: string | null;
-    setFilterEventType: (t: EventType | null) => void;
+    setFilterEventType: (t: string | null) => void;
     startHour: number;
     endHour: number;
     setTimeRange: (startHour: number, endHour: number) => void;
@@ -87,7 +87,7 @@ export function useCalendar(teamId: string): UseCalendarResult {
     };
 
     // Core fetch — reads current state via refs to avoid dep cycles
-    const fetchRef = useRef<() => Promise<void>>();
+    const fetchRef = useRef<() => Promise<void>>(undefined);
     fetchRef.current = async () => {
         const range = viewKey === "month" ? getMonthRange(currentDate) : getWeekRange(currentDate);
         // "UNAVAILABLE" is a client-side filter, don't send to backend

@@ -7,7 +7,7 @@ import {
     initiateFaceitConnect,
     disconnectFaceit,
 } from '@/api/endpoints/faceit.api';
-import type { FaceitStatusDto } from '@/api/endpoints/faceit.api';
+import type { FaceitStatusDto } from '@/api/types/faceit';
 import { useOptionalTeam } from '@/contexts/team/useOptionalTeam';
 
 interface FaceitConnectSectionProps {
@@ -57,7 +57,7 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
         }
         popupRef.current = null;
         reloadStatus();
-        void teamCtx?.refreshTeam();
+        teamCtx?.refreshTeam?.().catch(() => {});
     };
 
     const reloadStatus = () => {
@@ -197,7 +197,7 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
         setStatus({ linked: false, faceitNickname: null });
         toast.success(t('faceit.disconnect_success'));
         setIsActing(false);
-        teamCtx?.refreshTeam().catch(() => {/* silent */});
+        teamCtx?.refreshTeam?.().catch(() => {/* silent */});
     };
 
     if (isLoading || status === null) return null;

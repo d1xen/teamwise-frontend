@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    RefreshCw, Download, Loader, Zap,
+    RefreshCw, Download, Loader,
     Settings2, ChevronDown, ChevronUp, Clock,
     Link2, Check, ArrowRight, Users, HelpCircle,
 } from "lucide-react";
+import FaceitIcon from "@/shared/components/FaceitIcon";
 import { useTeam } from "@/contexts/team/useTeam";
 import { useFaceitOverview } from "../hooks/useFaceitOverview";
 import { useFaceitImport } from "../hooks/useFaceitImport";
 import CompetitionCard from "./CompetitionCard";
 import { cn } from "@/design-system";
-import type { CompetitionCategory, CompetitionSummaryDto, SyncConfig } from "@/api/types/faceit";
+import type { CompetitionCategory, CompetitionSummaryDto } from "@/api/types/faceit";
 import type { TeamMemberDto } from "@/api/types/team";
 
 const MIN_LINKED = 3;
@@ -239,7 +240,7 @@ export default function FaceitOverview({ teamId }: { teamId: string }) {
         <div className="flex flex-col gap-5 pb-28">
             {/* Header */}
             <div className="flex items-center gap-2.5">
-                <Zap className="w-5 h-5 text-orange-400 shrink-0" />
+                <FaceitIcon className="w-5 h-5 shrink-0" />
                 <h3 className="text-base font-semibold text-white">{t("faceit.idle_title")}</h3>
             </div>
 

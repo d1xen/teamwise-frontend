@@ -23,6 +23,26 @@ export function createMatch(teamId: string | number, payload: CreateMatchRequest
     });
 }
 
+// ── Notes ──
+
+import type { NoteDto } from "@/api/types/common";
+
+export function getMatchNotes(matchId: number): Promise<NoteDto[]> {
+    return apiClient<NoteDto[]>(`/api/matches/${matchId}/notes`);
+}
+
+export function addMatchNote(matchId: number, content: string): Promise<NoteDto> {
+    return apiClient<NoteDto>(`/api/matches/${matchId}/notes`, {
+        method: "POST", body: JSON.stringify({ content }),
+    });
+}
+
+export function deleteMatchNote(matchId: number, noteId: number): Promise<void> {
+    return apiClient<void>(`/api/matches/${matchId}/notes/${noteId}`, { method: "DELETE" });
+}
+
+// ── Match CRUD ──
+
 export function getMatch(matchId: number): Promise<MatchDto> {
     return apiClient<MatchDto>(`/api/matches/${matchId}`);
 }
@@ -78,10 +98,9 @@ export function getMatchesPaginated(
     const state = stateMap[filters.tab];
     if (state) params.set("state", state);
     if (filters.type)     params.set("type", filters.type);
-    if (filters.context)  params.set("context", filters.context);
     if (filters.format)   params.set("format", filters.format);
-    if (filters.opponent)    params.set("opponent",    filters.opponent.trim());
-    if (filters.competition) params.set("competition", filters.competition.trim());
+    if (filters.opponent)      params.set("opponent",      filters.opponent.trim());
+    if (filters.competitionId) params.set("competitionId", String(filters.competitionId));
 
     if (filters.dateRange !== "all") {
         const from = dateRangeToFrom(filters.dateRange);

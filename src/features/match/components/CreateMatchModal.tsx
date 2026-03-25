@@ -1,7 +1,10 @@
 import { type FormEvent, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X, ChevronDown } from "lucide-react";
-import type { CreateMatchRequest, MatchContext, MatchFormat, MatchLevel, MatchType } from "@/api/types/match";
+import type { CreateMatchRequest, MatchFormat, MatchType } from "@/api/types/match";
+import type { CompetitionSummaryDto } from "@/api/types/competition";
+import { getActiveCompetitions } from "@/api/endpoints/competition.api";
+import { useTeam } from "@/contexts/team/useTeam";
 import DatePicker from "@/design-system/components/DatePicker";
 import TimePicker from "@/design-system/components/TimePicker";
 
@@ -10,10 +13,8 @@ interface CreateMatchModalProps {
     onSubmit: (payload: CreateMatchRequest) => Promise<boolean>;
 }
 
-const MATCH_TYPES: MatchType[]         = ["OFFICIAL", "SCRIM"];
-const OFFICIAL_CONTEXTS: MatchContext[] = ["TOURNAMENT", "QUALIFIER", "LAN", "REGULAR_SEASON"];
-const MATCH_FORMATS: MatchFormat[]      = ["BO1", "BO3", "BO5"];
-const MATCH_LEVELS: MatchLevel[]        = ["S", "A", "B", "C"];
+const MATCH_TYPES: MatchType[]    = ["OFFICIAL", "SCRIM"];
+const MATCH_FORMATS: MatchFormat[] = ["BO1", "BO3", "BO5"];
 
 function chip(active: boolean) {
     return active
@@ -26,6 +27,7 @@ const INPUT  = "w-full bg-neutral-900/60 border border-neutral-800 rounded-lg px
 
 export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModalProps) {
     const { t } = useTranslation();
+    const { team } = useTeam();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
 
@@ -38,22 +40,21 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
     }, [onClose]);
 
     const [type, setType]                   = useState<MatchType>("OFFICIAL");
-    const [context, setContext]             = useState<MatchContext>("TOURNAMENT");
     const [opponentName, setOpponentName]   = useState("");
     const [opponentLogo, setOpponentLogo]   = useState("");
     const [matchUrl, setMatchUrl]           = useState("");
     const [scheduledDate, setScheduledDate]   = useState("");
     const [scheduledTime, setScheduledTime]   = useState("20:00");
     const [format, setFormat]               = useState<MatchFormat>("BO3");
-    const [competitionName, setCompetitionName] = useState("");
-    const [competitionStage, setCompetitionStage] = useState("");
-    const [level, setLevel]                 = useState<MatchLevel | "">("");
+    const [competitionId, setCompetitionId] = useState<number | null>(null);
     const [notes, setNotes]                 = useState("");
 
-    const handleTypeChange = (t: MatchType) => {
-        setType(t);
-        if (t === "SCRIM") setContext("TOURNAMENT"); // reset, won't be sent
-    };
+    const [activeCompetitions, setActiveCompetitions] = useState<CompetitionSummaryDto[]>([]);
+    useEffect(() => {
+        if (team?.id) {
+            getActiveCompetitions(team.id).then(setActiveCompetitions).catch(() => {});
+        }
+    }, [team?.id]);
 
     const canSubmit = !!scheduledDate;
 
@@ -63,15 +64,12 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
         setIsSubmitting(true);
         const ok = await onSubmit({
             type,
-            context: type === "OFFICIAL" ? context : null,
             opponentName: opponentName.trim() || null,
             opponentLogo: opponentLogo.trim() || null,
             matchUrl: matchUrl.trim() || null,
             scheduledAt: new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString(),
             format,
-            competitionName: competitionName.trim() || null,
-            competitionStage: competitionStage.trim() || null,
-            level: level || null,
+            competitionId: competitionId || null,
             notes: notes.trim() || null,
         });
         setIsSubmitting(false);
@@ -107,7 +105,7 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
                                         <button
                                             key={mt}
                                             type="button"
-                                            onClick={() => handleTypeChange(mt)}
+                                            onClick={() => setType(mt)}
                                             className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${chip(type === mt)}`}
                                         >
                                             {t(`matches.type_${mt.toLowerCase()}`)}
@@ -134,26 +132,22 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
                             </div>
                         </div>
 
-                        {/* ── Context — OFFICIAL only ────────────────────── */}
-                        {type === "OFFICIAL" && (
-                            <div>
-                                <p className={LABEL}>{t("matches.context")}</p>
-                                <div className="flex gap-2">
-                                    {OFFICIAL_CONTEXTS.map(mc => (
-                                        <button
-                                            key={mc}
-                                            type="button"
-                                            onClick={() => setContext(mc)}
-                                            className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${chip(context === mc)}`}
-                                        >
-                                            {t(`matches.context_${mc.toLowerCase()}`)}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
                         <div className="border-t border-neutral-800/60" />
+
+                        {/* ── Competition ─────────────────────────────── */}
+                        <div>
+                            <label className={LABEL}>{t("matches.competition_name")}</label>
+                            <select
+                                value={competitionId ?? ""}
+                                onChange={e => setCompetitionId(e.target.value ? Number(e.target.value) : null)}
+                                className={INPUT}
+                            >
+                                <option value="">{t("competitions.none")}</option>
+                                {activeCompetitions.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
 
                         {/* ── Required fields ───────────────────────────── */}
                         <div className="space-y-3">
@@ -184,17 +178,6 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
                                     </div>
                                 </div>
                             </div>
-
-                            <div>
-                                <label className={LABEL}>{t("matches.match_url")}</label>
-                                <input
-                                    type="url"
-                                    value={matchUrl}
-                                    onChange={e => setMatchUrl(e.target.value)}
-                                    placeholder="https://..."
-                                    className={INPUT}
-                                />
-                            </div>
                         </div>
 
                         <div className="border-t border-neutral-800/60" />
@@ -214,64 +197,28 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
 
                             {showOptions && (
                                 <div className="mt-4 space-y-3">
-                                    {/* Competition */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className={LABEL}>{t("matches.competition_name")}</label>
-                                            <input
-                                                type="text"
-                                                value={competitionName}
-                                                onChange={e => setCompetitionName(e.target.value)}
-                                                placeholder={t("matches.optional")}
-                                                className={INPUT}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className={LABEL}>{t("matches.competition_stage")}</label>
-                                            <input
-                                                type="text"
-                                                value={competitionStage}
-                                                onChange={e => setCompetitionStage(e.target.value)}
-                                                placeholder={t("matches.optional")}
-                                                className={INPUT}
-                                            />
-                                        </div>
+                                    {/* Match URL */}
+                                    <div>
+                                        <label className={LABEL}>{t("matches.match_url")}</label>
+                                        <input
+                                            type="url"
+                                            value={matchUrl}
+                                            onChange={e => setMatchUrl(e.target.value)}
+                                            placeholder="https://..."
+                                            className={INPUT}
+                                        />
                                     </div>
 
-                                    {/* Level + Logo */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className={LABEL}>{t("matches.level")}</label>
-                                            <div className="flex gap-1.5">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setLevel("")}
-                                                    className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${chip(level === "")}`}
-                                                >
-                                                    —
-                                                </button>
-                                                {MATCH_LEVELS.map(ml => (
-                                                    <button
-                                                        key={ml}
-                                                        type="button"
-                                                        onClick={() => setLevel(ml)}
-                                                        className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors font-mono ${chip(level === ml)}`}
-                                                    >
-                                                        {ml}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className={LABEL}>{t("matches.opponent_logo")}</label>
-                                            <input
-                                                type="url"
-                                                value={opponentLogo}
-                                                onChange={e => setOpponentLogo(e.target.value)}
-                                                placeholder="https://..."
-                                                className={INPUT}
-                                            />
-                                        </div>
+                                    {/* Logo */}
+                                    <div>
+                                        <label className={LABEL}>{t("matches.opponent_logo")}</label>
+                                        <input
+                                            type="url"
+                                            value={opponentLogo}
+                                            onChange={e => setOpponentLogo(e.target.value)}
+                                            placeholder="https://..."
+                                            className={INPUT}
+                                        />
                                     </div>
 
                                     {/* Notes */}

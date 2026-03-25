@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { X, Loader2, RotateCcw } from "lucide-react";
 import type { MatchDto, MatchFormat, MatchMapDto, UpdateMapScoreRequest, UpdateMatchRequest } from "@/api/types/match";
 import type { Game } from "@/api/types/team";
-import { getMapsForGame } from "@/shared/config/gameConfig";
+import { getMapsForGame, getMapLabel } from "@/shared/config/gameConfig";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -49,9 +49,6 @@ function requiredWins(format: MatchFormat): number {
     return format === "BO3" ? 2 : format === "BO5" ? 3 : 1;
 }
 
-function getMapLabel(maps: { value: string; label: string }[], value: string): string {
-    return maps.find(m => m.value === value)?.label ?? value;
-}
 
 /**
  * A row is dead if it has no scores AND the series is already decided
@@ -357,7 +354,7 @@ export default function ScoreModal({ match, teamTag, game, onClose, onSaveMap, o
                                         ) : val ? (
                                             <span className="block text-sm font-medium text-neutral-200 truncate">
                                                 {row.mapName
-                                                    ? getMapLabel(gameMaps, row.mapName)
+                                                    ? getMapLabel(row.mapName, game)
                                                     : <span className="text-neutral-600 italic">{t("matches.map_unknown")}</span>
                                                 }
                                             </span>

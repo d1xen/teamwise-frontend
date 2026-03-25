@@ -2,11 +2,13 @@ import { cn } from "@/design-system";
 import type { EventDto } from "@/api/types/agenda";
 
 const TYPE_COLORS: Record<string, string> = {
-    MATCH:      "bg-blue-500/20 text-blue-300 border-blue-500/30",
-    MEETING:    "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
-    STRAT_TIME: "bg-yellow-500/15 text-yellow-300 border-yellow-500/25",
-    REST:       "bg-neutral-500/10 text-neutral-400 border-neutral-600/30 bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(115,115,115,0.08)_4px,rgba(115,115,115,0.08)_8px)]",
-    CUSTOM:     "bg-neutral-700/30 text-neutral-300 border-neutral-600/30",
+    MATCH:       "bg-blue-500/20 text-blue-300 border-blue-500/30",
+    COMPETITION: "bg-amber-500/15 text-amber-300 border-amber-500/25",
+    MEETING:     "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
+    STRAT_TIME:  "bg-yellow-500/15 text-yellow-300 border-yellow-500/25",
+    REST:        "bg-neutral-500/10 text-neutral-400 border-neutral-600/30 bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(115,115,115,0.08)_4px,rgba(115,115,115,0.08)_8px)]",
+    BREAK:       "bg-teal-500/15 text-teal-300 border-teal-500/25",
+    CUSTOM:      "bg-neutral-700/30 text-neutral-300 border-neutral-600/30",
 };
 
 const CUSTOM_SUBTYPE_COLORS: Record<string, string> = {

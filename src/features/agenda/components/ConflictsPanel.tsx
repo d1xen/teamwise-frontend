@@ -21,7 +21,7 @@ export default function ConflictsPanel({ conflicts, onConflictClick }: Conflicts
     const dateFmt = new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "short" });
 
     return (
-        <div className="h-[calc(50%-6px)] bg-neutral-900/50 border border-neutral-800 rounded-2xl overflow-hidden flex flex-col">
+        <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl overflow-hidden flex flex-col">
             {/* Header */}
             <div className="px-3.5 py-2.5 border-b border-blue-400/[0.07] bg-blue-500/[0.035] shrink-0">
                 <div className="flex items-center justify-between">
@@ -58,7 +58,7 @@ export default function ConflictsPanel({ conflicts, onConflictClick }: Conflicts
                     <p className="text-xs text-neutral-600">{t("agenda.no_conflicts")}</p>
                 </div>
             ) : (
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
                     {pageConflicts.map((c, i) => {
                         const start = new Date(c.eventStartAt);
                         const isUnavailable = c.conflictType === "UNAVAILABLE";
@@ -67,7 +67,7 @@ export default function ConflictsPanel({ conflicts, onConflictClick }: Conflicts
                             <button
                                 key={c.id}
                                 onClick={() => onConflictClick?.(c)}
-                                className={`flex-1 text-left px-3.5 hover:bg-neutral-800/30 transition-colors flex items-center${i > 0 ? " border-t border-neutral-800/50" : ""}`}
+                                className={`w-full text-left px-3.5 py-2.5 hover:bg-neutral-800/30 transition-colors flex items-center${i > 0 ? " border-t border-neutral-800/50" : ""}`}
                             >
                                 <div className="flex gap-2 w-full">
                                     <div className="shrink-0">

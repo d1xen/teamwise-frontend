@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 interface UserAvatarProps {
-    profileImageUrl?: string | null;
-    avatarUrl?: string | null;
+    profileImageUrl?: string | null | undefined;
+    avatarUrl?: string | null | undefined;
     nickname: string;
     /** Fixed pixel size. Omit to let the parent control dimensions via className. */
     size?: number;

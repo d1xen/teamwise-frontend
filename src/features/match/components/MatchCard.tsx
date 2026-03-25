@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar, ChevronDown, Check, ClipboardCheck, ExternalLink } from "lucide-react";
+import { Calendar, ChevronDown, Check, ClipboardCheck, ExternalLink, Trophy } from "lucide-react";
 import type { MatchDto } from "@/api/types/match";
 
 interface MatchCardProps {
@@ -9,7 +9,7 @@ interface MatchCardProps {
     editMode?: boolean;
     selected?: boolean;
     onToggleSelect?: (id: number) => void;
-    onClick?: (match: MatchDto) => void;
+    onClick?: ((match: MatchDto) => void) | undefined;
 }
 
 function formatDateTime(iso: string): string {
@@ -55,7 +55,6 @@ export default function MatchCard({
     const canExpand  = !editMode && match.status === "COMPLETED" && scoredMaps.length > 0;
 
     const isScheduled  = match.status === "SCHEDULED";
-    const isCompleted  = match.state === "COMPLETED";
     const isUpcoming   = match.state === "UPCOMING";
     const isToComplete = match.state === "TO_COMPLETE";
 
@@ -102,10 +101,10 @@ export default function MatchCard({
                 className={`bg-neutral-900/50 border rounded-xl p-4 transition-colors ${borderClass} ${isCardClickable ? "cursor-pointer" : ""}`}
                 onClick={handleCardClick}
             >
-            <div className="flex items-start gap-3">
+            <div className="flex gap-3">
 
                 {/* Opponent logo */}
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-neutral-800 border border-neutral-700 flex items-center justify-center overflow-hidden">
+                <div className="flex-shrink-0 w-20 h-20 rounded-xl bg-neutral-800 border border-neutral-700 flex items-center justify-center overflow-hidden">
                     {match.opponentLogo && !logoError ? (
                         <img
                             src={match.opponentLogo}
@@ -138,22 +137,18 @@ export default function MatchCard({
                         }`}>
                             {t(`matches.type_${match.type.toLowerCase()}`)}
                         </span>
-                        {match.context && (
-                            <span className="text-xs text-neutral-500">
-                                {t(`matches.context_${match.context.toLowerCase()}`)}
-                            </span>
-                        )}
-                        {match.level && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 font-mono font-bold">
-                                {match.level}
-                            </span>
-                        )}
                     </div>
 
                     {match.competitionName && (
-                        <p className="text-xs text-neutral-500 mb-1">
-                            {match.competitionName}{match.competitionStage && ` · ${match.competitionStage}`}
-                        </p>
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <Trophy className="w-3 h-3 text-amber-500/70" />
+                            <span className="text-xs text-neutral-400">
+                                {match.competitionName}
+                            </span>
+                            {match.competitionStage && (
+                                <span className="text-xs text-neutral-600">· {match.competitionStage}</span>
+                            )}
+                        </div>
                     )}
 
                     <div className="flex items-center gap-3">
@@ -176,46 +171,37 @@ export default function MatchCard({
                     </div>
                 </div>
 
-                {/* Right side */}
-                <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                {/* Right side — single badge per state */}
+                <div className="flex-shrink-0 self-center">
 
-                    {/* Time remaining badge — UPCOMING */}
                     {timeUntil && (
-                        <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${timeUntilColor}`}>
+                        <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium whitespace-nowrap ${timeUntilColor}`}>
                             {t(timeUntil.unit === "hours" ? "matches.in_hours" : "matches.in_days", { count: timeUntil.value })}
                         </span>
                     )}
 
-                    {/* Status badge for TO_COMPLETE */}
                     {isToComplete && !editMode && (
-                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-medium">
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-medium whitespace-nowrap">
                             <ClipboardCheck className="w-3.5 h-3.5" />
                             {t("matches.to_complete_badge")}
                         </span>
                     )}
 
-                    {/* Result badge — static, uniform width */}
                     {match.result && (
-                        <div className={`flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-bold w-36 ${resultColor}`}>
+                        <button
+                            onClick={canExpand ? (e) => { e.stopPropagation(); setExpanded(v => !v); } : undefined}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold whitespace-nowrap ${resultColor} ${canExpand ? "cursor-pointer hover:brightness-125 transition-all" : ""}`}
+                        >
                             <span className="tabular-nums">{ourWins}–{theirWins}</span>
                             <span>{t(`matches.result_${match.result.toLowerCase()}`)}</span>
-                        </div>
+                            {canExpand && (
+                                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+                            )}
+                        </button>
                     )}
 
                 </div>
             </div>
-
-            {/* Expand trigger — bottom right, only when maps are available */}
-            {canExpand && (
-                <div className="flex justify-end mt-2">
-                    <button
-                        onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
-                        className="flex items-center gap-1 text-[11px] text-neutral-600 hover:text-neutral-400 transition-colors"
-                    >
-                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
-                    </button>
-                </div>
-            )}
 
             {/* Expanded: map details + notes */}
             {expanded && canExpand && (

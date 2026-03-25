@@ -20,8 +20,12 @@ export default function LoginSuccessPage() {
         setToken(token);
         void login(token);
 
+        // Restore intended destination saved before Steam OAuth redirect
+        const returnUrl = sessionStorage.getItem("tw_return_url");
+        sessionStorage.removeItem("tw_return_url");
+
         setTimeout(() => {
-            navigate("/select-team", { replace: true });
+            navigate(returnUrl || "/select-team", { replace: true });
         }, 1200);
     }, [params, navigate, login]);
 
