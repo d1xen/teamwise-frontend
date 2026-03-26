@@ -27,6 +27,7 @@ import CompetitionsPage from "@/pages/team/CompetitionsPage";
 import MessagingPage from "@/pages/team/MessagingPage";
 import DemoPage from "@/pages/team/DemoPage";
 import FaceitPopupCallbackPage from "@/pages/auth/FaceitPopupCallbackPage";
+import ErrorPage from "@/shared/components/ErrorPage";
 
 const appRouter = createBrowserRouter([
     // ROOT
@@ -42,9 +43,11 @@ const appRouter = createBrowserRouter([
     // AUTH REQUIRED
     {
         element: <RequireAuth />,
+        errorElement: <ErrorPage variant="500" />,
         children: [
             {
                 element: <AppLayout />,
+                errorElement: <ErrorPage variant="500" />,
                 children: [
                     {
                         path: "/terms-auth",
@@ -138,7 +141,8 @@ const appRouter = createBrowserRouter([
         ],
     },
 
-    { path: "*", element: <Navigate to="/" replace /> },
+    // 404 — catch all unmatched routes
+    { path: "*", element: <ErrorPage variant="404" /> },
 ]);
 
 export default appRouter;

@@ -70,6 +70,7 @@ export interface TeamContextType {
     members: TeamMember[];
     isLoading: boolean;
     isReady: boolean;
+    loadError: { status?: number | undefined } | null;
     resetTeam: () => void;
     refreshTeam: () => Promise<void>;
     updateMemberActiveStatus: (steamId: string, activePlayer: boolean) => void;

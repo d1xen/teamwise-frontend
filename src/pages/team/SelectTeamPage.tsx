@@ -137,7 +137,7 @@ export default function SelectTeamPage() {
 
             {/* Top bar */}
             <div className="relative z-10 flex items-center justify-between px-8 py-5">
-                <TeamWiseLogo size={26} />
+                <TeamWiseLogo size={36} />
 
                 <div className="flex items-center gap-3">
                     <a

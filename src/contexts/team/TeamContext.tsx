@@ -34,6 +34,7 @@ export function TeamProvider({
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isReady, setIsReady] = useState(false);
+    const [loadError, setLoadError] = useState<{ status?: number | undefined } | null>(null);
     const loadIdRef = useRef(0);
 
     useEffect(() => {
@@ -52,6 +53,7 @@ export function TeamProvider({
         }
 
         setIsLoading(true);
+        setLoadError(null);
         if (blockUi) {
             setIsReady(false);
         }
@@ -119,8 +121,11 @@ export function TeamProvider({
                 return;
             }
         } catch (err: unknown) {
-            // 403 = no longer a member of this team
-            if (wasReadyRef.current && err && typeof err === "object" && "status" in err && (err as { status: number }).status === 403) {
+            const status = err && typeof err === "object" && "status" in err ? (err as { status: number }).status : undefined;
+            setLoadError({ status });
+
+            // 403 while already loaded = kicked from team → redirect
+            if (wasReadyRef.current && status === 403) {
                 appStorage.clearLastTeamId();
                 navigate("/select-team", { replace: true });
                 return;
@@ -180,6 +185,7 @@ export function TeamProvider({
                 members,
                 isLoading,
                 isReady,
+                loadError,
                 resetTeam,
                 refreshTeam,
                 updateMemberActiveStatus,

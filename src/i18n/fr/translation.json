@@ -46,6 +46,21 @@
     "member_since": "Membre depuis le {{date}}"
   },
 
+  "error": {
+    "404_title": "Page introuvable",
+    "404_description": "La page que vous recherchez n'existe pas ou a été déplacée.",
+    "403_title": "Accès refusé",
+    "403_description": "Vous n'avez pas les permissions pour accéder à cette page.",
+    "500_title": "Erreur serveur",
+    "500_description": "Un problème est survenu de notre côté. Veuillez réessayer plus tard.",
+    "network_title": "Erreur de connexion",
+    "network_description": "Impossible de joindre le serveur. Vérifiez votre connexion internet.",
+    "unknown_title": "Une erreur est survenue",
+    "unknown_description": "Une erreur inattendue s'est produite.",
+    "back_to_teams": "Retour à mes équipes",
+    "go_back": "Retour"
+  },
+
   "auth": {
     "login": "Se connecter",
     "logout": "Se déconnecter",
