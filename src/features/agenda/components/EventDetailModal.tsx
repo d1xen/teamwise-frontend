@@ -193,23 +193,25 @@ export default function EventDetailModal({ event, teamId, isStaff, onClose, onDe
                                         <Users className="w-3.5 h-3.5 text-neutral-500" />
                                         <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wide">
                                             {t("agenda.participants")}
-                                            {event.participantScope && event.participantScope !== "INDIVIDUAL"
-                                                ? ` · ${t(`agenda.scope.${event.participantScope}`)}`
-                                                : ` (${event.participants.length})`
-                                            }
                                         </p>
                                     </div>
                                     <div className="flex flex-wrap gap-1.5">
-                                        {event.participants.map(p => (
-                                            <span key={p.steamId} className={cn(
-                                                "text-[10px] font-medium px-2 py-0.5 rounded-full border",
-                                                p.nickname === "Unknown"
-                                                    ? "bg-neutral-900 text-neutral-600 border-neutral-800"
-                                                    : "bg-neutral-800 text-neutral-300 border-neutral-700/50"
-                                            )}>
-                                                {p.nickname === "Unknown" ? t("agenda.former_member") : p.nickname}
+                                        {event.participantScope && event.participantScope !== "INDIVIDUAL" ? (
+                                            <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                                                {t(`agenda.scope.${event.participantScope}`)}
                                             </span>
-                                        ))}
+                                        ) : (
+                                            event.participants.map(p => (
+                                                <span key={p.steamId} className={cn(
+                                                    "text-[10px] font-medium px-2.5 py-1 rounded-full border",
+                                                    p.nickname === "Unknown"
+                                                        ? "bg-neutral-900 text-neutral-600 border-neutral-800"
+                                                        : "bg-neutral-800 text-neutral-300 border-neutral-700/50"
+                                                )}>
+                                                    {p.nickname === "Unknown" ? t("agenda.former_member") : p.nickname}
+                                                </span>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
                             )}

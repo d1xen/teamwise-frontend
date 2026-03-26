@@ -92,9 +92,15 @@ function ParticipantSelector({ members, selected, onChange }: {
     const playerIds = members.filter(m => m.role === "PLAYER" && m.activePlayer !== false).map(m => m.steamId);
     const staffIds = members.filter(m => m.isOwner || m.role !== "PLAYER").map(m => m.steamId);
 
-    const isPreset = (ids: string[]) => ids.length === selected.length && ids.every(id => selected.includes(id));
-    const available = members.filter(m => !selected.includes(m.steamId));
-    const selectedMembers = members.filter(m => selected.includes(m.steamId));
+    const match = (a: string[], b: string[]) => a.length === b.length && a.every(id => b.includes(id));
+
+    const toggle = (steamId: string) => {
+        if (selected.includes(steamId)) {
+            onChange(selected.filter(id => id !== steamId));
+        } else {
+            onChange([...selected, steamId]);
+        }
+    };
 
     type Preset = { key: string; ids: string[] };
     const presets: Preset[] = [
@@ -107,39 +113,33 @@ function ParticipantSelector({ members, selected, onChange }: {
         <div>
             <label className={LABEL}>{t("agenda.field_participants")}</label>
             {/* Presets */}
-            <div className="flex gap-1.5 mb-2">
+            <div className="flex gap-1.5 mb-3">
                 {presets.map(p => (
-                    <button key={p.key} type="button" onClick={() => onChange(p.ids)}
-                        className={cn("px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-colors",
-                            isPreset(p.ids) ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-neutral-500 border-neutral-700/50 hover:text-neutral-300")}>
+                    <button key={p.key} type="button" onClick={() => onChange(match(selected, p.ids) ? [] : p.ids)}
+                        className={cn("px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-colors",
+                            match(selected, p.ids) ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-neutral-500 border-neutral-700/50 hover:text-neutral-300")}>
                         {t(`agenda.preset_${p.key}`)}
                     </button>
                 ))}
             </div>
-            {/* Selected badges */}
-            {selectedMembers.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                    {selectedMembers.map(m => (
-                        <span key={m.steamId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-neutral-800 text-neutral-300 border border-neutral-700/50">
+            {/* All members — toggle each */}
+            <div className="flex flex-wrap gap-1.5">
+                {members.map(m => {
+                    const isSelected = selected.includes(m.steamId);
+                    return (
+                        <button key={m.steamId} type="button" onClick={() => toggle(m.steamId)}
+                            className={cn(
+                                "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border transition-all",
+                                isSelected
+                                    ? "bg-neutral-800 text-neutral-200 border-neutral-600"
+                                    : "bg-transparent text-neutral-600 border-neutral-800 hover:text-neutral-400 hover:border-neutral-700"
+                            )}>
                             {m.customUsername || m.nickname}
-                            <button type="button" onClick={() => onChange(selected.filter(id => id !== m.steamId))}
-                                className="text-neutral-500 hover:text-white transition-colors">
-                                <X className="w-2.5 h-2.5" />
-                            </button>
-                        </span>
-                    ))}
-                </div>
-            )}
-            {/* Add individual */}
-            {available.length > 0 && (
-                <select value="" onChange={e => { if (e.target.value) onChange([...selected, e.target.value]); }}
-                    className={cn(INPUT_CLS, "cursor-pointer text-neutral-500")}>
-                    <option value="">{t("agenda.add_participant")}</option>
-                    {available.map(m => (
-                        <option key={m.steamId} value={m.steamId}>{m.customUsername || m.nickname}</option>
-                    ))}
-                </select>
-            )}
+                            {isSelected && <X className="w-2.5 h-2.5 text-neutral-500 hover:text-white" />}
+                        </button>
+                    );
+                })}
+            </div>
         </div>
     );
 }
@@ -185,6 +185,21 @@ export default function CreateEventModal({ teamId, members, game, initialDate, o
     const [participantIds, setParticipantIds] = useState<string[]>(() =>
         members.filter(m => m.role === "PLAYER" && m.activePlayer !== false).map(m => m.steamId)
     );
+
+    // Detect scope — types without participant selector always use ALL_MEMBERS
+    const detectScope = (): { scope: ParticipantScope; ids: string[] | undefined } => {
+        if (type !== "MEETING" && type !== "CUSTOM") {
+            return { scope: "ALL_MEMBERS", ids: undefined };
+        }
+        const allIds = members.map(m => m.steamId);
+        const playerIds = members.filter(m => m.role === "PLAYER" && m.activePlayer !== false).map(m => m.steamId);
+        const staffIds = members.filter(m => m.isOwner || m.role !== "PLAYER").map(m => m.steamId);
+        const match = (a: string[], b: string[]) => a.length === b.length && a.every(id => b.includes(id));
+        if (match(participantIds, allIds)) return { scope: "ALL_MEMBERS", ids: undefined };
+        if (match(participantIds, playerIds)) return { scope: "ACTIVE_ROSTER", ids: undefined };
+        if (match(participantIds, staffIds)) return { scope: "STAFF_ONLY", ids: undefined };
+        return { scope: "INDIVIDUAL", ids: participantIds };
+    };
 
     // Match
     const [matchType, setMatchType] = useState<MatchType>("OFFICIAL");
@@ -299,9 +314,10 @@ export default function CreateEventModal({ teamId, members, game, initialDate, o
                 ? customSubtype
                 : undefined;
 
+        const { scope, ids } = detectScope();
         await createEvent(teamId, {
             type: type!, title: autoTitle, description: autoDesc, startAt, endAt, tags: autoTags,
-            participantScope: "INDIVIDUAL" as ParticipantScope, participantSteamIds: participantIds,
+            participantScope: scope, participantSteamIds: ids,
         });
     };
 
@@ -441,7 +457,6 @@ export default function CreateEventModal({ teamId, members, game, initialDate, o
                                 placeholder={t("agenda.strat_objectives_placeholder")} rows={2} className={cn(INPUT_CLS, "h-auto py-2 resize-none")} /></div>
                         <div><label className={LABEL}>{t("agenda.field_link")}</label>
                             <input value={link} onChange={e => setLink(e.target.value)} placeholder={t("agenda.link_placeholder")} className={INPUT_CLS} /></div>
-                        <ParticipantSelector members={members} selected={participantIds} onChange={setParticipantIds} />
                     </>)}
 
                     {/* ── MEETING ────────────────────────────────────────── */}
@@ -482,7 +497,6 @@ export default function CreateEventModal({ teamId, members, game, initialDate, o
                                 </div>
                             )}
                         </div>
-                        <ParticipantSelector members={members} selected={participantIds} onChange={setParticipantIds} />
                     </>)}
 
                     {/* ── BREAK (time-based pause) ────────────────────── */}
@@ -506,7 +520,6 @@ export default function CreateEventModal({ teamId, members, game, initialDate, o
                                 </div>
                             )}
                         </div>
-                        <ParticipantSelector members={members} selected={participantIds} onChange={setParticipantIds} />
                     </>)}
 
                     {/* ── CUSTOM ─────────────────────────────────────────── */}
