@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TeamMember } from "@/contexts/team/team.types";
-import { Search, Users } from "lucide-react";
+import { Search, Users, CheckCircle2 } from "lucide-react";
 import { cn } from "@/design-system";
+import FaceitIcon from "@/shared/components/FaceitIcon";
 import CardMember from "./CardMember";
 
 type FilterId = "all" | "players" | "staff";
@@ -52,14 +53,26 @@ export default function MembersPanel({
   return (
     <div className="space-y-4">
       {/* Page Header */}
-      <div className="flex items-center gap-2">
-        <Users className="w-5 h-5 text-neutral-400" />
-        <h1 className="text-lg font-semibold text-white">
-          {t("management.members")}{" "}
-          <span className="text-neutral-500 font-normal text-sm">
-            ({filteredMembers.length})
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Users className="w-5 h-5 text-neutral-400" />
+          <h1 className="text-lg font-semibold text-white">
+            {t("management.members")}{" "}
+            <span className="text-neutral-500 font-normal text-sm">
+              ({filteredMembers.length})
+            </span>
+          </h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 text-[11px] text-neutral-500">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400/70" />
+            {members.filter(m => m.profileCompleted).length}/{members.length} {t("management.profiles_completed")}
           </span>
-        </h1>
+          <span className="flex items-center gap-1.5 text-[11px] text-neutral-500">
+            <FaceitIcon className="w-3.5 h-3.5 text-orange-400/70" />
+            {members.filter(m => m.faceitNickname).length}/{members.length} FACEIT
+          </span>
+        </div>
       </div>
 
       {/* Filter chips + Search bar */}

@@ -215,6 +215,7 @@
     "load_error": "Error loading profile",
     "verified": "Profile completed",
     "not_verified": "Profile incomplete",
+    "profile_completion": "Profile",
     "completion_tooltip": "Profile successfully completed",
     "user_profile": "User profile",
     "edit_profile": "Edit profile",
@@ -294,6 +295,7 @@
     "invite_link": "Invitation link",
     "invitation_link": "Invitation link",
     "invitation_link_description": "Share this link to invite new members",
+    "invitation_info": "Each invitation link is unique per player and expires after 48 hours.",
     "no_invitation_link": "No invitation link",
     "generate_invite": "Generate invitation",
     "regenerate_invite": "Regenerate link",
@@ -344,6 +346,8 @@
     "roster_status": "Roster Status",
     "roster_active": "Active",
     "roster_inactive": "Inactive",
+    "player_active": "Player active",
+    "player_inactive": "Player inactive",
     "player_activated": "Player activated",
     "player_deactivated": "Player deactivated",
     "player_status_error": "Error updating player status",
@@ -427,6 +431,8 @@
     "role_change_confirm_self": "You are about to change your own role from {{oldRole}} to {{newRole}}. This may affect your permissions.",
     "role_change_confirm_other": "You are about to change {{nickname}}'s role from {{oldRole}} to {{newRole}}. This may affect their permissions.",
     "no_conflicts": "No scheduling conflicts",
+    "profiles": "Profiles",
+    "profiles_completed": "Profiles completed",
     "faceit_not_available": "Available for CS2 teams"
   },
 

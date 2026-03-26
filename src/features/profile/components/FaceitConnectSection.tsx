@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { CheckCircle2, Circle, ExternalLink, Link2, X } from 'lucide-react';
+import FaceitIcon from '@/shared/components/FaceitIcon';
 import {
     getFaceitStatus,
     initiateFaceitConnect,
@@ -117,6 +118,8 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
             clearPolling();
             channel.close();
         };
+    // completeLinkFlow uses refs and state setters that are stable — adding it would cause infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [t]);
 
     const handleConnect = async () => {
@@ -203,46 +206,32 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
     if (isLoading || status === null) return null;
 
     if (variant === 'inline') {
-        return status.linked ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border bg-orange-500/10 border-orange-500/30 text-orange-300">
-                <CheckCircle2 className="w-3 h-3" />
-                {t('faceit.connected_short')}
-                {canEdit && (
-                    <button
-                        onClick={handleDisconnect}
-                        disabled={isActing}
-                        className="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full bg-neutral-600/40 text-neutral-400 hover:bg-neutral-500/50 hover:text-neutral-200 transition-colors disabled:opacity-50"
-                        title={t('faceit.disconnect_button')}
-                    >
-                        <X className="w-2.5 h-2.5" />
-                    </button>
+        const linked = status.linked;
+        return (
+            <button
+                onClick={linked ? (canEdit ? handleDisconnect : undefined) : (canEdit ? handleConnect : undefined)}
+                disabled={isActing || !canEdit}
+                title={linked
+                    ? (status.faceitNickname ? `FACEIT · ${status.faceitNickname}` : 'FACEIT')
+                    : t('faceit.connect_button')
+                }
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+                    linked
+                        ? 'bg-orange-500/10 border-orange-500/30 text-orange-300 hover:bg-orange-500/20'
+                        : 'bg-neutral-800/70 border-neutral-700 text-neutral-500 hover:border-orange-500/30 hover:text-orange-300'
+                } disabled:opacity-50`}
+            >
+                {isActing ? (
+                    <span className="w-3.5 h-3.5 border border-orange-400/40 border-t-orange-300 rounded-full animate-spin" />
+                ) : (
+                    <FaceitIcon className="w-3.5 h-3.5" />
                 )}
-            </span>
-        ) : (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border bg-neutral-800/70 border-neutral-700 text-neutral-400">
-                <Circle className="w-3 h-3" />
-                {t('faceit.disconnected_short')}
-                {canEdit && (
-                    <button
-                        onClick={handleConnect}
-                        disabled={isActing}
-                        className="ml-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/30 text-[10px] font-semibold text-orange-300 hover:text-white hover:bg-orange-500/20 transition-colors disabled:opacity-50"
-                        title={t('faceit.connect_info')}
-                    >
-                        {isActing ? (
-                            <>
-                                <span className="w-3 h-3 border border-orange-400/40 border-t-orange-300 rounded-full animate-spin" />
-                                {t('common.loading')}
-                            </>
-                        ) : (
-                            <>
-                                <ExternalLink className="w-3 h-3" />
-                                {t('faceit.connect_button')}
-                            </>
-                        )}
-                    </button>
-                )}
-            </span>
+                <span className="uppercase tracking-wide">FACEIT</span>
+                {linked
+                    ? <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    : <Circle className="w-3 h-3" />
+                }
+            </button>
         );
     }
 

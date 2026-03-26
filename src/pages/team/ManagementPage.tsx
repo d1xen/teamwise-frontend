@@ -15,6 +15,8 @@ import FaceitOverview from "@/features/faceit/components/FaceitOverview";
 // Profile & Team components
 import EditableProfileSection from "@/features/profile/components/EditableProfileSection";
 import TeamActionsSection from "@/features/profile/components/TeamActionsSection";
+import type { TeamActionModal } from "@/features/profile/components/TeamActionsSection";
+import type { DropdownMenuItem } from "@/shared/components/DropdownMenu";
 import InlineLoader from "@/shared/components/InlineLoader";
 import TeamSettingsPanel from "@/features/team/components/management/panels/TeamSettingsPanel";
 import { useProfilePermissions } from "@/features/profile/hooks/useProfilePermissions";
@@ -56,6 +58,16 @@ export default function ManagementPage() {
 
   const activeView: View = resolvedTab;
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+
+  // Keep selectedMember in sync with context members after refreshTeam()
+  useEffect(() => {
+    if (selectedMember) {
+      const fresh = members.find(m => m.steamId === selectedMember.steamId);
+      if (fresh) setSelectedMember(fresh);
+      else setSelectedMember(null); // member was kicked
+    }
+  }, [members]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [userProfile, setUserProfile] = useState<UserProfileDto | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState(false);
@@ -81,15 +93,31 @@ export default function ManagementPage() {
   });
 
   const profilePermissions = useProfilePermissions();
+  const [teamActionModal, setTeamActionModal] = useState<TeamActionModal>(null);
 
-  // Chargement du profil uniquement quand on ouvre l'onglet profil.
-  // On évite d'inclure userProfile/isLoadingProfile dans les deps
-  // pour ne pas créer de boucle quand le fetch échoue ou se termine.
-  // La relance manuelle passe par profileRetryCount.
+  const isOwner = membership?.isOwner ?? false;
+  const otherMembers = members.filter(m => m.steamId !== user?.steamId);
+  const isLastMember = otherMembers.length === 0;
+
+  const profileMenuItems: DropdownMenuItem[] = [
+    ...(isOwner && !isLastMember ? [{
+      label: t("team_actions.transfer_ownership"),
+      onClick: () => setTeamActionModal("transfer"),
+    }] as DropdownMenuItem[] : []),
+    {
+      label: t("team_actions.leave_team"),
+      onClick: () => {
+        if (isOwner && isLastMember) setTeamActionModal("lastMember");
+        else if (isOwner) setTeamActionModal("ownerLeave");
+        else setTeamActionModal("leave");
+      },
+      variant: 'danger' as const,
+    },
+  ];
+
+  // Reload profile each time the profile tab becomes active
   useEffect(() => {
     if (activeView !== "profile") return;
-    // Ne pas recharger si déjà disponible (sauf retry explicite)
-    if (userProfile !== null) return;
 
     let cancelled = false;
     let retryTimer: number | null = null;
@@ -126,7 +154,6 @@ export default function ManagementPage() {
         window.clearTimeout(retryTimer);
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView, hasFaceitCallbackParams, profileRetryCount]);
 
   // Deep-link: open member detail from URL param
@@ -266,9 +293,9 @@ export default function ManagementPage() {
                     game={team?.game}
                     canEdit={profilePermissions.canEditOwnProfile}
                     onSuccess={() => refreshTeam()}
+                    menuItems={profileMenuItems}
                   />
                   <TeamActionsSection
-                    isOwner={membership?.isOwner ?? false}
                     members={members}
                     currentSteamId={user?.steamId ?? ""}
                     teamName={team?.name ?? ""}
@@ -276,6 +303,8 @@ export default function ManagementPage() {
                     onLeave={actions.leaveTeamConfirmed}
                     onTransferAndLeave={actions.transferAndLeave}
                     onDeleteTeam={actions.deleteTeamConfirmed}
+                    openModal={teamActionModal}
+                    onModalClose={() => setTeamActionModal(null)}
                   />
                 </div>
               ) : null

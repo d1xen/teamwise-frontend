@@ -3,7 +3,7 @@ import { X, Users, Loader } from "lucide-react";
 import MetaInfo from "@/shared/components/MetaInfo";
 import { cn } from "@/design-system";
 import type { EventDto, UpdateEventRequest } from "@/api/types/agenda";
-import { TYPE_COLORS } from "./EventChip";
+import { TYPE_COLORS } from "@/features/agenda/constants/eventColors";
 import { useState, useEffect } from "react";
 import { deleteEvent, updateEvent } from "@/api/endpoints/agenda.api";
 import { toast } from "react-hot-toast";

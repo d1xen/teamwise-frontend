@@ -215,6 +215,7 @@
     "load_error": "Erreur de chargement du profil",
     "verified": "Profil complété",
     "not_verified": "Profil incomplet",
+    "profile_completion": "Profil",
     "completion_tooltip": "Profil complété avec succès",
     "user_profile": "Profil utilisateur",
     "edit_profile": "Modifier le profil",
@@ -294,6 +295,7 @@
     "invite_link": "Lien d'invitation",
     "invitation_link": "Lien d'invitation",
     "invitation_link_description": "Partagez ce lien pour inviter de nouveaux membres",
+    "invitation_info": "Chaque lien d'invitation est unique par joueur et expire après 48 heures.",
     "no_invitation_link": "Aucun lien d'invitation",
     "generate_invite": "Générer une invitation",
     "regenerate_invite": "Régénérer le lien",
@@ -344,6 +346,8 @@
     "roster_status": "Statut Roster",
     "roster_active": "Actif",
     "roster_inactive": "Inactif",
+    "player_active": "Joueur actif",
+    "player_inactive": "Joueur inactif",
     "player_activated": "Joueur activé",
     "player_deactivated": "Joueur désactivé",
     "player_status_error": "Erreur lors de la mise à jour du statut du joueur",
@@ -427,6 +431,8 @@
     "role_change_confirm_self": "Vous allez changer votre propre rôle de {{oldRole}} à {{newRole}}. Cela peut affecter vos permissions.",
     "role_change_confirm_other": "Vous allez changer le rôle de {{nickname}} de {{oldRole}} à {{newRole}}. Cela peut affecter ses permissions.",
     "no_conflicts": "Aucun conflit de planning",
+    "profiles": "Profils",
+    "profiles_completed": "Profils complétés",
     "faceit_not_available": "Disponible pour les équipes CS2"
   },
 

@@ -5,6 +5,7 @@ import { Crown } from 'lucide-react';
 import Flag from 'react-world-flags';
 import { UserAvatar } from '@/shared/components/UserAvatar';
 import { ROLE_BADGE_STYLES } from '@/shared/constants/roleStyles';
+import FaceitIcon from '@/shared/components/FaceitIcon';
 
 interface StaffCardProps {
   member: TeamMember;
@@ -34,7 +35,6 @@ export function StaffCard({ member }: StaffCardProps) {
           size={44}
           className="border border-neutral-700/50"
         />
-        {/* Owner badge */}
         {member.isOwner && (
           <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500/20 border border-amber-500/30 rounded-full flex items-center justify-center">
             <Crown className="w-2.5 h-2.5 text-amber-400" />
@@ -44,8 +44,20 @@ export function StaffCard({ member }: StaffCardProps) {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
+        <div className="flex items-center gap-1.5 mb-0.5">
           <span className="text-sm font-bold text-white truncate">{displayName}</span>
+          {member.faceitNickname && (
+            <a
+              href={`https://www.faceit.com/en/players/${member.faceitNickname}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              title={`FACEIT · ${member.faceitNickname}`}
+              className="shrink-0 hover:opacity-80 transition-opacity"
+            >
+              <FaceitIcon className="w-3.5 h-3.5 text-orange-400" />
+            </a>
+          )}
           {member.countryCode && (
             <Flag code={member.countryCode} className="w-4 h-2.5 rounded-[2px] flex-shrink-0 opacity-80" />
           )}

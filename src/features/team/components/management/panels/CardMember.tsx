@@ -6,6 +6,7 @@ import { Crown } from "lucide-react";
 import { cn } from "@/design-system";
 import Flag from "react-world-flags";
 import { UserAvatar } from "@/shared/components/UserAvatar";
+import FaceitIcon from "@/shared/components/FaceitIcon";
 
 interface CardMemberProps {
   member: TeamMember;
@@ -23,7 +24,7 @@ export default function CardMember({ member, isSelected, onSelect, isStaffView }
     <button
       onClick={onSelect}
       className={cn(
-        "group w-full text-left flex items-center gap-3.5 px-4 py-3.5 rounded-xl border transition-all duration-150",
+        "group w-full text-left flex items-start gap-3.5 px-4 py-3.5 rounded-xl border transition-all duration-150",
         isSelected
           ? "bg-indigo-500/10 border-indigo-500/30 ring-1 ring-indigo-500/15"
           : "bg-neutral-900/40 border-neutral-800 hover:bg-neutral-900/70 hover:border-neutral-700/80"
@@ -35,7 +36,7 @@ export default function CardMember({ member, isSelected, onSelect, isStaffView }
         avatarUrl={member.avatarUrl}
         nickname={displayName}
         size={40}
-        className="ring-1 ring-neutral-700/50"
+        className="ring-1 ring-neutral-700/50 mt-0.5"
       />
 
       {/* Info */}
@@ -44,9 +45,21 @@ export default function CardMember({ member, isSelected, onSelect, isStaffView }
           <span className="text-sm font-semibold text-white truncate leading-tight">
             {displayName}
           </span>
-          {member.isOwner && <Crown className="w-3 h-3 text-amber-400 shrink-0" />}
           {member.countryCode && (
             <Flag code={member.countryCode} className="w-3.5 h-2.5 rounded-[2px] opacity-60 shrink-0" />
+          )}
+          {member.isOwner && <Crown className="w-3 h-3 text-amber-400 shrink-0" />}
+          {member.faceitNickname && (
+            <a
+              href={`https://www.faceit.com/en/players/${member.faceitNickname}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              title={`FACEIT · ${member.faceitNickname}`}
+              className="shrink-0 hover:opacity-80 transition-opacity"
+            >
+              <FaceitIcon className="w-3 h-3 text-orange-400" />
+            </a>
           )}
         </div>
         <p className="text-[11px] text-neutral-500 truncate leading-tight">
@@ -54,8 +67,8 @@ export default function CardMember({ member, isSelected, onSelect, isStaffView }
         </p>
       </div>
 
-      {/* Right badges */}
-      <div className="shrink-0 flex flex-col items-end gap-1">
+      {/* Top-right badges */}
+      <div className="shrink-0 flex items-center gap-1.5">
         {isStaffView ? (
           <span className={cn(
             "text-[10px] font-semibold px-1.5 py-0.5 rounded-md border uppercase tracking-wide",
@@ -71,7 +84,7 @@ export default function CardMember({ member, isSelected, onSelect, isStaffView }
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                 : "bg-neutral-800 text-neutral-600 border-neutral-700"
             )}>
-              {member.activePlayer !== false ? t("management.roster_active") : t("management.roster_inactive")}
+              {member.activePlayer !== false ? t("management.player_active") : t("management.player_inactive")}
             </span>
             {member.inGameRole && (
               <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-neutral-800/80 text-neutral-400 border border-neutral-700/50">

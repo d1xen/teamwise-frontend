@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from 'react';
+import { useState, useEffect, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { CheckCircle2 } from 'lucide-react';
@@ -13,6 +13,8 @@ import BirthDateSelect from '@/shared/components/BirthDateSelect';
 import PhoneInput from '@/shared/components/PhoneInput';
 import { getAvatarUrl } from '@/shared/utils/avatarUtils';
 import FaceitConnectSection from './FaceitConnectSection';
+import DropdownMenu from '@/shared/components/DropdownMenu';
+import type { DropdownMenuItem } from '@/shared/components/DropdownMenu';
 import { cn } from '@/design-system';
 
 const FaceitInline = FaceitConnectSection as unknown as ComponentType<{
@@ -77,32 +79,25 @@ const TIMEZONES = [
 ];
 const TIMEZONE_LABEL: Record<string, string> = Object.fromEntries(TIMEZONES.map(t => [t.value, t.label]));
 
-const TRACKED_FIELDS = [
+// Required fields for profile completion (must match backend UserService.isProfileCompleted)
+const REQUIRED_FIELDS = [
   'firstName', 'lastName', 'email', 'birthDate', 'countryCode',
-  'phone', 'customUsername', 'discord', 'twitter', 'hltv',
+  'phone', 'address', 'zipCode', 'city', 'timezone',
 ] as const;
-type TrackedField = typeof TRACKED_FIELDS[number];
-
 function isFilled(v: string | null | undefined): boolean {
   return v !== null && v !== undefined && v.trim() !== '';
 }
 
-function computeCompletion(profile: UserProfileDto, validLinks: string[]) {
-  const fields: TrackedField[] = TRACKED_FIELDS.filter(f => {
-    if (f === 'hltv') return validLinks.includes('hltv');
-    if (f === 'twitter') return validLinks.includes('twitter');
-    if (f === 'discord') return validLinks.includes('discord');
-    return true;
-  });
-  const filled = fields.filter(f => isFilled(profile[f])).length;
-  const total = fields.length;
-  const pct = total === 0 ? 100 : Math.round((filled / total) * 100);
+function computeCompletion(profile: UserProfileDto) {
+  const filled = REQUIRED_FIELDS.filter(f => isFilled(profile[f])).length;
+  const total = REQUIRED_FIELDS.length;
+  const pct = Math.round((filled / total) * 100);
   return { filled, total, pct };
 }
 
 // ── Circular progress ─────────────────────────────────────────────────────────
 
-function CompletionBadge({ pct, completeLabel }: { pct: number; completeLabel: string }) {
+function CompletionBadge({ pct, label, completeLabel }: { pct: number; label: string; completeLabel: string }) {
   const size = 18;
   const stroke = 2;
   const r = (size - stroke) / 2;
@@ -116,7 +111,7 @@ function CompletionBadge({ pct, completeLabel }: { pct: number; completeLabel: s
 
   return (
     <span className={cn(
-      'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border shrink-0',
+      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border shrink-0',
       bgColor, borderColor, textColor
     )}>
       {!complete && (
@@ -128,9 +123,9 @@ function CompletionBadge({ pct, completeLabel }: { pct: number; completeLabel: s
         </svg>
       )}
       {complete ? (
-        <><CheckCircle2 className="w-3 h-3" />{completeLabel}</>
+        <><CheckCircle2 className="w-3.5 h-3.5" />{completeLabel}</>
       ) : (
-        <>{pct}%</>
+        <><span className="text-neutral-400">{label}</span> {pct}%</>
       )}
     </span>
   );
@@ -157,7 +152,7 @@ function isValidEmail(v: string): boolean {
 const INPUT_CLS = 'w-full h-7 text-sm text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-2.5 outline-none placeholder:text-neutral-600 focus:border-indigo-500/50 caret-indigo-400 transition-colors';
 
 function Cell({
-  label, value, editing, formValue, onChange, type = 'text', placeholder, full, options, labelMap, locale, defaultCountry,
+  label, value, editing, formValue, onChange, type = 'text', placeholder, full, options, labelMap, locale, defaultCountry, required,
 }: {
   label: string;
   value: string | null | undefined;
@@ -171,6 +166,7 @@ function Cell({
   labelMap?: Record<string, string>;
   locale?: string | undefined;
   defaultCountry?: string | undefined;
+  required?: boolean | undefined;
 }) {
   const displayValue = editing ? formValue : value;
   const filled = isFilled(displayValue);
@@ -183,9 +179,15 @@ function Cell({
       ? (resolvedLabelMap[value] ?? value)
       : (value || '—');
 
+  // Indicator dot: green=filled, orange=required+empty, no dot=optional
+  const dot = required
+    ? (filled ? 'bg-emerald-400' : 'bg-amber-400')
+    : null;
+
   return (
     <div className={full ? 'col-span-2' : ''}>
       <div className="flex items-center gap-1.5 mb-1">
+        {dot && <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', dot)} />}
         <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-wide">{label}</p>
         {emailError && <span className="text-[9px] text-red-400">format invalide</span>}
       </div>
@@ -217,16 +219,21 @@ function Cell({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function EditableProfileSection({
-  profile: initialProfile, canEdit, game, onSuccess,
-}: EditableProfileSectionProps) {
+  profile: initialProfile, canEdit, game, onSuccess, menuItems,
+}: EditableProfileSectionProps & { menuItems?: DropdownMenuItem[] | undefined }) {
   const { t, i18n } = useTranslation();
   const { updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<UserProfileDto>(initialProfile);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Sync when parent provides updated profile (e.g. after re-fetch)
+  useEffect(() => {
+    setProfile(initialProfile);
+  }, [initialProfile]);
+
   const validLinks = getValidLinksForGame(game);
-  const { pct } = computeCompletion(profile, validLinks);
+  const { pct } = computeCompletion(profile);
 
   const [form, setForm] = useState({
     firstName: profile.firstName ?? '', lastName: profile.lastName ?? '',
@@ -252,6 +259,15 @@ export default function EditableProfileSection({
         hltv: form.hltv.trim(), timezone: form.timezone,
       });
       setProfile(updated);
+      setForm({
+        firstName: updated.firstName ?? '', lastName: updated.lastName ?? '',
+        customUsername: updated.customUsername ?? '', email: updated.email ?? '',
+        phone: updated.phone ?? '', birthDate: updated.birthDate ?? '',
+        address: updated.address ?? '', zipCode: updated.zipCode ?? '',
+        city: updated.city ?? '', countryCode: updated.countryCode ?? '',
+        discord: updated.discord ?? '', twitter: updated.twitter ?? '',
+        hltv: updated.hltv ?? '', timezone: updated.timezone ?? '',
+      });
       if (updated.profileCompleted !== undefined) updateUser({ profileCompleted: updated.profileCompleted });
       toast.success(t('profile.save_profile'));
       setIsEditing(false);
@@ -303,32 +319,34 @@ export default function EditableProfileSection({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Row 1: Nickname + Actions */}
+          <div className="flex items-center gap-2 mb-2">
             <h2 className="text-base font-bold text-white truncate">{profile.nickname}</h2>
+            <div className="flex-1" />
+            {e ? (
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={handleSave} disabled={isSaving}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+                  {isSaving ? t('common.saving') : t('common.save')}
+                </button>
+                <button onClick={handleCancel} disabled={isSaving}
+                  className="px-2 py-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
+                  {t('common.cancel')}
+                </button>
+              </div>
+            ) : (
+              <DropdownMenu items={[
+                ...(canEdit ? [{ label: t('common.edit'), onClick: () => setIsEditing(true) }] as DropdownMenuItem[] : []),
+                ...(menuItems ?? []),
+              ]} />
+            )}
+          </div>
+          {/* Row 2: Completion + FACEIT */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <CompletionBadge pct={pct} label={t('profile.profile_completion')} completeLabel={t('profile.verified')} />
             {game === 'CS2' && <FaceitInline canEdit={canEdit} variant="inline" />}
-            <CompletionBadge pct={pct} completeLabel={t('profile.verified')} />
           </div>
         </div>
-
-        {canEdit && (
-          e ? (
-            <div className="flex items-center gap-2 shrink-0">
-              <button onClick={handleSave} disabled={isSaving}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-50 text-white text-xs font-semibold transition-colors">
-                {isSaving ? t('common.saving') : t('common.save')}
-              </button>
-              <button onClick={handleCancel} disabled={isSaving}
-                className="px-2 py-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
-                {t('common.cancel')}
-              </button>
-            </div>
-          ) : (
-            <button onClick={() => setIsEditing(true)}
-              className="shrink-0 px-3 py-1.5 rounded-[4px] bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white text-xs font-medium transition-colors">
-              {t('common.edit')}
-            </button>
-          )
-        )}
       </div>
 
       {/* ── Fields — 3 columns side by side ── */}
@@ -337,10 +355,10 @@ export default function EditableProfileSection({
         {/* Identity */}
         <div className="p-5 space-y-2.5">
           <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t('profile.identity')}</p>
-          <Cell label={t('profile.first_name')} value={profile.firstName} editing={e} formValue={form.firstName} onChange={v => set('firstName', v)} placeholder="John" />
-          <Cell label={t('profile.last_name')} value={profile.lastName} editing={e} formValue={form.lastName} onChange={v => set('lastName', v)} placeholder="Doe" />
-          <Cell label={t('profile.birth_date')} value={profile.birthDate} editing={e} formValue={form.birthDate} onChange={v => set('birthDate', v)} type="date" locale={i18n.language} />
-          <Cell label={t('profile.country')} value={profile.countryCode} editing={e} formValue={form.countryCode} onChange={v => set('countryCode', v)} options={COUNTRIES} placeholder={t('profile.select_country')} />
+          <Cell label={t('profile.first_name')} value={profile.firstName} editing={e} formValue={form.firstName} onChange={v => set('firstName', v)} placeholder="John" required />
+          <Cell label={t('profile.last_name')} value={profile.lastName} editing={e} formValue={form.lastName} onChange={v => set('lastName', v)} placeholder="Doe" required />
+          <Cell label={t('profile.birth_date')} value={profile.birthDate} editing={e} formValue={form.birthDate} onChange={v => set('birthDate', v)} type="date" locale={i18n.language} required />
+          <Cell label={t('profile.country')} value={profile.countryCode} editing={e} formValue={form.countryCode} onChange={v => set('countryCode', v)} options={COUNTRIES} placeholder={t('profile.select_country')} required />
           <Cell label={t('profile.custom_username')} value={profile.customUsername} editing={e} formValue={form.customUsername} onChange={v => set('customUsername', v)} placeholder="s1mple, ZywOo…" />
           {profile.createdAt && (
             <Cell label={t('meta.created_label')} value={new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(profile.createdAt))} />
@@ -351,12 +369,12 @@ export default function EditableProfileSection({
         {/* Contact */}
         <div className="p-5 space-y-2.5">
           <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t('profile.contact')}</p>
-          <Cell label={t('profile.email')} value={profile.email} editing={e} formValue={form.email} onChange={v => set('email', v)} type="email" placeholder="john@example.com" />
-          <Cell label={t('profile.phone')} value={profile.phone} editing={e} formValue={form.phone} onChange={v => set('phone', v)} type="phone" defaultCountry={profile.countryCode ?? undefined} />
-          <Cell label={t('profile.address')} value={profile.address} editing={e} formValue={form.address} onChange={v => set('address', v)} placeholder="123 Main Street" />
-          <Cell label={t('profile.zip_code')} value={profile.zipCode} editing={e} formValue={form.zipCode} onChange={v => set('zipCode', v)} placeholder="75001" />
-          <Cell label={t('profile.city')} value={profile.city} editing={e} formValue={form.city} onChange={v => set('city', v)} placeholder="Paris" />
-          <Cell label={t('profile.timezone')} value={profile.timezone} editing={e} formValue={form.timezone} onChange={v => set('timezone', v)} options={TIMEZONES} labelMap={TIMEZONE_LABEL} placeholder={t('profile.select_timezone')} />
+          <Cell label={t('profile.email')} value={profile.email} editing={e} formValue={form.email} onChange={v => set('email', v)} type="email" placeholder="john@example.com" required />
+          <Cell label={t('profile.phone')} value={profile.phone} editing={e} formValue={form.phone} onChange={v => set('phone', v)} type="phone" defaultCountry={profile.countryCode ?? undefined} required />
+          <Cell label={t('profile.address')} value={profile.address} editing={e} formValue={form.address} onChange={v => set('address', v)} placeholder="123 Main Street" required />
+          <Cell label={t('profile.zip_code')} value={profile.zipCode} editing={e} formValue={form.zipCode} onChange={v => set('zipCode', v)} placeholder="75001" required />
+          <Cell label={t('profile.city')} value={profile.city} editing={e} formValue={form.city} onChange={v => set('city', v)} placeholder="Paris" required />
+          <Cell label={t('profile.timezone')} value={profile.timezone} editing={e} formValue={form.timezone} onChange={v => set('timezone', v)} options={TIMEZONES} labelMap={TIMEZONE_LABEL} placeholder={t('profile.select_timezone')} required />
         </div>
 
         {/* Gaming */}

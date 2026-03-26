@@ -228,6 +228,9 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
           {est && <Row label={t("team.established")} value={est} />}
           {avgAge && <Row label={t("team.average_age")} value={avgAge} />}
           {team.nationality && <Row label={t("team.nationality")} value={<NationalityBadge nationality={team.nationality} size="sm" />} />}
+          <Row label={t("management.profiles_completed")} value={
+            <span>{members.filter(m => m.profileCompleted).length}/{members.length}</span>
+          } />
         </div>
       </div>
 
@@ -279,6 +282,7 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
             <p className="text-xs text-neutral-600">{t("management.no_conflicts")}</p>
           </div>
         )}
+
       </div>
 
       {/* ── Schedule ── 3 cols */}
@@ -311,7 +315,7 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
   );
 }
 
-function MiniStat({ icon: Icon, value, label, color }: { icon: React.ElementType; value: number; label: string; color: string }) {
+function MiniStat({ icon: Icon, value, label, color }: { icon: React.ElementType; value: number | string; label: string; color: string }) {
   return (
     <div className="bg-neutral-800/40 rounded-xl p-3 text-center">
       <Icon className={`w-4 h-4 ${color} mx-auto mb-2`} />

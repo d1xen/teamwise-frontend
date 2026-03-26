@@ -6,7 +6,6 @@ import { UserAvatar } from "@/shared/components/UserAvatar";
 import { cn } from "@/design-system";
 
 interface TeamActionsSectionProps {
-  isOwner: boolean;
   members: TeamMember[];
   currentSteamId: string;
   teamName: string;
@@ -14,33 +13,33 @@ interface TeamActionsSectionProps {
   onLeave: () => Promise<boolean>;
   onTransferAndLeave: (targetSteamId: string) => Promise<boolean>;
   onDeleteTeam: () => Promise<boolean>;
+  openModal?: ModalType | undefined;
+  onModalClose?: (() => void) | undefined;
 }
 
 type ModalType = "leave" | "transfer" | "ownerLeave" | "lastMember" | null;
 
+export type { ModalType as TeamActionModal };
+
 export default function TeamActionsSection({
-  isOwner, members, currentSteamId, teamName,
+  members, currentSteamId, teamName,
   onTransferOwnership, onLeave, onTransferAndLeave, onDeleteTeam,
+  openModal: externalModal, onModalClose,
 }: TeamActionsSectionProps) {
   const { t } = useTranslation();
-  const [modal, setModal] = useState<ModalType>(null);
+  const modal = externalModal ?? null;
+  const closeModal = () => {
+    if (!isLoading) {
+      setSelectedTarget(null);
+      setDeleteInput("");
+      if (onModalClose) onModalClose();
+    }
+  };
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
 
   const otherMembers = members.filter(m => m.steamId !== currentSteamId);
-  const isLastMember = otherMembers.length === 0;
-
-  const handleLeaveClick = () => {
-    if (isOwner && isLastMember) setModal("lastMember");
-    else if (isOwner) setModal("ownerLeave");
-    else setModal("leave");
-  };
-
-  const handleTransferClick = () => {
-    setSelectedTarget(null);
-    setModal("transfer");
-  };
 
   const handleConfirmLeave = async () => {
     setIsLoading(true);
@@ -53,7 +52,7 @@ export default function TeamActionsSection({
     setIsLoading(true);
     const ok = await onTransferOwnership(selectedTarget);
     setIsLoading(false);
-    if (ok) setModal(null);
+    if (ok) closeModal();
   };
 
   const handleConfirmTransferAndLeave = async () => {
@@ -69,24 +68,8 @@ export default function TeamActionsSection({
     setIsLoading(false);
   };
 
-  const closeModal = () => { if (!isLoading) { setModal(null); setSelectedTarget(null); setDeleteInput(""); } };
-
   return (
     <>
-      <div className="flex items-center gap-2">
-        {isOwner && !isLastMember && (
-          <button onClick={handleTransferClick}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-300 text-xs font-medium transition-colors">
-            <Crown className="w-3 h-3" />
-            {t("team_actions.transfer_ownership")}
-          </button>
-        )}
-        <button onClick={handleLeaveClick}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-medium transition-colors">
-          <LogOut className="w-3 h-3" />
-          {t("team_actions.leave_team")}
-        </button>
-      </div>
 
       {/* ── Modals ── */}
       {modal && (

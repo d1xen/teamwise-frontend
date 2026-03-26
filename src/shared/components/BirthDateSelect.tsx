@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface BirthDateSelectProps {
@@ -10,26 +10,48 @@ const SEL_CLS = 'h-7 text-sm text-neutral-100 bg-neutral-800/50 border border-ne
 
 function getDaysInMonth(month: number, year: number): number {
   if (!month) return 31;
-  if (!year) {
-    // No year selected: use a leap year to allow 29 Feb
-    return new Date(2000, month, 0).getDate();
-  }
+  if (!year) return new Date(2000, month, 0).getDate();
   return new Date(year, month, 0).getDate();
+}
+
+function parseDate(iso: string): { day: number; month: number; year: number } {
+  if (!iso) return { day: 0, month: 0, year: 0 };
+  const parts = iso.split('-');
+  return {
+    year: parts[0] ? parseInt(parts[0], 10) || 0 : 0,
+    month: parts[1] ? parseInt(parts[1], 10) || 0 : 0,
+    day: parts[2] ? parseInt(parts[2], 10) || 0 : 0,
+  };
 }
 
 export default function BirthDateSelect({ value, onChange }: BirthDateSelectProps) {
   const { t, i18n } = useTranslation();
 
-  const parts = (value || '').split('-');
-  const yearStr = parts[0] ?? '';
-  const monthStr = parts[1] ?? '';
-  const dayStr = parts[2] ?? '';
+  // Local state to track partial selections
+  const initial = parseDate(value);
+  const [day, setDay] = useState(initial.day);
+  const [month, setMonth] = useState(initial.month);
+  const [year, setYear] = useState(initial.year);
 
-  const yearNum = yearStr ? parseInt(yearStr, 10) : 0;
-  const monthNum = monthStr ? parseInt(monthStr, 10) : 0;
-  const dayNum = dayStr ? parseInt(dayStr, 10) : 0;
+  // Sync from parent when value changes externally
+  useEffect(() => {
+    const parsed = parseDate(value);
+    setDay(parsed.day);
+    setMonth(parsed.month);
+    setYear(parsed.year);
+  }, [value]);
 
-  const maxDay = getDaysInMonth(monthNum, yearNum);
+  // Emit to parent only when all 3 are set (or all cleared)
+  const emit = (d: number, m: number, y: number) => {
+    if (y && m && d) {
+      const clamped = Math.min(d, getDaysInMonth(m, y));
+      onChange(`${String(y)}-${String(m).padStart(2, '0')}-${String(clamped).padStart(2, '0')}`);
+    } else if (!y && !m && !d) {
+      onChange('');
+    }
+  };
+
+  const maxDay = getDaysInMonth(month, year);
 
   const months = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(i18n.language, { month: 'long' });
@@ -50,71 +72,45 @@ export default function BirthDateSelect({ value, onChange }: BirthDateSelectProp
     [maxDay],
   );
 
-  const update = (d: number, m: number, y: number) => {
-    if (y && m && d) {
-      // Clamp day if it exceeds the max for selected month/year
-      const clamped = Math.min(d, getDaysInMonth(m, y));
-      onChange(`${String(y)}-${String(m).padStart(2, '0')}-${String(clamped).padStart(2, '0')}`);
-    } else if (!y && !m && !d) {
-      onChange('');
-    }
-    // Partial selection: keep building the value
-    else {
-      const yPart = y ? String(y) : '';
-      const mPart = m ? String(m).padStart(2, '0') : '';
-      const dPart = d ? String(d).padStart(2, '0') : '';
-      if (yPart && mPart && dPart) {
-        onChange(`${yPart}-${mPart}-${dPart}`);
-      }
-      // Don't emit incomplete values — wait until all three are set
-    }
+  const handleDay = (val: string) => {
+    const d = val ? parseInt(val, 10) : 0;
+    setDay(d);
+    emit(d, month, year);
+  };
+
+  const handleMonth = (val: string) => {
+    const m = val ? parseInt(val, 10) : 0;
+    const clampedDay = day ? Math.min(day, getDaysInMonth(m, year)) : day;
+    setMonth(m);
+    setDay(clampedDay);
+    emit(clampedDay, m, year);
+  };
+
+  const handleYear = (val: string) => {
+    const y = val ? parseInt(val, 10) : 0;
+    const clampedDay = day ? Math.min(day, getDaysInMonth(month, y)) : day;
+    setYear(y);
+    setDay(clampedDay);
+    emit(clampedDay, month, y);
   };
 
   return (
     <div className="flex items-center gap-1.5">
-      {/* Day */}
-      <select
-        value={dayStr}
-        onChange={e => {
-          const newDay = e.target.value ? parseInt(e.target.value, 10) : 0;
-          update(newDay, monthNum, yearNum);
-        }}
-        className={SEL_CLS}
-      >
+      <select value={day ? String(day).padStart(2, '0') : ''} onChange={e => handleDay(e.target.value)} className={SEL_CLS}>
         <option value="">{t('profile.day')}</option>
         {days.map(d => (
           <option key={d} value={String(d).padStart(2, '0')}>{d}</option>
         ))}
       </select>
 
-      {/* Month */}
-      <select
-        value={monthStr}
-        onChange={e => {
-          const newMonth = e.target.value ? parseInt(e.target.value, 10) : 0;
-          // Clamp day if needed
-          const clampedDay = dayNum ? Math.min(dayNum, getDaysInMonth(newMonth, yearNum)) : dayNum;
-          update(clampedDay, newMonth, yearNum);
-        }}
-        className={SEL_CLS}
-      >
+      <select value={month ? String(month).padStart(2, '0') : ''} onChange={e => handleMonth(e.target.value)} className={SEL_CLS}>
         <option value="">{t('profile.month')}</option>
         {months.map(m => (
           <option key={m.value} value={m.value}>{m.label}</option>
         ))}
       </select>
 
-      {/* Year */}
-      <select
-        value={yearStr}
-        onChange={e => {
-          const newYear = e.target.value ? parseInt(e.target.value, 10) : 0;
-          // Clamp day if needed (for leap year changes)
-          const clampedDay = dayNum ? Math.min(dayNum, getDaysInMonth(monthNum, newYear)) : dayNum;
-          update(clampedDay, monthNum, newYear);
-        }}
-        className={SEL_CLS}
-      >
+      <select value={year ? String(year) : ''} onChange={e => handleYear(e.target.value)} className={SEL_CLS}>
         <option value="">{t('profile.year')}</option>
         {years.map(y => (
           <option key={y} value={String(y)}>{y}</option>

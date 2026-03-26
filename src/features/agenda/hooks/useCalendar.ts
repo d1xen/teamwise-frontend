@@ -112,7 +112,7 @@ export function useCalendar(teamId: string): UseCalendarResult {
             .catch(() => { if (!cancelled) setError(true); })
             .finally(() => { if (!cancelled) setIsLoading(false); });
         return () => { cancelled = true; };
-    }, [teamId, viewKey, dateTs, filterSteamId, filterEventType]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [teamId, viewKey, dateTs, filterSteamId, filterEventType]);
 
     // Silent polling — no loading state
     usePolling(() => { fetchRef.current!().catch(() => {}); }, POLL_INTERVAL, !isLoading);

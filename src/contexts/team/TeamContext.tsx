@@ -133,7 +133,7 @@ export function TeamProvider({
                 wasReadyRef.current = true;
             }
         }
-    }, [user, teamId]);
+    }, [user, teamId, navigate]);
 
     useEffect(() => {
         void loadTeam({ blockUi: true });

@@ -15,7 +15,10 @@ import BirthDateSelect from "@/shared/components/BirthDateSelect";
 import PhoneInput from "@/shared/components/PhoneInput";
 import { getAvailableInGameRoles, IN_GAME_ROLE_LABELS, getMaxActivePlayers, getValidLinksForGame } from "@/shared/config/gameConfig";
 import { ROLE_BADGE_STYLES } from "@/shared/constants/roleStyles";
-import { Crown, Loader, ArrowLeft } from "lucide-react";
+import { Loader, ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import FaceitIcon from "@/shared/components/FaceitIcon";
+import DropdownMenu from "@/shared/components/DropdownMenu";
+import type { DropdownMenuItem } from "@/shared/components/DropdownMenu";
 import { cn } from "@/design-system";
 import ConfirmModal from "@/shared/components/ConfirmModal";
 import { toast } from "react-hot-toast";
@@ -65,7 +68,7 @@ function isValidEmail(v: string): boolean {
 
 /** Grid cell — label above value. Works for read and edit mode. */
 function Cell({
-  label, value, editing, onChange, type = "text", placeholder, full, locale,
+  label, value, editing, onChange, type = "text", placeholder, full, locale, required, blurred,
 }: {
   label: string;
   value: string | null | undefined;
@@ -75,12 +78,18 @@ function Cell({
   placeholder?: string;
   full?: boolean;
   locale?: string | undefined;
+  required?: boolean | undefined;
+  blurred?: boolean | undefined;
 }) {
-  const filled = Boolean(value);
+  const filled = Boolean(value && (typeof value === "string" ? value.trim() !== "" : true));
   const emailError = editing && type === "email" && value && !isValidEmail(value);
+  const dot = required
+    ? (filled ? "bg-emerald-400" : "bg-amber-400")
+    : null;
   return (
     <div className={full ? "col-span-2" : ""}>
       <div className="flex items-center gap-1.5 mb-1">
+        {dot && <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dot)} />}
         <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-wide">{label}</p>
         {emailError && <span className="text-[9px] text-red-400">format invalide</span>}
       </div>
@@ -99,7 +108,7 @@ function Cell({
           />
         )
       ) : (
-        <p className={filled ? VALUE_CLASS_FILLED : VALUE_CLASS_EMPTY}>
+        <p className={cn(filled ? VALUE_CLASS_FILLED : VALUE_CLASS_EMPTY, blurred && "blur-sm select-none")}>
           {type === "date" ? (formatDateDisplay(value, locale ?? "en") ?? "—") : (value || "—")}
         </p>
       )}
@@ -116,6 +125,7 @@ export default function MemberDetailPanel({
   const { refreshTeam, members, updateMemberActiveStatus } = useTeam();
 
   const [editing, setEditing] = useState(false);
+  const [showPrivate, setShowPrivate] = useState(false);
   const [form, setForm] = useState({ customUsername: "", firstName: "", lastName: "", email: "", phone: "", discord: "", twitter: "", hltv: "", birthDate: "", address: "", zipCode: "", city: "" });
   const [memberProfile, setMemberProfile] = useState<UserProfileDto | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -235,6 +245,14 @@ export default function MemberDetailPanel({
         city: form.city.trim(),
       }, teamId);
       setMemberProfile(u);
+      setForm({
+        customUsername: u.customUsername ?? '', firstName: u.firstName ?? '',
+        lastName: u.lastName ?? '', email: u.email ?? '',
+        phone: u.phone ?? '', discord: u.discord ?? '',
+        twitter: u.twitter ?? '', hltv: u.hltv ?? '',
+        birthDate: u.birthDate ?? '', address: u.address ?? '',
+        zipCode: u.zipCode ?? '', city: u.city ?? '',
+      });
 
       // Save role if changed
       if (currentRole !== roleBeforeEdit.current.role) {
@@ -268,208 +286,282 @@ export default function MemberDetailPanel({
         {t("common.back")}
       </button>
 
-      {/* ── Header ── */}
-      <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl mb-4">
-        {/* Identity + actions */}
-        <div className="flex gap-4 px-6 pt-5 pb-4">
+      {/* ── Single card: Header + Content — same pattern as EditableProfileSection ── */}
+      <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl">
+        <div className="flex items-center gap-4 px-5 py-4 border-b border-neutral-800">
           <UserAvatar profileImageUrl={member.profileImageUrl} avatarUrl={member.avatarUrl}
-            nickname={displayName} size={56} className="ring-2 ring-neutral-700/50 shrink-0" />
-          <div className="flex-1 min-w-0 pt-1">
-            <div className="flex items-center gap-2">
-              <span className="text-base font-bold text-white truncate">{member.nickname}</span>
-              {member.countryCode && <Flag code={member.countryCode} className="w-5 h-3.5 rounded-[2px] opacity-80 shrink-0" />}
-            </div>
-            {fullName && <p className="text-sm text-neutral-400 mt-0.5">{fullName}</p>}
+            nickname={displayName} size={64} className="ring-2 ring-neutral-700/50 shrink-0" />
 
-            {/* Badges */}
-            <div className="flex items-center gap-1.5 flex-wrap mt-2.5">
-              <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border", ROLE_BADGE_STYLES[currentRole])}>
-                {t(`roles.${currentRole}`)}
+          <div className="flex-1 min-w-0">
+            {/* Row 1: Nickname + Actions */}
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-base font-bold text-white truncate">{member.nickname}</h2>
+              {member.countryCode && <Flag code={member.countryCode} className="w-5 h-3.5 rounded-[2px] opacity-80 shrink-0" />}
+              {member.faceitNickname && (
+                <a href={`https://www.faceit.com/en/players/${member.faceitNickname}`}
+                  target="_blank" rel="noopener noreferrer"
+                  title={`FACEIT · ${member.faceitNickname}`}
+                  className="shrink-0 hover:opacity-80 transition-opacity">
+                  <FaceitIcon className="w-4 h-4 text-orange-400" />
+                </a>
+              )}
+              {fullName && <span className="text-sm text-neutral-400 truncate">{fullName}</span>}
+              <div className="flex-1" />
+              {editing ? (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => {
+                    if (currentRole !== roleBeforeEdit.current.role) {
+                      setConfirmAction("save_role_change");
+                    } else {
+                      handleSave();
+                    }
+                  }} disabled={isSavingProfile}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+                    {isSavingProfile && <Loader className="w-3 h-3 animate-spin" />}
+                    {t("common.save")}
+                  </button>
+                  <button onClick={cancelEditing} disabled={isSavingProfile}
+                    className="px-2 py-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
+                    {t("common.cancel")}
+                  </button>
+                </div>
+              ) : (
+                <DropdownMenu items={[
+                  ...(canEdit ? [{ label: t("common.edit"), onClick: startEditing }] as DropdownMenuItem[] : []),
+                  ...(canTransfer ? [{ label: t("management.transfer_ownership"), onClick: () => setConfirmAction("transfer") }] as DropdownMenuItem[] : []),
+                  ...(canKick ? [{ label: t("management.kick_member"), onClick: () => setConfirmAction("kick"), variant: 'danger' as const }] : []),
+                ]} />
+              )}
+            </div>
+            {/* Row 2: Badges — profil → owner → role/status → in-game */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className={cn(
+                "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border",
+                member.profileCompleted
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                  : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+              )}>
+                <CheckCircle2 className="w-2.5 h-2.5" />
+                {member.profileCompleted ? t("profile.verified") : t("profile.not_verified")}
               </span>
               {member.isOwner && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                  <Crown className="w-2.5 h-2.5" />Owner
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                  Owner
                 </span>
               )}
-              {activePlayerState && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                  {t("management.roster_active")}
+              {currentRole === "PLAYER" ? (
+                <span className={cn(
+                  "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border",
+                  activePlayerState
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                    : "bg-neutral-800 text-neutral-600 border-neutral-700"
+                )}>
+                  {activePlayerState ? t("management.player_active") : t("management.player_inactive")}
+                </span>
+              ) : (
+                <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border", ROLE_BADGE_STYLES[currentRole])}>
+                  {t(`roles.${currentRole}`)}
                 </span>
               )}
               {inGameRole && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-800 text-neutral-400 border border-neutral-700">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-neutral-800 text-neutral-400 border border-neutral-700">
                   {IN_GAME_ROLE_LABELS[inGameRole]}
                 </span>
               )}
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-start gap-2 shrink-0">
-            {canEdit && !editing && (
-              <button onClick={startEditing}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/15 transition-colors">
-                {t("common.edit")}
-              </button>
-            )}
-            {editing && (
-              <div className="flex items-center gap-2">
-                <button onClick={() => {
-                  if (currentRole !== roleBeforeEdit.current.role) {
-                    setConfirmAction("save_role_change");
-                  } else {
-                    handleSave();
-                  }
-                }} disabled={isSavingProfile}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-50 transition-colors">
-                  {isSavingProfile && <Loader className="w-3 h-3 animate-spin" />}
-                  {t("common.save")}
-                </button>
-                <button onClick={cancelEditing} disabled={isSavingProfile}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-neutral-500 hover:text-neutral-300 transition-colors">
-                  {t("common.cancel")}
-                </button>
-              </div>
-            )}
-            {!editing && canTransfer && (
-              <button onClick={() => setConfirmAction("transfer")}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-neutral-400 hover:text-neutral-200 bg-neutral-800/60 border border-neutral-700/50 hover:bg-neutral-800 transition-colors">
-                {t("management.transfer_ownership")}
-              </button>
-            )}
-            {!editing && canKick && (
-              <button onClick={() => setConfirmAction("kick")}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/20 hover:bg-red-500/15 transition-colors">
-                {t("management.kick_member")}
-              </button>
-            )}
-          </div>
         </div>
-      </div>
 
       {isLoadingProfile ? (
         <div className="flex items-center justify-center py-12">
           <Loader className="w-4 h-4 text-neutral-600 animate-spin" />
         </div>
       ) : (
-        <div className="space-y-3">
+        <>
+          {/* ── 3-column layout — same as EditableProfileSection ── */}
+          <div className="grid grid-cols-3 divide-x divide-neutral-800">
 
-          {/* ── Information ── */}
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl px-6 py-5">
-            <p className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-4">{t("member_detail.tab_info")}</p>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+            {/* Column 1: Identity */}
+            <div className="p-5 space-y-2.5">
+              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t("profile.identity")}</p>
+              <Cell label={t("profile.first_name")} value={editing ? form.firstName : firstName}
+                editing={editing} onChange={v => setForm(p => ({ ...p, firstName: v }))} placeholder="John" required />
+              <Cell label={t("profile.last_name")} value={editing ? form.lastName : lastName}
+                editing={editing} onChange={v => setForm(p => ({ ...p, lastName: v }))} placeholder="Doe" required />
+              <Cell label={t("profile.country")} value={countryCode ? (COUNTRY_LABELS[countryCode] ?? countryCode) : null} required />
               <Cell label={t("management.username")} value={editing ? form.customUsername : customUser}
                 editing={editing} onChange={v => setForm(p => ({ ...p, customUsername: v }))} />
-              <Cell label={t("profile.country")} value={countryCode ? (COUNTRY_LABELS[countryCode] ?? countryCode) : null} />
-              <Cell label={t("profile.first_name")} value={editing ? form.firstName : firstName}
-                editing={editing} onChange={v => setForm(p => ({ ...p, firstName: v }))} placeholder="John" />
-              <Cell label={t("profile.last_name")} value={editing ? form.lastName : lastName}
-                editing={editing} onChange={v => setForm(p => ({ ...p, lastName: v }))} placeholder="Doe" />
               {!editing && age !== null && <Cell label={t("profile.age")} value={`${age} ${t("profile.years_old")}`} />}
-              <Cell label={t("profile.email")} value={editing ? form.email : (memberProfile?.email ?? "")}
-                editing={editing} onChange={v => setForm(p => ({ ...p, email: v }))} type="email" placeholder="john@example.com" />
-              <Cell label={t("profile.phone")} value={editing ? form.phone : (memberProfile?.phone ?? "")}
-                editing={editing} onChange={v => setForm(p => ({ ...p, phone: v }))} type="phone" locale={memberProfile?.countryCode ?? member.countryCode ?? undefined} />
-              {validLinks.includes("discord") && <Cell label="Discord" value={editing ? form.discord : (memberProfile?.discord ?? member.discord)}
-                editing={editing} onChange={v => setForm(p => ({ ...p, discord: v }))} />}
-              {validLinks.includes("twitter") && <Cell label="Twitter / X" value={editing ? form.twitter : (memberProfile?.twitter ?? member.twitter)}
-                editing={editing} onChange={v => setForm(p => ({ ...p, twitter: v }))} />}
-              {validLinks.includes("hltv") && <Cell label="HLTV" value={editing ? form.hltv : (memberProfile?.hltv)}
-                editing={editing} onChange={v => setForm(p => ({ ...p, hltv: v }))} />}
-              <Cell label="Steam ID" value={member.steamId} full />
+              <Cell label="Steam ID" value={member.steamId} />
+              {memberProfile?.createdAt && (
+                <Cell label={t("meta.created_label")}
+                  value={new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "long", year: "numeric" }).format(new Date(memberProfile.createdAt))} />
+              )}
+              {member.joinedAt && (
+                <Cell label={t("meta.joined_label")}
+                  value={new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "long", year: "numeric" }).format(new Date(member.joinedAt))} />
+              )}
             </div>
-          </div>
 
-          {/* ── Role & Roster ── */}
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl px-6 py-5">
-            <p className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-4">{t("member_detail.tab_role")}</p>
-            <div className="space-y-4">
-              <div>
-                <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-widest mb-2">{t("management.team_role")}</p>
-                {editing && canEditRole ? (
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {ROLE_OPTIONS.map(role => (
-                      <button key={role} onClick={() => handleChangeRole(role)} disabled={isSavingProfile}
-                        className={cn("px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all disabled:opacity-50",
-                          role === currentRole ? ROLE_BADGE_STYLES[role]
-                            : "text-neutral-500 bg-neutral-800/40 border-neutral-800 hover:bg-neutral-800 hover:text-neutral-300"
-                        )}>{t(`roles.${role}`)}</button>
-                    ))}
-                  </div>
-                ) : (
-                  <span className={cn("inline-flex px-2.5 py-1.5 rounded-lg text-xs font-semibold border", ROLE_BADGE_STYLES[currentRole])}>
-                    {t(`roles.${currentRole}`)}
-                  </span>
+            {/* Column 2: Contact + Private (blurred) */}
+            <div className="p-5 space-y-2.5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest">{t("profile.contact")}</p>
+                {canViewPrivate && !editing && (
+                  <button onClick={() => setShowPrivate(p => !p)}
+                    className="p-1 rounded text-neutral-600 hover:text-neutral-400 transition-colors"
+                    title={showPrivate ? t("common.hide") : t("common.show")}>
+                    {showPrivate ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
                 )}
               </div>
+              <Cell label={t("profile.email")} value={editing ? form.email : (memberProfile?.email ?? "")}
+                editing={editing} onChange={v => setForm(p => ({ ...p, email: v }))} type="email" placeholder="john@example.com" required />
+              <Cell label={t("profile.phone")} value={editing ? form.phone : (memberProfile?.phone ?? "")}
+                editing={editing} onChange={v => setForm(p => ({ ...p, phone: v }))} type="phone" locale={memberProfile?.countryCode ?? member.countryCode ?? undefined} required />
+              {canViewPrivate && memberProfile && (
+                <>
+                  <Cell label={t("profile.birth_date")} value={editing ? form.birthDate : memberProfile.birthDate}
+                    editing={editing} onChange={v => setForm(p => ({ ...p, birthDate: v }))} type="date" locale={i18n.language} required />
+                  {/* Private fields — values blurred unless toggled or editing */}
+                  <Cell label={t("profile.address")} value={editing ? form.address : memberProfile.address}
+                    editing={editing} onChange={v => setForm(p => ({ ...p, address: v }))} placeholder="123 Main Street" required blurred={!editing && !showPrivate} />
+                  <Cell label={t("profile.zip_code")} value={editing ? form.zipCode : memberProfile.zipCode}
+                    editing={editing} onChange={v => setForm(p => ({ ...p, zipCode: v }))} placeholder="75001" required blurred={!editing && !showPrivate} />
+                  <Cell label={t("profile.city")} value={editing ? form.city : memberProfile.city}
+                    editing={editing} onChange={v => setForm(p => ({ ...p, city: v }))} placeholder="Paris" required blurred={!editing && !showPrivate} />
+                </>
+              )}
+            </div>
 
-              <div>
-                <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-widest mb-2">{t("management.roster_status")}</p>
-                <div className="flex items-center justify-between px-3 py-2 bg-neutral-800/30 border border-neutral-800 rounded-lg">
-                  <span className={cn("text-xs font-medium", activePlayerState ? "text-emerald-300" : "text-neutral-400")}>
-                    {activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}
-                  </span>
-                  {editing && canEditRoster && currentRole === "PLAYER" ? (
-                    <Toggle checked={activePlayerState ?? false} onChange={handleToggleActive}
-                      disabled={isSavingProfile || (!activePlayerState && atCapacity)} />
-                  ) : (
-                    <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded border uppercase",
-                      activePlayerState ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-neutral-800 text-neutral-500 border-neutral-700"
-                    )}>{activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}</span>
-                  )}
-                </div>
-              </div>
-
-              {activePlayerState && (
+            {/* Column 3: Role & Roster + Links */}
+            <div className="p-5">
+              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t("member_detail.tab_role")}</p>
+              <div className="space-y-3">
                 <div>
-                  <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-widest mb-2">{t("management.in_game_role")}</p>
-                  {editing && canEditRoster ? (
-                    <div className="grid grid-cols-4 gap-1.5">
-                      <button onClick={() => handleChangeInGameRole(null)} disabled={isSavingProfile}
-                        className={cn("px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all disabled:opacity-50",
-                          inGameRole === null ? "bg-neutral-700 text-white border-neutral-600"
-                            : "text-neutral-500 bg-neutral-800/40 border-neutral-800 hover:bg-neutral-800 hover:text-neutral-300"
-                        )}>—</button>
-                      {getAvailableInGameRoles(team?.game).map(role => (
-                        <button key={role} onClick={() => handleChangeInGameRole(role)} disabled={isSavingProfile}
-                          className={cn("px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all disabled:opacity-50",
-                            role === inGameRole ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                  <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-widest mb-2">{t("management.team_role")}</p>
+                  {editing && canEditRole ? (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {ROLE_OPTIONS.map(role => (
+                        <button key={role} onClick={() => handleChangeRole(role)} disabled={isSavingProfile}
+                          className={cn("px-2 py-1.5 rounded-lg text-[10px] font-semibold border transition-all disabled:opacity-50",
+                            role === currentRole ? ROLE_BADGE_STYLES[role]
                               : "text-neutral-500 bg-neutral-800/40 border-neutral-800 hover:bg-neutral-800 hover:text-neutral-300"
-                          )}>{IN_GAME_ROLE_LABELS[role]}</button>
+                          )}>{t(`roles.${role}`)}</button>
                       ))}
                     </div>
                   ) : (
-                    <span className="inline-flex px-2.5 py-1.5 rounded-lg text-xs bg-neutral-800/40 border border-neutral-800 text-neutral-200">
-                      {inGameRole ? IN_GAME_ROLE_LABELS[inGameRole] : "—"}
+                    <span className={cn("inline-flex px-2 py-1 rounded-lg text-[10px] font-semibold border", ROLE_BADGE_STYLES[currentRole])}>
+                      {t(`roles.${currentRole}`)}
                     </span>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-widest mb-2">{t("management.roster_status")}</p>
+                  <div className="flex items-center justify-between px-2.5 py-1.5 bg-neutral-800/30 border border-neutral-800 rounded-lg">
+                    <span className={cn("text-[11px] font-medium", activePlayerState ? "text-emerald-300" : "text-neutral-400")}>
+                      {activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}
+                    </span>
+                    {editing && canEditRoster && currentRole === "PLAYER" ? (
+                      <Toggle checked={activePlayerState ?? false} onChange={handleToggleActive}
+                        disabled={isSavingProfile || (!activePlayerState && atCapacity)} />
+                    ) : (
+                      <span className={cn("text-[9px] font-semibold px-1.5 py-0.5 rounded border uppercase",
+                        activePlayerState ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-neutral-800 text-neutral-500 border-neutral-700"
+                      )}>{activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}</span>
+                    )}
+                  </div>
+                </div>
+
+                {activePlayerState && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-widest mb-2">{t("management.in_game_role")}</p>
+                    {editing && canEditRoster ? (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button onClick={() => handleChangeInGameRole(null)} disabled={isSavingProfile}
+                          className={cn("px-2 py-1.5 rounded-lg text-[10px] font-semibold border transition-all disabled:opacity-50",
+                            inGameRole === null ? "bg-neutral-700 text-white border-neutral-600"
+                              : "text-neutral-500 bg-neutral-800/40 border-neutral-800 hover:bg-neutral-800 hover:text-neutral-300"
+                          )}>—</button>
+                        {getAvailableInGameRoles(team?.game).map(role => (
+                          <button key={role} onClick={() => handleChangeInGameRole(role)} disabled={isSavingProfile}
+                            className={cn("px-2 py-1.5 rounded-lg text-[10px] font-semibold border transition-all disabled:opacity-50",
+                              role === inGameRole ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                                : "text-neutral-500 bg-neutral-800/40 border-neutral-800 hover:bg-neutral-800 hover:text-neutral-300"
+                            )}>{IN_GAME_ROLE_LABELS[role]}</button>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="inline-flex px-2 py-1 rounded-lg text-[10px] bg-neutral-800/40 border border-neutral-800 text-neutral-200">
+                        {inGameRole ? IN_GAME_ROLE_LABELS[inGameRole] : "—"}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+              </div>
+
+              {/* Links & Socials */}
+              {(validLinks.includes("discord") || validLinks.includes("twitter") || validLinks.includes("hltv")) && (
+                <div className="pt-6 mt-8 -mx-5 px-5 border-t border-neutral-800 space-y-2.5">
+                  <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest">{t("management.links")}</p>
+                  {editing ? (
+                    <>
+                      {validLinks.includes("discord") && <Cell label="Discord" value={form.discord}
+                        editing onChange={v => setForm(p => ({ ...p, discord: v }))} placeholder="pseudo#1234" />}
+                      {validLinks.includes("twitter") && <Cell label="Twitter / X" value={form.twitter}
+                        editing onChange={v => setForm(p => ({ ...p, twitter: v }))} placeholder="https://twitter.com/..." />}
+                      {validLinks.includes("hltv") && <Cell label="HLTV" value={form.hltv}
+                        editing onChange={v => setForm(p => ({ ...p, hltv: v }))} placeholder="https://hltv.org/..." />}
+                    </>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {validLinks.includes("discord") && (() => {
+                        const val = memberProfile?.discord ?? member.discord;
+                        return (
+                          <div className="flex items-center gap-2 py-1">
+                            <span className="text-[10px] font-medium text-neutral-500 uppercase w-14 shrink-0">Discord</span>
+                            {val ? <span className="text-sm text-indigo-300 font-mono">#{val}</span>
+                              : <span className="text-sm text-neutral-700">—</span>}
+                          </div>
+                        );
+                      })()}
+                      {validLinks.includes("twitter") && (() => {
+                        const val = memberProfile?.twitter ?? member.twitter;
+                        return (
+                          <div className="flex items-center gap-2 py-1">
+                            <span className="text-[10px] font-medium text-neutral-500 uppercase w-14 shrink-0">Twitter</span>
+                            {val ? <a href={val.startsWith("http") ? val : `https://twitter.com/${val}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="text-sm text-blue-400 hover:text-blue-300 truncate transition-colors">
+                              {val.replace(/^https?:\/\/(www\.)?(twitter|x)\.com\//, "@")}
+                            </a> : <span className="text-sm text-neutral-700">—</span>}
+                          </div>
+                        );
+                      })()}
+                      {validLinks.includes("hltv") && (() => {
+                        const val = memberProfile?.hltv;
+                        return (
+                          <div className="flex items-center gap-2 py-1">
+                            <span className="text-[10px] font-medium text-neutral-500 uppercase w-14 shrink-0">HLTV</span>
+                            {val ? <a href={val.startsWith("http") ? val : `https://hltv.org/player/${val}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="text-sm text-blue-400 hover:text-blue-300 truncate transition-colors">
+                              {val.replace(/^https?:\/\/(www\.)?hltv\.org\//, "")}
+                            </a> : <span className="text-sm text-neutral-700">—</span>}
+                          </div>
+                        );
+                      })()}
+                    </div>
                   )}
                 </div>
               )}
             </div>
           </div>
-
-          {/* ── Private ── */}
-          {canViewPrivate && memberProfile && (
-            <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl px-6 py-5">
-              <p className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-4">{t("member_detail.tab_private")}</p>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                <Cell label={t("profile.birth_date")} value={editing ? form.birthDate : memberProfile.birthDate}
-                  editing={editing} onChange={v => setForm(p => ({ ...p, birthDate: v }))} type="date" locale={i18n.language} />
-                <Cell label={t("profile.address")} value={editing ? form.address : memberProfile.address}
-                  editing={editing} onChange={v => setForm(p => ({ ...p, address: v }))} placeholder="123 Main Street" />
-                <Cell label={t("profile.zip_code")} value={editing ? form.zipCode : memberProfile.zipCode}
-                  editing={editing} onChange={v => setForm(p => ({ ...p, zipCode: v }))} placeholder="75001" />
-                <Cell label={t("profile.city")} value={editing ? form.city : memberProfile.city}
-                  editing={editing} onChange={v => setForm(p => ({ ...p, city: v }))} placeholder="Paris" />
-                <Cell label={t("meta.created_label")}
-                  value={memberProfile.createdAt ? new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "long", year: "numeric" }).format(new Date(memberProfile.createdAt)) : null} />
-                <Cell label={t("meta.joined_label")}
-                  value={member.joinedAt ? new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "long", year: "numeric" }).format(new Date(member.joinedAt)) : null} />
-              </div>
-            </div>
-          )}
-        </div>
+        </>
       )}
+      </div>
 
       {confirmAction === "kick" && (
         <ConfirmModal

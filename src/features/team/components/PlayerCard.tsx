@@ -5,6 +5,7 @@ import { Crown } from 'lucide-react';
 import Flag from 'react-world-flags';
 import { IN_GAME_ROLE_LABELS } from '@/shared/config/gameConfig';
 import { UserAvatar } from '@/shared/components/UserAvatar';
+import FaceitIcon from '@/shared/components/FaceitIcon';
 
 interface PlayerCardProps {
   member: TeamMember;
@@ -39,7 +40,6 @@ export function PlayerCard({ member }: PlayerCardProps) {
 
   return (
     <div className="group relative flex flex-col">
-      {/* Card */}
       <div className="relative bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-700 transition-all duration-200 flex flex-col h-72">
 
         {/* Avatar — top 60% */}
@@ -50,18 +50,14 @@ export function PlayerCard({ member }: PlayerCardProps) {
             nickname={displayName}
             className="absolute inset-0 w-full h-full rounded-none transition-transform duration-300 group-hover:scale-[1.03]"
           />
-
-          {/* Gradient overlay bottom */}
           <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-neutral-900 to-transparent" />
 
-          {/* Flag top-right */}
           {member.countryCode && (
             <div className="absolute top-2.5 right-2.5 drop-shadow-md">
               <Flag code={member.countryCode} className="w-6 h-4 rounded-[3px] shadow" />
             </div>
           )}
 
-          {/* Owner crown top-left */}
           {member.isOwner && (
             <div className="absolute top-2.5 left-2.5">
               <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded backdrop-blur-sm">
@@ -73,7 +69,6 @@ export function PlayerCard({ member }: PlayerCardProps) {
 
         {/* Info — bottom 40% */}
         <div className="flex flex-col justify-between px-3 pt-2 pb-3 flex-1 min-h-0">
-          {/* Role */}
           <div>
             {inGameRoleLabel ? (
               <p className={`text-[11px] font-bold uppercase tracking-widest ${roleAccent} mb-0.5`}>
@@ -86,11 +81,25 @@ export function PlayerCard({ member }: PlayerCardProps) {
             )}
           </div>
 
-          {/* Name */}
+          {/* Name + FACEIT */}
           <div className="flex-1 min-h-0">
-            <h3 className="text-base font-black text-white leading-tight truncate">
-              {displayName}
-            </h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-base font-black text-white leading-tight truncate">
+                {displayName}
+              </h3>
+              {member.faceitNickname && (
+                <a
+                  href={`https://www.faceit.com/en/players/${member.faceitNickname}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  title={`FACEIT · ${member.faceitNickname}`}
+                  className="shrink-0 hover:opacity-80 transition-opacity"
+                >
+                  <FaceitIcon className="w-3.5 h-3.5 text-orange-400" />
+                </a>
+              )}
+            </div>
             {fullName && (
               <p className="text-[11px] text-neutral-500 leading-tight truncate mt-0.5">
                 {fullName}
@@ -98,7 +107,6 @@ export function PlayerCard({ member }: PlayerCardProps) {
             )}
           </div>
 
-          {/* Age */}
           {age && (
             <p className="text-[10px] text-neutral-600 mt-1">
               {age} {t('common.years')}

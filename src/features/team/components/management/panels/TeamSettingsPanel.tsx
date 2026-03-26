@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { Link, Trash2, AlertTriangle, X, Loader, Eye, EyeOff } from 'lucide-react';
+import { AlertTriangle, X, Loader, Eye, EyeOff } from 'lucide-react';
+import DropdownMenu from '@/shared/components/DropdownMenu';
+import type { DropdownMenuItem } from '@/shared/components/DropdownMenu';
 import type { Team } from '@/contexts/team/team.types';
 import { updateTeam as updateTeamApi, createInvitation, uploadTeamLogo, deleteTeamLogo } from '@/api/endpoints/team.api';
 import type { UpdateTeamRequest } from '@/api/types/team';
@@ -196,21 +198,28 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
               <h2 className="text-base font-bold text-white truncate">{team.name}</h2>
               {team.tag && <span className="px-2 py-0.5 bg-neutral-800 text-neutral-300 rounded-[4px] text-xs font-bold border border-neutral-700">{team.tag}</span>}
               {gameBadge && team.game && <span className={cn('px-2 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wide border', gameBadge)}>{team.game}</span>}
-              {canInvite && (
-                <button onClick={handleQuickInvite} disabled={isGenerating}
-                  className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border transition-colors disabled:opacity-50',
-                    isInviteCopied ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20'
-                  )}>
-                  <Link className="w-3 h-3" />
-                  {isGenerating ? t('common.loading') : isInviteCopied ? t('common.copied') : t('management.invitation_link')}
-                </button>
-              )}
             </div>
+            {canInvite && (
+              <div className="flex items-center gap-2 mt-2.5">
+                <span className="relative group/tip">
+                  <button onClick={handleQuickInvite} disabled={isGenerating}
+                    className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-colors disabled:opacity-50',
+                      isInviteCopied ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20'
+                    )}>
+                    {isGenerating ? t('common.loading') : isInviteCopied ? t('common.copied') : t('management.invitation_link')}
+                  </button>
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-neutral-700 text-neutral-400 text-[8px] font-bold cursor-help">i</span>
+                  <span className="absolute top-1/2 -translate-y-1/2 left-full ml-2 px-3 py-1.5 rounded-lg bg-neutral-800 border border-neutral-700 text-[11px] text-neutral-300 whitespace-nowrap opacity-0 pointer-events-none group-hover/tip:opacity-100 transition-opacity shadow-lg z-10">
+                    {t('management.invitation_info')}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
 
-          {canEdit && (
-            e ? (
-              <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+            {e ? (
+              <>
                 <button onClick={handleSave} disabled={isSaving}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#4338ca] hover:bg-[#4f46e5] disabled:opacity-50 text-white text-xs font-semibold transition-colors">
                   {isSaving && <Loader className="w-3 h-3 animate-spin" />}
@@ -220,14 +229,14 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
                   className="px-2 py-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
                   {t('common.cancel')}
                 </button>
-              </div>
+              </>
             ) : (
-              <button onClick={() => setIsEditing(true)}
-                className="shrink-0 px-3 py-1.5 rounded-[4px] bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white text-xs font-medium transition-colors">
-                {t('common.edit')}
-              </button>
-            )
-          )}
+              <DropdownMenu items={[
+                ...(canEdit ? [{ label: t('common.edit'), onClick: () => setIsEditing(true) }] as DropdownMenuItem[] : []),
+                ...(canDelete ? [{ label: t('management.delete_cta'), onClick: () => setShowDeleteModal(true), variant: 'danger' as const }] : []),
+              ]} />
+            )}
+          </div>
         </div>
 
         {/* ── Fields — 3 columns ── */}
@@ -263,15 +272,6 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
           </div>
         </div>
       </div>
-
-      {canDelete && (
-        <div className="flex items-center gap-2">
-          <button onClick={() => setShowDeleteModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-medium rounded-[4px] transition-colors">
-            <Trash2 className="w-3 h-3" />{t('management.delete_cta')}
-          </button>
-        </div>
-      )}
 
       {/* ── Delete modal ── */}
       {showDeleteModal && (
