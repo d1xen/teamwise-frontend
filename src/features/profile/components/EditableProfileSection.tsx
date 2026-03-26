@@ -294,8 +294,8 @@ export default function EditableProfileSection({
   return (
     <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl">
       {/* ── Header ── */}
-      <div className="flex items-center gap-4 px-5 py-4 border-b border-neutral-800">
-        <div className="relative shrink-0">
+      <div className="flex items-start gap-4 px-5 py-4 border-b border-neutral-800">
+        <div className="relative shrink-0 mt-1">
           {canEdit ? (
             <ImageUpload currentUrl={getAvatarUrl(profile)} alt={profile.nickname} shape="square" size={64} disabled={false}
               onUpload={async (file) => {
@@ -321,7 +321,7 @@ export default function EditableProfileSection({
         <div className="flex-1 min-w-0">
           {/* Row 1: Nickname + Actions */}
           <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-base font-bold text-white truncate">{profile.nickname}</h2>
+            <h2 className="text-lg font-bold text-white truncate">{profile.nickname}</h2>
             <div className="flex-1" />
             {e ? (
               <div className="flex items-center gap-2 shrink-0">

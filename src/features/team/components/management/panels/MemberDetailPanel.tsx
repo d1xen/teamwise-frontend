@@ -109,7 +109,7 @@ function Cell({
         )
       ) : (
         <p className={cn(filled ? VALUE_CLASS_FILLED : VALUE_CLASS_EMPTY, blurred && "blur-sm select-none")}>
-          {type === "date" ? (formatDateDisplay(value, locale ?? "en") ?? "—") : (value || "—")}
+          {blurred ? "••••••••" : (type === "date" ? (formatDateDisplay(value, locale ?? "en") ?? "—") : (value || "—"))}
         </p>
       )}
     </div>
@@ -180,10 +180,14 @@ export default function MemberDetailPanel({
   };
   const handleChangeRole = (role: TeamRole) => {
     if (role === currentRole) return;
+    const oldRole = currentRole;
     setCurrentRole(role);
-    if (currentRole === "PLAYER" && role !== "PLAYER") {
+    if (oldRole === "PLAYER" && role !== "PLAYER") {
       setActivePlayerState(false);
       setInGameRole(null);
+    }
+    if (oldRole !== "PLAYER" && role === "PLAYER") {
+      setActivePlayerState(true);
     }
   };
   const handleChangeInGameRole = (r: InGameRole | null) => {
@@ -255,16 +259,17 @@ export default function MemberDetailPanel({
       });
 
       // Save role if changed
-      if (currentRole !== roleBeforeEdit.current.role) {
+      const roleChanged = currentRole !== roleBeforeEdit.current.role;
+      if (roleChanged) {
         await updateMemberRole(teamId, member.steamId, { role: currentRole });
       }
-      // Save roster if changed
-      if (activePlayerState !== roleBeforeEdit.current.active) {
+      // Save roster if changed (always send after role change to ensure consistency)
+      if (roleChanged || activePlayerState !== roleBeforeEdit.current.active) {
         await updateMemberRoster(teamId, member.steamId, { activePlayer: activePlayerState ?? false });
         updateMemberActiveStatus(member.steamId, activePlayerState ?? false);
       }
       // Save in-game role if changed
-      if (inGameRole !== roleBeforeEdit.current.inGameRole) {
+      if (roleChanged || inGameRole !== roleBeforeEdit.current.inGameRole) {
         await updateMemberRoster(teamId, member.steamId, { inGameRole: inGameRole ?? null });
       }
 
@@ -288,14 +293,14 @@ export default function MemberDetailPanel({
 
       {/* ── Single card: Header + Content — same pattern as EditableProfileSection ── */}
       <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl">
-        <div className="flex items-center gap-4 px-5 py-4 border-b border-neutral-800">
+        <div className="flex items-start gap-4 px-5 py-4 border-b border-neutral-800">
           <UserAvatar profileImageUrl={member.profileImageUrl} avatarUrl={member.avatarUrl}
             nickname={displayName} size={64} className="ring-2 ring-neutral-700/50 shrink-0" />
 
           <div className="flex-1 min-w-0">
             {/* Row 1: Nickname + Actions */}
             <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-base font-bold text-white truncate">{member.nickname}</h2>
+              <h2 className="text-lg font-bold text-white truncate">{member.nickname}</h2>
               {member.countryCode && <Flag code={member.countryCode} className="w-5 h-3.5 rounded-[2px] opacity-80 shrink-0" />}
               {member.faceitNickname && (
                 <a href={`https://www.faceit.com/en/players/${member.faceitNickname}`}
@@ -457,24 +462,26 @@ export default function MemberDetailPanel({
                   )}
                 </div>
 
-                <div>
-                  <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-widest mb-2">{t("management.roster_status")}</p>
-                  <div className="flex items-center justify-between px-2.5 py-1.5 bg-neutral-800/30 border border-neutral-800 rounded-lg">
-                    <span className={cn("text-[11px] font-medium", activePlayerState ? "text-emerald-300" : "text-neutral-400")}>
-                      {activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}
-                    </span>
-                    {editing && canEditRoster && currentRole === "PLAYER" ? (
-                      <Toggle checked={activePlayerState ?? false} onChange={handleToggleActive}
-                        disabled={isSavingProfile || (!activePlayerState && atCapacity)} />
-                    ) : (
-                      <span className={cn("text-[9px] font-semibold px-1.5 py-0.5 rounded border uppercase",
-                        activePlayerState ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-neutral-800 text-neutral-500 border-neutral-700"
-                      )}>{activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}</span>
-                    )}
+                {currentRole === "PLAYER" && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-widest mb-2">{t("management.roster_status")}</p>
+                    <div className="flex items-center justify-between px-2.5 py-1.5 bg-neutral-800/30 border border-neutral-800 rounded-lg">
+                      <span className={cn("text-[11px] font-medium", activePlayerState ? "text-emerald-300" : "text-neutral-400")}>
+                        {activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}
+                      </span>
+                      {editing && canEditRoster ? (
+                        <Toggle checked={activePlayerState ?? false} onChange={handleToggleActive}
+                          disabled={isSavingProfile || (!activePlayerState && atCapacity)} />
+                      ) : (
+                        <span className={cn("text-[9px] font-semibold px-1.5 py-0.5 rounded border uppercase",
+                          activePlayerState ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-neutral-800 text-neutral-500 border-neutral-700"
+                        )}>{activePlayerState ? t("management.roster_active") : t("management.roster_inactive")}</span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {activePlayerState && (
+                {currentRole === "PLAYER" && activePlayerState && (
                   <div>
                     <p className="text-[10px] font-semibold text-neutral-600 uppercase tracking-widest mb-2">{t("management.in_game_role")}</p>
                     {editing && canEditRoster ? (

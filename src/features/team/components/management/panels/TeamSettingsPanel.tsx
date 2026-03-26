@@ -31,7 +31,10 @@ function Cell({ label, value, editing, formValue, onChange, placeholder, full, m
   label: string; value: string | null | undefined; editing?: boolean; formValue?: string;
   onChange?: (v: string) => void; placeholder?: string; full?: boolean; multiline?: boolean;
 }) {
+  const { t } = useTranslation();
   const filled = Boolean(value);
+  const [expanded, setExpanded] = useState(false);
+  const truncated = multiline && value && value.length > 60 && !expanded;
   return (
     <div className={full ? 'col-span-2' : ''}>
       <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-wide mb-1">{label}</p>
@@ -43,7 +46,16 @@ function Cell({ label, value, editing, formValue, onChange, placeholder, full, m
           <input type="text" value={formValue ?? ''} onChange={e => onChange(e.target.value)} placeholder={placeholder ?? '—'} className={INPUT_CLS} />
         )
       ) : multiline && value ? (
-        <p className={cn('text-sm whitespace-pre-wrap leading-relaxed px-1', filled ? 'text-neutral-200' : 'text-neutral-700')}>{value}</p>
+        <div>
+          <p className={cn('text-sm leading-relaxed px-1', filled ? 'text-neutral-200' : 'text-neutral-700')}>
+            {truncated ? value.slice(0, 60) + '…' : value}
+          </p>
+          {value.length > 60 && (
+            <button onClick={() => setExpanded(e => !e)} className="text-[10px] text-indigo-400 hover:text-indigo-300 px-1 mt-0.5 transition-colors">
+              {expanded ? t('common.show_less') : t('common.show_more')}
+            </button>
+          )}
+        </div>
       ) : (
         <p className={cn('h-7 flex items-center text-sm truncate px-1', filled ? 'text-neutral-200' : 'text-neutral-700')}>{value || '—'}</p>
       )}
@@ -181,8 +193,8 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
     <div className="space-y-4">
       <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl">
         {/* ── Header ── */}
-        <div className="flex items-center gap-4 px-5 py-4 border-b border-neutral-800">
-          <div className="shrink-0">
+        <div className="flex items-start gap-4 px-5 py-4 border-b border-neutral-800">
+          <div className="shrink-0 mt-1">
             <ImageUpload currentUrl={team.logoUrl ?? null} alt={team.name} shape="square" size={64}
               accept="image/jpeg,image/png,image/svg+xml" maxBytes={5 * 1024 * 1024} disabled={!canEdit}
               onUpload={async (file) => {
@@ -194,30 +206,15 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base font-bold text-white truncate">{team.name}</h2>
+            <h2 className="text-lg font-bold text-white truncate">{team.name}</h2>
+            <div className="flex items-center gap-1.5 mt-1">
               {team.tag && <span className="px-2 py-0.5 bg-neutral-800 text-neutral-300 rounded-[4px] text-xs font-bold border border-neutral-700">{team.tag}</span>}
               {gameBadge && team.game && <span className={cn('px-2 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wide border', gameBadge)}>{team.game}</span>}
             </div>
-            {canInvite && (
-              <div className="flex items-center gap-2 mt-2.5">
-                <span className="relative group/tip">
-                  <button onClick={handleQuickInvite} disabled={isGenerating}
-                    className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-colors disabled:opacity-50',
-                      isInviteCopied ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20'
-                    )}>
-                    {isGenerating ? t('common.loading') : isInviteCopied ? t('common.copied') : t('management.invitation_link')}
-                  </button>
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-neutral-700 text-neutral-400 text-[8px] font-bold cursor-help">i</span>
-                  <span className="absolute top-1/2 -translate-y-1/2 left-full ml-2 px-3 py-1.5 rounded-lg bg-neutral-800 border border-neutral-700 text-[11px] text-neutral-300 whitespace-nowrap opacity-0 pointer-events-none group-hover/tip:opacity-100 transition-opacity shadow-lg z-10">
-                    {t('management.invitation_info')}
-                  </span>
-                </span>
-              </div>
-            )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Top-right actions */}
+          <div className="flex items-start gap-2 shrink-0">
             {e ? (
               <>
                 <button onClick={handleSave} disabled={isSaving}
@@ -231,10 +228,25 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
                 </button>
               </>
             ) : (
-              <DropdownMenu items={[
-                ...(canEdit ? [{ label: t('common.edit'), onClick: () => setIsEditing(true) }] as DropdownMenuItem[] : []),
-                ...(canDelete ? [{ label: t('management.delete_cta'), onClick: () => setShowDeleteModal(true), variant: 'danger' as const }] : []),
-              ]} />
+              <>
+                {canInvite && (
+                  <span className="relative group/tip">
+                    <button onClick={handleQuickInvite} disabled={isGenerating}
+                      className={cn('inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50',
+                        isInviteCopied ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20'
+                      )}>
+                      {isGenerating ? t('common.loading') : isInviteCopied ? t('common.copied') : t('management.invitation_link')}
+                    </button>
+                    <span className="absolute top-full right-0 mt-2 px-3 py-1.5 rounded-lg bg-neutral-800 border border-neutral-700 text-[11px] text-neutral-300 whitespace-nowrap opacity-0 pointer-events-none group-hover/tip:opacity-100 transition-opacity shadow-lg z-10">
+                      {t('management.invitation_info')}
+                    </span>
+                  </span>
+                )}
+                <DropdownMenu items={[
+                  ...(canEdit ? [{ label: t('common.edit'), onClick: () => setIsEditing(true) }] as DropdownMenuItem[] : []),
+                  ...(canDelete ? [{ label: t('management.delete_cta'), onClick: () => setShowDeleteModal(true), variant: 'danger' as const }] : []),
+                ]} />
+              </>
             )}
           </div>
         </div>
@@ -246,7 +258,6 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
             <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t('management.team_information')}</p>
             <Cell label={t('management.team_name')} value={team.name} editing={e} formValue={form.name} onChange={v => set('name', v)} placeholder="Team Vitality" />
             <Cell label={t('management.team_tag')} value={team.tag} editing={e} formValue={form.tag} onChange={v => set('tag', v)} placeholder="VIT" />
-            <Cell label={t('management.game')} value={team.game} />
             <Cell label={t('management.team_description')} value={team.description} editing={e} formValue={form.description} onChange={v => set('description', v)} placeholder={t('management.team_description_placeholder')} multiline />
             {team.createdAt && (
               <Cell label={t('meta.created_label')} value={new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(team.createdAt))} />
