@@ -11,6 +11,9 @@ import { useTeam } from "@/contexts/team/useTeam";
 import { useAuth } from "@/contexts/auth/useAuth";
 import { Toggle } from "@/shared/components/Toggle";
 import { UserAvatar } from "@/shared/components/UserAvatar";
+import ImageUpload from "@/shared/components/ImageUpload";
+import { getAvatarUrl } from "@/shared/utils/avatarUtils";
+import { uploadMemberAvatar, deleteMemberAvatar } from "@/api/endpoints/profile.api";
 import BirthDateSelect from "@/shared/components/BirthDateSelect";
 import PhoneInput from "@/shared/components/PhoneInput";
 import { getAvailableInGameRoles, IN_GAME_ROLE_LABELS, getMaxActivePlayers, getValidLinksForGame } from "@/shared/config/gameConfig";
@@ -293,8 +296,34 @@ export default function MemberDetailPanel({
       {/* ── Single card: Header + Content — same pattern as EditableProfileSection ── */}
       <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl">
         <div className="flex items-start gap-4 px-5 py-4 border-b border-neutral-800">
-          <UserAvatar profileImageUrl={member.profileImageUrl} avatarUrl={member.avatarUrl}
-            nickname={displayName} size={64} className="ring-2 ring-neutral-700/50 shrink-0" />
+          <div className="shrink-0 mt-1">
+            {canEdit ? (
+              <ImageUpload
+                currentUrl={getAvatarUrl({ profileImageUrl: memberProfile?.profileImageUrl ?? member.profileImageUrl ?? null, avatarUrl: member.avatarUrl ?? null })}
+                alt={displayName} shape="square" size={64} disabled={false}
+                onUpload={async (file) => {
+                  try {
+                    const u = await uploadMemberAvatar(member.steamId, teamId, file);
+                    setMemberProfile(u);
+                    toast.success(t("profile.avatar_updated"));
+                    await refreshTeam();
+                    return u.profileImageUrl ?? u.avatarUrl ?? null;
+                  } catch { toast.error(t("upload.error_generic")); return null; }
+                }}
+                {...((memberProfile?.profileImageUrl ?? member.profileImageUrl) ? {
+                  onDelete: async () => {
+                    const u = await deleteMemberAvatar(member.steamId, teamId);
+                    setMemberProfile(u);
+                    toast.success(t("profile.avatar_deleted"));
+                    await refreshTeam();
+                  }
+                } : {})}
+              />
+            ) : (
+              <UserAvatar profileImageUrl={member.profileImageUrl} avatarUrl={member.avatarUrl}
+                nickname={displayName} size={64} className="ring-2 ring-neutral-700/50" />
+            )}
+          </div>
 
           <div className="flex-1 min-w-0">
             {/* Row 1: Nickname + Actions */}

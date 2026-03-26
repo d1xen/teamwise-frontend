@@ -66,3 +66,13 @@ export function deleteAvatar(): Promise<UserProfileDto> {
     return apiClient<UserProfileDto>("/api/users/me/avatar", { method: "DELETE" });
 }
 
+export function uploadMemberAvatar(steamId: string, teamId: string | number, file: File): Promise<UserProfileDto> {
+    const body = new FormData();
+    body.append("file", file);
+    return apiClient<UserProfileDto>(`/api/users/${steamId}/avatar?teamId=${teamId}`, { method: "POST", body });
+}
+
+export function deleteMemberAvatar(steamId: string, teamId: string | number): Promise<UserProfileDto> {
+    return apiClient<UserProfileDto>(`/api/users/${steamId}/avatar?teamId=${teamId}`, { method: "DELETE" });
+}
+
