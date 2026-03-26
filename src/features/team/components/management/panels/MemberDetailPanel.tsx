@@ -51,8 +51,6 @@ function calcAge(bd: string | null | undefined): number | null {
 }
 
 const INPUT_CLASS = "w-full h-7 text-sm text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-2.5 outline-none placeholder:text-neutral-600 focus:border-indigo-500/50 caret-indigo-400 transition-colors";
-const VALUE_CLASS_FILLED = "h-7 flex items-center text-sm truncate text-neutral-200 px-1";
-const VALUE_CLASS_EMPTY  = "h-7 flex items-center text-sm truncate text-neutral-700 px-1";
 
 function formatDateDisplay(iso: string | null | undefined, locale: string): string | null {
   if (!iso) return null;
@@ -108,8 +106,8 @@ function Cell({
           />
         )
       ) : (
-        <p className={cn(filled ? VALUE_CLASS_FILLED : VALUE_CLASS_EMPTY, blurred && "blur-sm select-none")}>
-          {blurred ? "••••••••" : (type === "date" ? (formatDateDisplay(value, locale ?? "en") ?? "—") : (value || "—"))}
+        <p className={cn("h-7 flex items-center text-sm px-1", blurred ? "text-neutral-200 blur-[3px] select-none" : (filled ? "text-neutral-200" : "text-neutral-700"))}>
+          {blurred ? (label.length > 8 ? "•••••" : label.length < 6 ? "••••••• •••••" : "••• •••••••• ••••• •• ••••••") : (type === "date" ? (formatDateDisplay(value, locale ?? "en") ?? "—") : (value || "—"))}
         </p>
       )}
     </div>
@@ -126,6 +124,7 @@ export default function MemberDetailPanel({
 
   const [editing, setEditing] = useState(false);
   const [showPrivate, setShowPrivate] = useState(false);
+  const [privateLoaded, setPrivateLoaded] = useState(false);
   const [form, setForm] = useState({ customUsername: "", firstName: "", lastName: "", email: "", phone: "", discord: "", twitter: "", hltv: "", birthDate: "", address: "", zipCode: "", city: "" });
   const [memberProfile, setMemberProfile] = useState<UserProfileDto | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -413,7 +412,16 @@ export default function MemberDetailPanel({
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest">{t("profile.contact")}</p>
                 {canViewPrivate && !editing && (
-                  <button onClick={() => setShowPrivate(p => !p)}
+                  <button onClick={async () => {
+                    if (!showPrivate && !privateLoaded) {
+                      try {
+                        const p = await getUserProfile(member.steamId, teamId, true);
+                        setMemberProfile(p);
+                        setPrivateLoaded(true);
+                      } catch { toast.error(t("common.error")); return; }
+                    }
+                    setShowPrivate(prev => !prev);
+                  }}
                     className="p-1 rounded text-neutral-600 hover:text-neutral-400 transition-colors"
                     title={showPrivate ? t("common.hide") : t("common.show")}>
                     {showPrivate ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -541,7 +549,7 @@ export default function MemberDetailPanel({
                             <span className="text-[10px] font-medium text-neutral-500 uppercase w-14 shrink-0">Twitter</span>
                             {val ? <a href={val.startsWith("http") ? val : `https://twitter.com/${val}`}
                               target="_blank" rel="noopener noreferrer"
-                              className="text-sm text-blue-400 hover:text-blue-300 truncate transition-colors">
+                              className="text-sm text-indigo-300 hover:text-indigo-200 truncate transition-colors">
                               {val.replace(/^https?:\/\/(www\.)?(twitter|x)\.com\//, "@")}
                             </a> : <span className="text-sm text-neutral-700">—</span>}
                           </div>
@@ -554,7 +562,7 @@ export default function MemberDetailPanel({
                             <span className="text-[10px] font-medium text-neutral-500 uppercase w-14 shrink-0">HLTV</span>
                             {val ? <a href={val.startsWith("http") ? val : `https://hltv.org/player/${val}`}
                               target="_blank" rel="noopener noreferrer"
-                              className="text-sm text-blue-400 hover:text-blue-300 truncate transition-colors">
+                              className="text-sm text-indigo-300 hover:text-indigo-200 truncate transition-colors">
                               {val.replace(/^https?:\/\/(www\.)?hltv\.org\//, "")}
                             </a> : <span className="text-sm text-neutral-700">—</span>}
                           </div>

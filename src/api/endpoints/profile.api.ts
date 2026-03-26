@@ -18,10 +18,14 @@ export function getMyProfile(): Promise<UserProfileDto> {
 
 export function getUserProfile(
     steamId: string,
-    teamId?: string | number
+    teamId?: string | number,
+    includePrivate?: boolean
 ): Promise<UserProfileDto> {
+    const query = buildTeamQuery(teamId);
+    const sep = query ? '&' : '?';
+    const privatePart = includePrivate ? `${sep}includePrivate=true` : '';
     return apiClient<UserProfileDto>(
-        `/api/users/${steamId}/profile${buildTeamQuery(teamId)}`
+        `/api/users/${steamId}/profile${query}${privatePart}`
     );
 }
 
