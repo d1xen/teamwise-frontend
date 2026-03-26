@@ -38,6 +38,7 @@ export interface Team {
 export interface TeamMembership {
     role: TeamRole;
     isOwner: boolean;
+    inGameRole?: InGameRole | null | undefined;
 }
 
 export interface TeamMember {

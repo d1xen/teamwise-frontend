@@ -7,7 +7,8 @@ import { getMapLabel } from "@/shared/config/gameConfig";
 interface StratCardProps {
     strat: StratSummaryDto;
     onClick?: (strat: StratSummaryDto) => void;
-    onToggleFavorite?: (stratId: number) => void;
+    onToggleFavorite?: ((stratId: number) => void) | undefined;
+    canFavorite?: boolean | undefined;
 }
 
 const SIDE_STYLES = {
@@ -32,7 +33,7 @@ const STATUS_STYLES: Record<string, string> = {
     DEPRECATED:   "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
-export default function StratCard({ strat, onClick, onToggleFavorite }: StratCardProps) {
+export default function StratCard({ strat, onClick, onToggleFavorite, canFavorite }: StratCardProps) {
     const { t } = useTranslation();
 
     return (
@@ -102,12 +103,16 @@ export default function StratCard({ strat, onClick, onToggleFavorite }: StratCar
                         {t(`stratbook.status_${strat.status.toLowerCase()}`)}
                     </span>
 
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(strat.id); }}
-                        className="p-1 rounded-lg hover:bg-neutral-800 transition-colors"
-                    >
-                        <Star className={`w-4 h-4 ${strat.favorited ? "fill-amber-400 text-amber-400" : "text-neutral-600 hover:text-amber-400"}`} />
-                    </button>
+                    {canFavorite ? (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(strat.id); }}
+                            className="p-1 rounded-lg hover:bg-neutral-800 transition-colors"
+                        >
+                            <Star className={`w-4 h-4 ${strat.favorited ? "fill-amber-400 text-amber-400" : "text-neutral-600 hover:text-amber-400"}`} />
+                        </button>
+                    ) : strat.favorited ? (
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    ) : null}
                 </div>
             </div>
         </div>

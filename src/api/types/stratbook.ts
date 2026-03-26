@@ -49,6 +49,7 @@ export type StratDto = {
     objective: string | null;
     conditions: string | null;
     tags: string[];
+    createdBySteamId: string;
     createdByNickname: string | null;
     updatedByNickname: string | null;
     createdAt: string;

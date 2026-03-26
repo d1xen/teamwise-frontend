@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import {
-    ArrowLeft, Star, Copy, Trash2, Megaphone, Layers,
-    ExternalLink, Pencil,
+    ArrowLeft, Star, Megaphone, Layers,
+    ExternalLink,
 } from "lucide-react";
 import type { StratDto, CreateStratRequest } from "@/api/types/stratbook";
 import { getStrat, updateStrat as updateStratApi, duplicateStrat, deleteStrat, addStratNote, deleteStratNote, toggleFavorite } from "@/api/endpoints/stratbook.api";
@@ -14,10 +14,14 @@ import InlineLoader from "@/shared/components/InlineLoader";
 import NoteSection from "@/shared/components/NoteSection";
 import MapBadge from "@/shared/components/MapBadge";
 import StratForm from "./StratForm";
+import DropdownMenu from "@/shared/components/DropdownMenu";
+import type { DropdownMenuItem } from "@/shared/components/DropdownMenu";
 
 interface StratDetailProps {
     stratId: number;
     isStaff: boolean;
+    isIgl: boolean;
+    currentSteamId: string;
     onBack: () => void;
     onDeleted: () => void;
 }
@@ -55,7 +59,7 @@ const UTIL_STYLES: Record<string, string> = {
     HE:    "bg-red-500/15 text-red-300 border-red-500/25",
 };
 
-export default function StratDetail({ stratId, isStaff, onBack, onDeleted }: StratDetailProps) {
+export default function StratDetail({ stratId, isStaff, isIgl, currentSteamId, onBack, onDeleted }: StratDetailProps) {
     const { t } = useTranslation();
     const [strat, setStrat] = useState<StratDto | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -80,6 +84,15 @@ export default function StratDetail({ stratId, isStaff, onBack, onDeleted }: Str
         if (!strat) return;
         const res = await toggleFavorite(strat.id);
         setStrat(prev => prev ? { ...prev, favorited: res.favorited } : null);
+    };
+
+    const handleStatusChange = async (status: string) => {
+        if (!strat) return;
+        try {
+            const updated = await updateStratApi(strat.id, { status: status as StratDto["status"] });
+            setStrat(updated);
+            toast.success(t("stratbook.status_updated"));
+        } catch { toast.error(t("common.error")); }
     };
 
     const handleDuplicate = async () => {
@@ -144,23 +157,33 @@ export default function StratDetail({ stratId, isStaff, onBack, onDeleted }: Str
                     {t("common.back")}
                 </button>
                 <div className="ml-auto flex items-center gap-2">
-                    <button onClick={handleToggleFavorite} className="p-2 rounded-lg hover:bg-neutral-800 transition-colors">
-                        <Star className={`w-4 h-4 ${strat.favorited ? "fill-amber-400 text-amber-400" : "text-neutral-500 hover:text-amber-400"}`} />
-                    </button>
-                    {isStaff && (
-                        <>
-                            <button onClick={() => setEditing(true)} className="px-3 py-1.5 rounded-[4px] bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white text-xs font-medium transition-colors flex items-center gap-1.5">
-                                <Pencil className="w-3.5 h-3.5" />
-                                {t("common.edit")}
-                            </button>
-                            <button onClick={handleDuplicate} className="p-2 rounded-lg text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800 transition-colors">
-                                <Copy className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => setShowDeleteConfirm(true)} className="p-2 rounded-lg text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </>
-                    )}
+                    {(isStaff || isIgl) ? (
+                        <button onClick={handleToggleFavorite} className="p-2 rounded-lg hover:bg-neutral-800 transition-colors">
+                            <Star className={`w-4 h-4 ${strat.favorited ? "fill-amber-400 text-amber-400" : "text-neutral-500 hover:text-amber-400"}`} />
+                        </button>
+                    ) : strat.favorited ? (
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-400 mx-2" />
+                    ) : null}
+                    {(() => {
+                        const isOwnDraft = strat.createdBySteamId === currentSteamId && strat.status === "DRAFT";
+                        const canEdit = isStaff || isOwnDraft;
+                        const canDelete = isStaff || isOwnDraft;
+                        const canPublish = isStaff || (isIgl && strat.status === "DRAFT");
+                        const canChangeStatus = isStaff;
+                        const items: DropdownMenuItem[] = [
+                            ...(canEdit ? [{ label: t("common.edit"), onClick: () => setEditing(true) }] : []),
+                            { label: t("stratbook.duplicate"), onClick: handleDuplicate },
+                            ...(canPublish && strat.status === "DRAFT" ? [{ label: t("stratbook.publish"), onClick: () => handleStatusChange("READY") }] : []),
+                            ...(canChangeStatus && strat.status !== "DRAFT" ? [
+                                ...(strat.status !== "READY" ? [{ label: t("stratbook.status_ready"), onClick: () => handleStatusChange("READY") }] : []),
+                                ...(strat.status !== "IN_PRACTICE" ? [{ label: t("stratbook.status_in_practice"), onClick: () => handleStatusChange("IN_PRACTICE") }] : []),
+                                ...(strat.status !== "DEPRECATED" ? [{ label: t("stratbook.status_deprecated"), onClick: () => handleStatusChange("DEPRECATED") }] : []),
+                                { label: t("stratbook.unpublish"), onClick: () => handleStatusChange("DRAFT") },
+                            ] : []),
+                            ...(canDelete ? [{ label: t("common.delete"), onClick: () => setShowDeleteConfirm(true), variant: 'danger' as const }] : []),
+                        ];
+                        return items.length > 0 ? <DropdownMenu items={items} /> : null;
+                    })()}
                 </div>
             </div>
 

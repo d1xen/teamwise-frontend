@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/design-system";
 import { useTeam } from "@/contexts/team/useTeam";
+import { useAuth } from "@/contexts/auth/useAuth";
 import { useStrats } from "@/features/stratbook/hooks/useStrats";
 import { toggleFavorite as toggleFavoriteApi } from "@/api/endpoints/stratbook.api";
 import { getMapsForGame } from "@/shared/config/gameConfig";
@@ -23,6 +24,7 @@ const STATUSES: StratStatus[] = ["DRAFT", "READY", "IN_PRACTICE", "DEPRECATED"];
 export default function StratbookPage() {
     const { t } = useTranslation();
     const { team, membership } = useTeam();
+    const { user } = useAuth();
     const { stratId: stratIdParam } = useParams<{ stratId?: string }>();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -75,6 +77,7 @@ export default function StratbookPage() {
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [stratView, setStratView] = useState<StratView>("published");
     const isStaff = membership?.isOwner || membership?.role !== "PLAYER";
+    const canFavorite = isStaff || membership?.inGameRole === "IGL";
 
     const hasAdvancedFilters = !!(filters.type || filters.status || filters.search || filters.tag || filters.favoritesOnly);
 
@@ -106,6 +109,8 @@ export default function StratbookPage() {
                         <StratDetail
                             stratId={selectedStratId}
                             isStaff={isStaff}
+                            isIgl={membership?.inGameRole === "IGL"}
+                            currentSteamId={user?.steamId ?? ""}
                             onBack={handleBack}
                             onDeleted={handleBack}
                         />
@@ -281,7 +286,7 @@ export default function StratbookPage() {
                             <>
                                 <div className={`space-y-3 transition-opacity duration-150 ${isRefreshing ? "opacity-60" : "opacity-100"}`}>
                                     {visibleStrats.map(s => (
-                                        <StratCard key={s.id} strat={s} onClick={handleStratClick} onToggleFavorite={handleToggleFavorite} />
+                                        <StratCard key={s.id} strat={s} onClick={handleStratClick} onToggleFavorite={canFavorite ? handleToggleFavorite : undefined} canFavorite={canFavorite} />
                                     ))}
                                 </div>
                                 <PaginationBottom

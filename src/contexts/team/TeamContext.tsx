@@ -106,7 +106,7 @@ export function TeamProvider({
             });
 
             const newMembership = teamData.membership
-                ? { role: teamData.membership.role, isOwner: teamData.membership.isOwner }
+                ? { role: teamData.membership.role, isOwner: teamData.membership.isOwner, inGameRole: teamData.membership.inGameRole ?? null }
                 : null;
 
             setMembership(newMembership);

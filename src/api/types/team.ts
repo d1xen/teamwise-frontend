@@ -39,6 +39,7 @@ export type TeamMemberLink = {
 export type TeamMembershipDto = {
     role: TeamRole;
     isOwner: boolean;
+    inGameRole?: InGameRole | null | undefined;
 };
 
 export type MembersOverviewDto = {
