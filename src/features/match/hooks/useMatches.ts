@@ -104,18 +104,20 @@ export function useMatches(teamId: string) {
         loadPage(appliedFilters, 0, pageSize);
     }, [loadPage, appliedFilters, pageSize]);
 
-    // Silent poll
-    const silentReload = useCallback(async () => {
+    // Silent poll — ref avoids recreating on every filter/page change
+    const silentReloadRef = useRef<() => void>(() => {});
+    silentReloadRef.current = () => {
         if (!teamId) return;
-        try {
-            const result = await getMatchesPaginated(teamId, appliedFilters, currentPage, pageSize);
-            setContent(result.content);
-            setTotalElements(result.totalElements);
-            setTotalPages(result.totalPages);
-        } catch { /* silent */ }
-    }, [teamId, appliedFilters, currentPage, pageSize]);
+        getMatchesPaginated(teamId, appliedFilters, currentPage, pageSize)
+            .then(result => {
+                setContent(result.content);
+                setTotalElements(result.totalElements);
+                setTotalPages(result.totalPages);
+            })
+            .catch(() => { /* silent */ });
+    };
 
-    usePolling(silentReload, 20_000, !isLoading);
+    usePolling(() => silentReloadRef.current(), 20_000, !isLoading);
 
     const goToPage = useCallback((page: number) => {
         loadPage(appliedFilters, page, pageSize);

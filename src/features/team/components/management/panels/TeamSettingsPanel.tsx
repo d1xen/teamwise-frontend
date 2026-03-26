@@ -196,7 +196,7 @@ export default function TeamSettingsPanel({ team, canEdit, canInvite, canDelete,
         <div className="flex items-start gap-4 px-5 py-4 border-b border-neutral-800">
           <div className="shrink-0 mt-1">
             <ImageUpload currentUrl={team.logoUrl ?? null} alt={team.name} shape="square" size={64}
-              accept="image/jpeg,image/png,image/svg+xml" maxBytes={5 * 1024 * 1024} disabled={!canEdit}
+              accept="image/jpeg,image/png,image/webp,image/svg+xml" maxBytes={5 * 1024 * 1024} disabled={!canEdit}
               onUpload={async (file) => {
                 try { const u = await uploadTeamLogo(team.id, file); toast.success(t('upload.logo_updated')); await refreshTeam(); return u.logoUrl ?? null; }
                 catch { toast.error(t('upload.error_generic')); return null; }

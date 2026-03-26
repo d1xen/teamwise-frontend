@@ -26,8 +26,10 @@ const DEFAULT_FILTERS: StratFilters = {
 
 const DEFAULT_PAGE_SIZE: PageSize = 50;
 
-export function useStrats(teamId: string) {
+export function useStrats(teamId: string, initialFilters?: Partial<StratFilters> | undefined) {
     const { t } = useTranslation();
+
+    const initRef = useRef({ ...DEFAULT_FILTERS, ...initialFilters });
 
     const [content, setContent] = useState<StratSummaryDto[]>([]);
     const [totalElements, setTotalElements] = useState(0);
@@ -37,8 +39,8 @@ export function useStrats(teamId: string) {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const [filters, setFilters] = useState<StratFilters>(DEFAULT_FILTERS);
-    const [appliedFilters, setAppliedFilters] = useState<StratFilters>(DEFAULT_FILTERS);
+    const [filters, setFilters] = useState<StratFilters>(initRef.current);
+    const [appliedFilters, setAppliedFilters] = useState<StratFilters>(initRef.current);
 
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const fetchIdRef = useRef(0);
@@ -107,7 +109,7 @@ export function useStrats(teamId: string) {
         try {
             await createStratApi(teamId, payload);
             toast.success(t("stratbook.create_success"));
-            reload();
+            await reload();
             return true;
         } catch { toast.error(t("stratbook.create_error")); return false; }
     }, [teamId, t, reload]);

@@ -42,11 +42,13 @@ export default function CompetitionsPage() {
     const {
         competitions,
         isLoading,
+        isRefreshing,
         tab,
         setTab,
         counts,
         createCompetition,
         bulkDeleteCompetitions,
+        reload,
     } = useCompetitions(team?.id?.toString() ?? "");
 
     const { competitionId: compIdParam } = useParams<{ competitionId?: string }>();
@@ -149,6 +151,7 @@ export default function CompetitionsPage() {
     const handleBackFromDetail = () => {
         setDetailCompetition(null);
         navigate(`/team/${team?.id}/competitions`);
+        reload();
     };
 
     // Detail view — inline
@@ -215,7 +218,7 @@ export default function CompetitionsPage() {
                         })}
 
                         <div className="ml-auto pb-2 flex items-center gap-2">
-                            {isLoading && (
+                            {(isLoading || isRefreshing) && (
                                 <Loader2 className="w-3.5 h-3.5 text-neutral-600 animate-spin" />
                             )}
                             {/* Filters button */}
@@ -309,7 +312,7 @@ export default function CompetitionsPage() {
 
                     {/* Results count + pagination */}
                     <div className="flex items-center justify-between">
-                        <p className={`text-xs transition-colors duration-150 ${isLoading ? "text-neutral-800" : "text-neutral-600"}`}>
+                        <p className={`text-xs transition-colors duration-150 ${isLoading || isRefreshing ? "text-neutral-800" : "text-neutral-600"}`}>
                             {t("matches.result_count", { count: filteredTotal })}
                         </p>
                         <PaginationTop
@@ -348,7 +351,7 @@ export default function CompetitionsPage() {
                         null
                     ) : (
                         <>
-                            <div className={`space-y-3 transition-opacity duration-150 ${isLoading ? "opacity-60" : "opacity-100"}`}>
+                            <div className={`space-y-3 transition-opacity duration-150 ${isRefreshing ? "opacity-60" : "opacity-100"}`}>
                                 {filtered.map(c => (
                                     <div key={c.id} className="relative">
                                         {editMode && c.status !== "COMPLETED" && (

@@ -34,7 +34,7 @@ export default function ImageUpload({
     alt,
     onUpload,
     onDelete,
-    accept = "image/jpeg,image/png",
+    accept = "image/jpeg,image/png,image/webp",
     maxBytes = 2 * 1024 * 1024,
     shape = "square",
     size = 80,

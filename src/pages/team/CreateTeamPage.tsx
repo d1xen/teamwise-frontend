@@ -209,7 +209,7 @@ export default function CreateTeamPage() {
                                                         </button>
                                                     )}
                                                 </div>
-                                                <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml"
+                                                <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"
                                                     onChange={handleLogoSelect} className="hidden" />
                                             </div>
                                         </div>

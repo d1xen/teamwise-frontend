@@ -41,11 +41,10 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
 
     const [type, setType]                   = useState<MatchType>("OFFICIAL");
     const [opponentName, setOpponentName]   = useState("");
-    const [opponentLogo, setOpponentLogo]   = useState("");
     const [matchUrl, setMatchUrl]           = useState("");
     const [scheduledDate, setScheduledDate]   = useState("");
     const [scheduledTime, setScheduledTime]   = useState("20:00");
-    const [format, setFormat]               = useState<MatchFormat>("BO3");
+    const [format, setFormat]               = useState<MatchFormat>("BO1");
     const [competitionId, setCompetitionId] = useState<number | null>(null);
     const [notes, setNotes]                 = useState("");
 
@@ -65,7 +64,7 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
         const ok = await onSubmit({
             type,
             opponentName: opponentName.trim() || null,
-            opponentLogo: opponentLogo.trim() || null,
+            opponentLogo: null,
             matchUrl: matchUrl.trim() || null,
             scheduledAt: new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString(),
             format,
@@ -105,7 +104,7 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
                                         <button
                                             key={mt}
                                             type="button"
-                                            onClick={() => setType(mt)}
+                                            onClick={() => { setType(mt); if (mt === "SCRIM") setCompetitionId(null); }}
                                             className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${chip(type === mt)}`}
                                         >
                                             {t(`matches.type_${mt.toLowerCase()}`)}
@@ -134,20 +133,22 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
 
                         <div className="border-t border-neutral-800/60" />
 
-                        {/* ── Competition ─────────────────────────────── */}
-                        <div>
-                            <label className={LABEL}>{t("matches.competition_name")}</label>
-                            <select
-                                value={competitionId ?? ""}
-                                onChange={e => setCompetitionId(e.target.value ? Number(e.target.value) : null)}
-                                className={INPUT}
-                            >
-                                <option value="">{t("competitions.none")}</option>
-                                {activeCompetitions.map(c => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {/* ── Competition (official only) ─────────────── */}
+                        {type === "OFFICIAL" && (
+                            <div>
+                                <label className={LABEL}>{t("matches.competition_name")}</label>
+                                <select
+                                    value={competitionId ?? ""}
+                                    onChange={e => setCompetitionId(e.target.value ? Number(e.target.value) : null)}
+                                    className={INPUT}
+                                >
+                                    <option value="">{t("competitions.none")}</option>
+                                    {activeCompetitions.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
                         {/* ── Required fields ───────────────────────────── */}
                         <div className="space-y-3">
@@ -204,18 +205,6 @@ export default function CreateMatchModal({ onClose, onSubmit }: CreateMatchModal
                                             type="url"
                                             value={matchUrl}
                                             onChange={e => setMatchUrl(e.target.value)}
-                                            placeholder="https://..."
-                                            className={INPUT}
-                                        />
-                                    </div>
-
-                                    {/* Logo */}
-                                    <div>
-                                        <label className={LABEL}>{t("matches.opponent_logo")}</label>
-                                        <input
-                                            type="url"
-                                            value={opponentLogo}
-                                            onChange={e => setOpponentLogo(e.target.value)}
                                             placeholder="https://..."
                                             className={INPUT}
                                         />

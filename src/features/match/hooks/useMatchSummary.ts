@@ -13,6 +13,7 @@ export function useMatchSummary(teamId: string) {
     const [summary, setSummary] = useState<MatchSummaryDto | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const cancelRef = useRef(false);
+    const fetchRef = useRef<() => void>(() => {});
 
     const doFetch = useCallback(() => {
         if (!teamId) return;
@@ -22,21 +23,26 @@ export function useMatchSummary(teamId: string) {
             .finally(() => { if (!cancelRef.current) setIsLoading(false); });
     }, [teamId]);
 
+    // Keep ref in sync for listener/polling (avoids dependency issues)
+    fetchRef.current = doFetch;
+
+    // Single fetch on mount / teamId change
     useEffect(() => {
         if (!teamId) return;
         cancelRef.current = false;
         setIsLoading(true);
-        doFetch();
+        fetchRef.current();
         return () => { cancelRef.current = true; };
-    }, [teamId, doFetch]);
+    }, [teamId]);
 
-    // Subscribe to invalidation events
+    // Subscribe to invalidation events via stable ref
     useEffect(() => {
-        listeners.add(doFetch);
-        return () => { listeners.delete(doFetch); };
-    }, [doFetch]);
+        const handler = () => fetchRef.current();
+        listeners.add(handler);
+        return () => { listeners.delete(handler); };
+    }, []);
 
-    usePolling(doFetch, 60_000, !!teamId);
+    usePolling(() => fetchRef.current(), 60_000, !!teamId);
 
     return {
         summary,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -32,16 +32,9 @@ export default function StratbookPage() {
     const maps = getMapsForGame(team?.game);
     const selectedStratId = stratIdParam ? Number(stratIdParam) : null;
 
-    const {
-        content, totalElements, totalPages, currentPage, pageSize,
-        isLoading, isRefreshing,
-        filters, updateFilters, goToPage, changePageSize,
-        createStrat, reload,
-    } = useStrats(teamId);
-
-    // Sync URL → filters on mount
-    useEffect(() => {
-        const patch: Partial<typeof filters> = {};
+    // Read URL params once for initial filters (avoids double fetch)
+    const initialFilters = useMemo(() => {
+        const patch: Record<string, unknown> = {};
         const m = searchParams.get("map");
         const s = searchParams.get("side");
         const tp = searchParams.get("type");
@@ -49,14 +42,21 @@ export default function StratbookPage() {
         const q = searchParams.get("search");
         const fav = searchParams.get("fav");
         if (m) patch.map = m;
-        if (s) patch.side = s as typeof filters.side;
-        if (tp) patch.type = tp as typeof filters.type;
-        if (st) patch.status = st as typeof filters.status;
+        if (s) patch.side = s;
+        if (tp) patch.type = tp;
+        if (st) patch.status = st;
         if (q) patch.search = q;
         if (fav === "1") patch.favoritesOnly = true;
-        if (Object.keys(patch).length > 0) updateFilters(patch);
+        return patch;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const {
+        content, totalElements, totalPages, currentPage, pageSize,
+        isLoading, isRefreshing,
+        filters, updateFilters, goToPage, changePageSize,
+        createStrat, reload,
+    } = useStrats(teamId, initialFilters);
 
     // Sync filters → URL
     const updateFiltersWithUrl = (patch: Partial<typeof filters>) => {
