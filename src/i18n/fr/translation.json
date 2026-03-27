@@ -510,6 +510,10 @@
     "cta": "Soutenir Teamwise"
   },
 
+  "notifications": {
+    "coming_soon": "Notifications — bientôt disponible"
+  },
+
   "header": {
     "logout": "Se déconnecter",
     "language": "Langue",

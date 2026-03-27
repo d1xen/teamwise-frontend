@@ -510,6 +510,10 @@
     "cta": "Support Teamwise"
   },
 
+  "notifications": {
+    "coming_soon": "Notifications — coming soon"
+  },
+
   "header": {
     "logout": "Logout",
     "language": "Language",
