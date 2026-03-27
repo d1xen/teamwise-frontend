@@ -20,7 +20,7 @@ export const appConfig: AppConfig = {
   apiBaseUrl,
   externalLinks: {
     kofi: 'https://ko-fi.com/teamwise',
-    discord: 'https://discord.gg/YOUR_INVITE_CODE',
+    discord: 'https://discord.gg/JgEYKYFPGS',
   },
 };
 

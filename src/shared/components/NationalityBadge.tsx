@@ -1,11 +1,5 @@
-/**
- * NationalityBadge.tsx
- * Composant pour afficher la nationalité d'une équipe ou d'un joueur
- * Affiche uniquement le drapeau avec tooltip au survol
- */
-
 import type { TeamNationality } from "@/shared/utils/countryUtils";
-import { getNationalityFlag } from "@/shared/utils/countryUtils";
+import Flag from "react-world-flags";
 
 interface NationalityBadgeProps {
   nationality: TeamNationality | null;
@@ -13,28 +7,34 @@ interface NationalityBadgeProps {
   className?: string;
 }
 
+const SIZE_MAP = {
+  sm: "w-4 h-3",
+  md: "w-5 h-3.5",
+  lg: "w-6 h-4",
+};
+
 export function NationalityBadge({
   nationality,
   size = "md",
   className = "",
 }: NationalityBadgeProps) {
-  if (!nationality) {
-    return <span className={className}>—</span>;
+  if (!nationality) return null;
+
+  const flagCode = nationality.type === "country"
+    ? nationality.code
+    : nationality.code === "EU" ? "EU" : null;
+
+  if (!flagCode) {
+    return (
+      <span title={nationality.tooltipLabel} className={`text-xs text-neutral-400 ${className}`}>
+        {nationality.displayLabel}
+      </span>
+    );
   }
 
-  const sizeClasses = {
-    sm: "text-sm",
-    md: "text-lg",
-    lg: "text-2xl",
-  };
-
   return (
-    <span
-      title={nationality.tooltipLabel}
-      className={`inline-block cursor-help ${sizeClasses[size]} ${className}`}
-    >
-      {getNationalityFlag(nationality)}
+    <span title={nationality.tooltipLabel} className={`inline-block cursor-help ${className}`}>
+      <Flag code={flagCode} className={`${SIZE_MAP[size]} rounded-none`} />
     </span>
   );
 }
-

@@ -1,0 +1,36 @@
+export const TIMEZONES = [
+  { value: 'Europe/Paris', label: 'Paris (CET)' },
+  { value: 'Europe/London', label: 'London (GMT)' },
+  { value: 'Europe/Berlin', label: 'Berlin (CET)' },
+  { value: 'Europe/Madrid', label: 'Madrid (CET)' },
+  { value: 'Europe/Rome', label: 'Rome (CET)' },
+  { value: 'Europe/Amsterdam', label: 'Amsterdam (CET)' },
+  { value: 'Europe/Brussels', label: 'Brussels (CET)' },
+  { value: 'Europe/Zurich', label: 'Zurich (CET)' },
+  { value: 'Europe/Stockholm', label: 'Stockholm (CET)' },
+  { value: 'Europe/Copenhagen', label: 'Copenhagen (CET)' },
+  { value: 'Europe/Helsinki', label: 'Helsinki (EET)' },
+  { value: 'Europe/Oslo', label: 'Oslo (CET)' },
+  { value: 'Europe/Warsaw', label: 'Warsaw (CET)' },
+  { value: 'Europe/Prague', label: 'Prague (CET)' },
+  { value: 'Europe/Bucharest', label: 'Bucharest (EET)' },
+  { value: 'Europe/Athens', label: 'Athens (EET)' },
+  { value: 'Europe/Kiev', label: 'Kyiv (EET)' },
+  { value: 'Europe/Moscow', label: 'Moscow (MSK)' },
+  { value: 'Europe/Istanbul', label: 'Istanbul (TRT)' },
+  { value: 'America/New_York', label: 'New York (EST)' },
+  { value: 'America/Chicago', label: 'Chicago (CST)' },
+  { value: 'America/Denver', label: 'Denver (MST)' },
+  { value: 'America/Los_Angeles', label: 'Los Angeles (PST)' },
+  { value: 'America/Toronto', label: 'Toronto (EST)' },
+  { value: 'America/Sao_Paulo', label: 'São Paulo (BRT)' },
+  { value: 'Asia/Dubai', label: 'Dubai (GST)' },
+  { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
+  { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+  { value: 'Asia/Seoul', label: 'Seoul (KST)' },
+  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+];
+
+export const TIMEZONE_LABELS: Record<string, string> = Object.fromEntries(
+  TIMEZONES.map(t => [t.value, t.label])
+);

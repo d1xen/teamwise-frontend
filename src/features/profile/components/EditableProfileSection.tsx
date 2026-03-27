@@ -29,55 +29,9 @@ interface EditableProfileSectionProps {
   onSuccess?: () => void;
 }
 
-const COUNTRIES = [
-  { value: 'FR', label: 'France' }, { value: 'BE', label: 'Belgium' },
-  { value: 'CH', label: 'Switzerland' }, { value: 'DE', label: 'Germany' },
-  { value: 'GB', label: 'United Kingdom' }, { value: 'US', label: 'United States' },
-  { value: 'CA', label: 'Canada' }, { value: 'ES', label: 'Spain' },
-  { value: 'IT', label: 'Italy' }, { value: 'NL', label: 'Netherlands' },
-  { value: 'PT', label: 'Portugal' }, { value: 'PL', label: 'Poland' },
-  { value: 'SE', label: 'Sweden' }, { value: 'DK', label: 'Denmark' },
-  { value: 'FI', label: 'Finland' }, { value: 'NO', label: 'Norway' },
-  { value: 'BR', label: 'Brazil' }, { value: 'RU', label: 'Russia' },
-  { value: 'TR', label: 'Turkey' }, { value: 'UA', label: 'Ukraine' },
-  { value: 'CZ', label: 'Czech Republic' }, { value: 'RO', label: 'Romania' },
-  { value: 'HU', label: 'Hungary' }, { value: 'AU', label: 'Australia' },
-];
-const COUNTRY_LABEL: Record<string, string> = Object.fromEntries(COUNTRIES.map(c => [c.value, c.label]));
+import { getCountryOptions } from '@/shared/config/countries';
 
-const TIMEZONES = [
-  { value: 'Europe/Paris', label: 'Paris (CET)' },
-  { value: 'Europe/London', label: 'London (GMT)' },
-  { value: 'Europe/Berlin', label: 'Berlin (CET)' },
-  { value: 'Europe/Madrid', label: 'Madrid (CET)' },
-  { value: 'Europe/Rome', label: 'Rome (CET)' },
-  { value: 'Europe/Amsterdam', label: 'Amsterdam (CET)' },
-  { value: 'Europe/Brussels', label: 'Brussels (CET)' },
-  { value: 'Europe/Zurich', label: 'Zurich (CET)' },
-  { value: 'Europe/Stockholm', label: 'Stockholm (CET)' },
-  { value: 'Europe/Copenhagen', label: 'Copenhagen (CET)' },
-  { value: 'Europe/Helsinki', label: 'Helsinki (EET)' },
-  { value: 'Europe/Oslo', label: 'Oslo (CET)' },
-  { value: 'Europe/Warsaw', label: 'Warsaw (CET)' },
-  { value: 'Europe/Prague', label: 'Prague (CET)' },
-  { value: 'Europe/Bucharest', label: 'Bucharest (EET)' },
-  { value: 'Europe/Athens', label: 'Athens (EET)' },
-  { value: 'Europe/Kiev', label: 'Kyiv (EET)' },
-  { value: 'Europe/Moscow', label: 'Moscow (MSK)' },
-  { value: 'Europe/Istanbul', label: 'Istanbul (TRT)' },
-  { value: 'America/New_York', label: 'New York (EST)' },
-  { value: 'America/Chicago', label: 'Chicago (CST)' },
-  { value: 'America/Denver', label: 'Denver (MST)' },
-  { value: 'America/Los_Angeles', label: 'Los Angeles (PST)' },
-  { value: 'America/Toronto', label: 'Toronto (EST)' },
-  { value: 'America/Sao_Paulo', label: 'São Paulo (BRT)' },
-  { value: 'Asia/Dubai', label: 'Dubai (GST)' },
-  { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
-  { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
-  { value: 'Asia/Seoul', label: 'Seoul (KST)' },
-  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
-];
-const TIMEZONE_LABEL: Record<string, string> = Object.fromEntries(TIMEZONES.map(t => [t.value, t.label]));
+import { TIMEZONES, TIMEZONE_LABELS as TIMEZONE_LABEL } from '@/shared/config/timezones';
 
 // Required fields for profile completion (must match backend UserService.isProfileCompleted)
 const REQUIRED_FIELDS = [
@@ -172,7 +126,7 @@ function Cell({
   const filled = isFilled(displayValue);
   const emailError = editing && type === 'email' && formValue && !isValidEmail(formValue);
 
-  const resolvedLabelMap = labelMap ?? (options ? COUNTRY_LABEL : undefined);
+  const resolvedLabelMap = labelMap;
   const readValue = type === 'date'
     ? (formatDateDisplay(value, locale ?? 'en') ?? '—')
     : resolvedLabelMap && value
@@ -223,6 +177,8 @@ export default function EditableProfileSection({
 }: EditableProfileSectionProps & { menuItems?: DropdownMenuItem[] | undefined }) {
   const { t, i18n } = useTranslation();
   const { updateUser } = useAuth();
+  const countries = getCountryOptions(i18n.language);
+  const countryLabelMap = Object.fromEntries(countries.map(c => [c.value, c.label]));
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<UserProfileDto>(initialProfile);
   const [isSaving, setIsSaving] = useState(false);
@@ -358,12 +314,8 @@ export default function EditableProfileSection({
           <Cell label={t('profile.first_name')} value={profile.firstName} editing={e} formValue={form.firstName} onChange={v => set('firstName', v)} placeholder="John" required />
           <Cell label={t('profile.last_name')} value={profile.lastName} editing={e} formValue={form.lastName} onChange={v => set('lastName', v)} placeholder="Doe" required />
           <Cell label={t('profile.birth_date')} value={profile.birthDate} editing={e} formValue={form.birthDate} onChange={v => set('birthDate', v)} type="date" locale={i18n.language} required />
-          <Cell label={t('profile.country')} value={profile.countryCode} editing={e} formValue={form.countryCode} onChange={v => set('countryCode', v)} options={COUNTRIES} placeholder={t('profile.select_country')} required />
+          <Cell label={t('profile.country')} value={profile.countryCode} editing={e} formValue={form.countryCode} onChange={v => set('countryCode', v)} options={countries} labelMap={countryLabelMap} placeholder={t('profile.select_country')} required />
           <Cell label={t('profile.custom_username')} value={profile.customUsername} editing={e} formValue={form.customUsername} onChange={v => set('customUsername', v)} placeholder="s1mple, ZywOo…" />
-          {profile.createdAt && (
-            <Cell label={t('meta.created_label')} value={new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(profile.createdAt))} />
-          )}
-          <Cell label={t('meta.updated_label')} value={profile.updatedAt ? new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(profile.updatedAt)) : null} />
         </div>
 
         {/* Contact */}

@@ -22,88 +22,6 @@ export interface TeamNationality {
 // Constants
 // ============================================================================
 
-/**
- * Mapping des codes ISO 2 pays vers noms
- */
-const COUNTRY_NAMES: Record<string, string> = {
-  'FR': 'France',
-  'DE': 'Germany',
-  'GB': 'United Kingdom',
-  'ES': 'Spain',
-  'IT': 'Italy',
-  'SE': 'Sweden',
-  'NO': 'Norway',
-  'DK': 'Denmark',
-  'PL': 'Poland',
-  'RU': 'Russia',
-  'NL': 'Netherlands',
-  'BE': 'Belgium',
-  'CH': 'Switzerland',
-  'AT': 'Austria',
-  'CZ': 'Czech Republic',
-  'SK': 'Slovakia',
-  'HU': 'Hungary',
-  'RO': 'Romania',
-  'BG': 'Bulgaria',
-  'HR': 'Croatia',
-  'SI': 'Slovenia',
-  'PT': 'Portugal',
-  'GR': 'Greece',
-  'TR': 'Turkey',
-  'UA': 'Ukraine',
-  'BY': 'Belarus',
-  'LT': 'Lithuania',
-  'LV': 'Latvia',
-  'EE': 'Estonia',
-  'IE': 'Ireland',
-  'IS': 'Iceland',
-  'MD': 'Moldova',
-  'RS': 'Serbia',
-  'BA': 'Bosnia',
-  'ME': 'Montenegro',
-  'MK': 'North Macedonia',
-  'AL': 'Albania',
-  'LU': 'Luxembourg',
-  'MT': 'Malta',
-  'CY': 'Cyprus',
-  'FI': 'Finland',
-  'US': 'United States',
-  'CA': 'Canada',
-  'MX': 'Mexico',
-  'BR': 'Brazil',
-  'AR': 'Argentina',
-  'CL': 'Chile',
-  'CO': 'Colombia',
-  'PE': 'Peru',
-  'VE': 'Venezuela',
-  'EC': 'Ecuador',
-  'BO': 'Bolivia',
-  'PY': 'Paraguay',
-  'UY': 'Uruguay',
-  'CN': 'China',
-  'JP': 'Japan',
-  'KR': 'South Korea',
-  'IN': 'India',
-  'TH': 'Thailand',
-  'VN': 'Vietnam',
-  'MY': 'Malaysia',
-  'SG': 'Singapore',
-  'PH': 'Philippines',
-  'ID': 'Indonesia',
-  'AE': 'United Arab Emirates',
-  'SA': 'Saudi Arabia',
-  'AU': 'Australia',
-  'NZ': 'New Zealand',
-  'ZA': 'South Africa',
-};
-
-/**
- * Obtient le nom d'un pays à partir de son code ISO 2
- */
-export function getCountryName(countryCode: string): string {
-  return COUNTRY_NAMES[countryCode.toUpperCase()] || countryCode.toUpperCase();
-}
-
 const COUNTRY_TO_CONTINENT: Record<string, string> = {
   // Europe
   'FR': 'EU', 'DE': 'EU', 'GB': 'EU', 'ES': 'EU', 'IT': 'EU',
@@ -159,7 +77,7 @@ const COUNTRY_TO_CONTINENT: Record<string, string> = {
  * Récupère le continent pour un code pays
  * Retourne undefined si le pays est inconnu
  */
-export function getContinent(countryCode: string): string | undefined {
+function getContinent(countryCode: string): string | undefined {
   return COUNTRY_TO_CONTINENT[countryCode];
 }
 
@@ -292,7 +210,7 @@ export function calculateTeamNationality(
 /**
  * Récupère le label d'affichage pour un code continent
  */
-export function getContinentLabel(continentCode: string): string {
+function getContinentLabel(continentCode: string): string {
   const labels: Record<string, string> = {
     'EU': 'Europe',
     'NA': 'North America',
@@ -303,81 +221,4 @@ export function getContinentLabel(continentCode: string): string {
   };
   return labels[continentCode] || continentCode;
 }
-
-/**
- * Récupère le label d'affichage pour une nationalité
- * Utilisé pour l'affichage dans l'UI
- */
-export function getTeamNationalityLabel(nationality: TeamNationality | null): string | null {
-  if (!nationality) return null;
-
-  if (nationality.type === 'country') {
-    return nationality.displayLabel;
-  }
-
-  return getContinentLabel(nationality.code);
-}
-
-/**
- * Récupère l'emoji du drapeau pour un code pays ISO
- * Retourne l'emoji combiné des deux lettres en flags régionaux
- */
-export function getCountryFlag(countryCode: string): string {
-  if (countryCode.length !== 2) return '🌍';
-
-  const codePoints = countryCode
-    .toUpperCase()
-    .split('')
-    .map((char) => 127397 + char.charCodeAt(0));
-
-  return String.fromCodePoint(...codePoints);
-}
-
-/**
- * Récupère l'emoji pour un continent
- */
-export function getContinentEmoji(continentCode: string): string {
-  const emojis: Record<string, string> = {
-    'EU': '🇪🇺',
-    'NA': '🌎',
-    'SA': '🌎',
-    'AS': '🌏',
-    'AF': '🌍',
-    'OC': '🌏',
-  };
-  return emojis[continentCode] || '🌍';
-}
-
-/**
- * Formate la nationalité pour l'affichage avec emoji et label
- */
-export function formatNationality(nationality: TeamNationality | null): string {
-  if (!nationality) return '—';
-
-  if (nationality.type === 'country') {
-    return `${getCountryFlag(nationality.code)} ${nationality.displayLabel}`;
-  }
-
-  return `${getContinentEmoji(nationality.code)} ${getTeamNationalityLabel(nationality)}`;
-}
-
-/**
- * Retourne uniquement le drapeau/emoji de la nationalité
- * Utilisé pour l'affichage compact avec tooltip
- */
-export function getNationalityFlag(nationality: TeamNationality | null): string {
-  if (!nationality) return '—';
-
-  if (nationality.type === 'country') {
-    return getCountryFlag(nationality.code);
-  }
-
-  return getContinentEmoji(nationality.code);
-}
-
-
-
-
-
-
 

@@ -17,6 +17,8 @@ import { uploadMemberAvatar, deleteMemberAvatar } from "@/api/endpoints/profile.
 import BirthDateSelect from "@/shared/components/BirthDateSelect";
 import PhoneInput from "@/shared/components/PhoneInput";
 import { getAvailableInGameRoles, IN_GAME_ROLE_LABELS, getMaxActivePlayers, getValidLinksForGame } from "@/shared/config/gameConfig";
+import { TIMEZONES, TIMEZONE_LABELS } from "@/shared/config/timezones";
+import { getCountryLabel } from "@/shared/config/countries";
 import { ROLE_BADGE_STYLES } from "@/shared/constants/roleStyles";
 import { Loader, ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import FaceitIcon from "@/shared/components/FaceitIcon";
@@ -37,21 +39,6 @@ export interface MemberDetailPanelProps {
 }
 
 const ROLE_OPTIONS: TeamRole[] = ["PLAYER", "COACH", "ANALYST", "MANAGER"];
-const COUNTRY_LABELS: Record<string, string> = {
-  FR: "France", BE: "Belgium", CH: "Switzerland", DE: "Germany", GB: "United Kingdom",
-  US: "United States", CA: "Canada", ES: "Spain", IT: "Italy", NL: "Netherlands",
-  PT: "Portugal", PL: "Poland", SE: "Sweden", DK: "Denmark", FI: "Finland",
-  NO: "Norway", BR: "Brazil", RU: "Russia", TR: "Turkey", UA: "Ukraine",
-  CZ: "Czech Republic", RO: "Romania", HU: "Hungary", AU: "Australia",
-};
-
-function calcAge(bd: string | null | undefined): number | null {
-  if (!bd) return null;
-  const b = new Date(bd), t = new Date();
-  let a = t.getFullYear() - b.getFullYear();
-  if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--;
-  return a;
-}
 
 const INPUT_CLASS = "w-full h-7 text-sm text-neutral-100 bg-neutral-800/50 border border-neutral-700/40 rounded-[4px] px-2.5 outline-none placeholder:text-neutral-600 focus:border-indigo-500/50 caret-indigo-400 transition-colors";
 
@@ -70,6 +57,7 @@ function isValidEmail(v: string): boolean {
 /** Grid cell — label above value. Works for read and edit mode. */
 function Cell({
   label, value, editing, onChange, type = "text", placeholder, full, locale, required, blurred,
+  options, labelMap,
 }: {
   label: string;
   value: string | null | undefined;
@@ -81,6 +69,8 @@ function Cell({
   locale?: string | undefined;
   required?: boolean | undefined;
   blurred?: boolean | undefined;
+  options?: { value: string; label: string }[] | undefined;
+  labelMap?: Record<string, string> | undefined;
 }) {
   const filled = Boolean(value && (typeof value === "string" ? value.trim() !== "" : true));
   const emailError = editing && type === "email" && value && !isValidEmail(value);
@@ -99,6 +89,15 @@ function Cell({
           <BirthDateSelect value={value ?? ""} onChange={onChange} />
         ) : type === "phone" ? (
           <PhoneInput value={value ?? ""} onChange={onChange} defaultCountry={locale} />
+        ) : options ? (
+          <select
+            value={value ?? ""}
+            onChange={e => onChange(e.target.value)}
+            className={INPUT_CLASS}
+          >
+            <option value="">{placeholder ?? "—"}</option>
+            {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
         ) : (
           <input
             type="text"
@@ -110,7 +109,7 @@ function Cell({
         )
       ) : (
         <p className={cn("h-7 flex items-center text-sm px-1", blurred ? "text-neutral-200 blur-[3px] select-none" : (filled ? "text-neutral-200" : "text-neutral-700"))}>
-          {blurred ? (label.length > 8 ? "•••••" : label.length < 6 ? "••••••• •••••" : "••• •••••••• ••••• •• ••••••") : (type === "date" ? (formatDateDisplay(value, locale ?? "en") ?? "—") : (value || "—"))}
+          {blurred ? (label.length > 8 ? "•••••" : label.length < 6 ? "••••••• •••••" : "••• •••••••• ••••• •• ••••••") : (type === "date" ? (formatDateDisplay(value, locale ?? "en") ?? "—") : (labelMap && value ? (labelMap[value] ?? value) : (value || "—")))}
         </p>
       )}
     </div>
@@ -128,7 +127,7 @@ export default function MemberDetailPanel({
   const [editing, setEditing] = useState(false);
   const [showPrivate, setShowPrivate] = useState(false);
   const [privateLoaded, setPrivateLoaded] = useState(false);
-  const [form, setForm] = useState({ customUsername: "", firstName: "", lastName: "", email: "", phone: "", discord: "", twitter: "", hltv: "", birthDate: "", address: "", zipCode: "", city: "" });
+  const [form, setForm] = useState({ customUsername: "", firstName: "", lastName: "", email: "", phone: "", discord: "", twitter: "", hltv: "", birthDate: "", address: "", zipCode: "", city: "", timezone: "" });
   const [memberProfile, setMemberProfile] = useState<UserProfileDto | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -161,7 +160,6 @@ export default function MemberDetailPanel({
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
   const customUser = memberProfile?.customUsername ?? member.customUsername;
   const countryCode = memberProfile?.countryCode ?? member.countryCode;
-  const age = calcAge(memberProfile?.birthDate ?? member.birthDate);
 
 
   useEffect(() => {
@@ -222,6 +220,7 @@ export default function MemberDetailPanel({
       address: p?.address ?? "",
       zipCode: p?.zipCode ?? "",
       city: p?.city ?? "",
+      timezone: p?.timezone ?? "",
     });
     roleBeforeEdit.current = { role: currentRole, active: activePlayerState, inGameRole };
     setEditing(true);
@@ -249,6 +248,7 @@ export default function MemberDetailPanel({
         address: form.address.trim(),
         zipCode: form.zipCode.trim(),
         city: form.city.trim(),
+        timezone: form.timezone,
       }, teamId);
       setMemberProfile(u);
       setForm({
@@ -258,6 +258,7 @@ export default function MemberDetailPanel({
         twitter: u.twitter ?? '', hltv: u.hltv ?? '',
         birthDate: u.birthDate ?? '', address: u.address ?? '',
         zipCode: u.zipCode ?? '', city: u.city ?? '',
+        timezone: u.timezone ?? '',
       });
 
       // Save role if changed
@@ -329,7 +330,7 @@ export default function MemberDetailPanel({
             {/* Row 1: Nickname + Actions */}
             <div className="flex items-center gap-2 mb-2">
               <h2 className="text-lg font-bold text-white truncate">{member.nickname}</h2>
-              {member.countryCode && <Flag code={member.countryCode} className="w-5 h-3.5 rounded-[2px] opacity-80 shrink-0" />}
+              {member.countryCode && <Flag code={member.countryCode} className="w-5 h-3.5 rounded-none opacity-80 shrink-0" />}
               {member.faceitNickname && (
                 <a href={`https://www.faceit.com/en/players/${member.faceitNickname}`}
                   target="_blank" rel="noopener noreferrer"
@@ -421,15 +422,14 @@ export default function MemberDetailPanel({
                 editing={editing} onChange={v => setForm(p => ({ ...p, firstName: v }))} placeholder="John" required />
               <Cell label={t("profile.last_name")} value={editing ? form.lastName : lastName}
                 editing={editing} onChange={v => setForm(p => ({ ...p, lastName: v }))} placeholder="Doe" required />
-              <Cell label={t("profile.country")} value={countryCode ? (COUNTRY_LABELS[countryCode] ?? countryCode) : null} required />
+              <Cell label={t("profile.country")} value={countryCode ? getCountryLabel(countryCode, i18n.language) : null} required />
               <Cell label={t("management.username")} value={editing ? form.customUsername : customUser}
                 editing={editing} onChange={v => setForm(p => ({ ...p, customUsername: v }))} />
-              {!editing && age !== null && <Cell label={t("profile.age")} value={`${age} ${t("profile.years_old")}`} />}
-              <Cell label="Steam ID" value={member.steamId} />
-              {memberProfile?.createdAt && (
-                <Cell label={t("meta.created_label")}
-                  value={new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "long", year: "numeric" }).format(new Date(memberProfile.createdAt))} />
+              {canViewPrivate && memberProfile && (
+                <Cell label={t("profile.birth_date")} value={editing ? form.birthDate : memberProfile.birthDate}
+                  editing={editing} onChange={v => setForm(p => ({ ...p, birthDate: v }))} type="date" locale={i18n.language} required />
               )}
+              <Cell label="Steam ID" value={member.steamId} />
               {member.joinedAt && (
                 <Cell label={t("meta.joined_label")}
                   value={new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "long", year: "numeric" }).format(new Date(member.joinedAt))} />
@@ -463,8 +463,6 @@ export default function MemberDetailPanel({
                 editing={editing} onChange={v => setForm(p => ({ ...p, phone: v }))} type="phone" locale={memberProfile?.countryCode ?? member.countryCode ?? undefined} required />
               {canViewPrivate && memberProfile && (
                 <>
-                  <Cell label={t("profile.birth_date")} value={editing ? form.birthDate : memberProfile.birthDate}
-                    editing={editing} onChange={v => setForm(p => ({ ...p, birthDate: v }))} type="date" locale={i18n.language} required />
                   {/* Private fields — values blurred unless toggled or editing */}
                   <Cell label={t("profile.address")} value={editing ? form.address : memberProfile.address}
                     editing={editing} onChange={v => setForm(p => ({ ...p, address: v }))} placeholder="123 Main Street" required blurred={!editing && !showPrivate} />
@@ -472,6 +470,8 @@ export default function MemberDetailPanel({
                     editing={editing} onChange={v => setForm(p => ({ ...p, zipCode: v }))} placeholder="75001" required blurred={!editing && !showPrivate} />
                   <Cell label={t("profile.city")} value={editing ? form.city : memberProfile.city}
                     editing={editing} onChange={v => setForm(p => ({ ...p, city: v }))} placeholder="Paris" required blurred={!editing && !showPrivate} />
+                  <Cell label={t("profile.timezone")} value={editing ? form.timezone : memberProfile.timezone}
+                    editing={editing} onChange={v => setForm(p => ({ ...p, timezone: v }))} options={TIMEZONES} labelMap={TIMEZONE_LABELS} placeholder={t("profile.select_timezone")} required />
                 </>
               )}
             </div>

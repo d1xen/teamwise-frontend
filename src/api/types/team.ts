@@ -88,6 +88,8 @@ export type TeamMemberDto = {
     countryCode?: string | null; // ISO 2 letters (FR, US, GB...)
     customUsername?: string | null;
     faceitNickname?: string | null;
+    faceitElo?: number | null | undefined;
+    faceitSkillLevel?: number | null | undefined;
     joinedAt?: string | null;
 };
 

@@ -40,3 +40,15 @@ export function discoverFaceitCompetition(
         body: JSON.stringify({ url }),
     });
 }
+
+// ── Team ELO ─────────────────────────────────────────────────────────────────
+
+export type TeamEloDto = {
+    averageElo: number | null;
+    previousElo: number | null;
+    delta: number | null;
+};
+
+export function getTeamElo(teamId: string | number): Promise<TeamEloDto> {
+    return apiClient<TeamEloDto>(`/api/teams/${teamId}/faceit/elo`);
+}

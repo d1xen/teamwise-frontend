@@ -92,7 +92,7 @@ export default function TeamSidebar() {
       id: 'team',
       label: t('nav.team'),
       icon: Home,
-      path: `/team/${team.id}`,
+      path: `/team/${team.id}/team`,
     },
     {
       id: 'management',
@@ -150,7 +150,10 @@ export default function TeamSidebar() {
     },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path.endsWith("/dashboard") && location.pathname === `/team/${team.id}`) return true;
+    return location.pathname === path;
+  };
 
   const handleLogout = () => setShowLogoutConfirm(true);
   const confirmLogout = () => { logout(); navigate('/login'); };
@@ -314,7 +317,7 @@ export default function TeamSidebar() {
                                 : 'text-neutral-500 hover:text-white'
                             )}
                           >
-                            <Flag code={lng === 'fr' ? 'FR' : 'GB'} className="w-4 h-3 rounded-[2px]" />
+                            <Flag code={lng === 'fr' ? 'FR' : 'GB'} className="w-4 h-3 rounded-none" />
                             {lng === 'fr' ? 'Français' : 'English'}
                           </button>
                         );

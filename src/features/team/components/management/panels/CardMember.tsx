@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import type { TeamMember } from "@/contexts/team/team.types";
-import { IN_GAME_ROLE_LABELS } from "@/shared/config/gameConfig";
 import { ROLE_BADGE_STYLES } from "@/shared/constants/roleStyles";
 import { Crown } from "lucide-react";
 import { cn } from "@/design-system";
@@ -46,7 +45,7 @@ export default function CardMember({ member, isSelected, onSelect, isStaffView }
             {displayName}
           </span>
           {member.countryCode && (
-            <Flag code={member.countryCode} className="w-3.5 h-2.5 rounded-[2px] opacity-60 shrink-0" />
+            <Flag code={member.countryCode} className="w-3.5 h-2.5 rounded-none opacity-60 shrink-0" />
           )}
           {member.isOwner && <Crown className="w-3 h-3 text-amber-400 shrink-0" />}
           {member.faceitNickname && (
@@ -62,9 +61,9 @@ export default function CardMember({ member, isSelected, onSelect, isStaffView }
             </a>
           )}
         </div>
-        <p className="text-[11px] text-neutral-500 truncate leading-tight">
-          {fullName || t(`roles.${member.role}`)}
-        </p>
+        {fullName && (
+          <p className="text-[11px] text-neutral-500 truncate leading-tight">{fullName}</p>
+        )}
       </div>
 
       {/* Top-right badges */}
@@ -77,21 +76,14 @@ export default function CardMember({ member, isSelected, onSelect, isStaffView }
             {t(`roles.${member.role}`)}
           </span>
         ) : (
-          <>
-            <span className={cn(
-              "text-[10px] font-semibold px-1.5 py-0.5 rounded-md border uppercase tracking-wide",
-              member.activePlayer !== false
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                : "bg-neutral-800 text-neutral-600 border-neutral-700"
-            )}>
-              {member.activePlayer !== false ? t("management.player_active") : t("management.player_inactive")}
-            </span>
-            {member.inGameRole && (
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-neutral-800/80 text-neutral-400 border border-neutral-700/50">
-                {IN_GAME_ROLE_LABELS[member.inGameRole]}
-              </span>
-            )}
-          </>
+          <span className={cn(
+            "text-[10px] font-semibold px-1.5 py-0.5 rounded-md border uppercase tracking-wide",
+            member.activePlayer !== false
+              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+              : "bg-neutral-800 text-neutral-600 border-neutral-700"
+          )}>
+            {member.activePlayer !== false ? t("management.player_active") : t("management.player_inactive")}
+          </span>
         )}
       </div>
     </button>

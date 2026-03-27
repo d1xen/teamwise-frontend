@@ -57,35 +57,36 @@ export function TeamHeader({ team, actions, children }: TeamHeaderProps) {
             logoUrl={team.logoUrl}
             name={team.name}
             tag={team.tag}
-            size={64}
+            size={80}
             className="ring-1 ring-neutral-800"
           />
         </div>
 
         {/* Main info */}
-        <div className={cn('flex-1 min-w-0 flex flex-col py-4', hasActions ? 'justify-between' : 'justify-center gap-1')}>
+        <div className={cn('flex-1 min-w-0 flex flex-col py-4', hasActions ? 'justify-between' : 'justify-center gap-1.5')}>
 
-          {/* Top: name + tag + game + links */}
+          {/* Name */}
           <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-2xl font-bold text-white tracking-tight leading-none">
-                {team.name}
-              </h1>
+            <h1 className="text-3xl font-black text-white tracking-tight leading-none">
+              {team.name}
+            </h1>
 
+            {/* Tag + game + links */}
+            <div className="flex items-center gap-2 mt-3">
               {team.tag && (
-                <span className="px-2.5 py-0.5 bg-neutral-800 text-neutral-300 rounded-md text-sm font-bold border border-neutral-700 flex-shrink-0">
+                <span className="px-2 py-0.5 bg-neutral-800 text-neutral-400 rounded-md text-xs font-bold border border-neutral-700 flex-shrink-0">
                   {team.tag}
                 </span>
               )}
 
               {gameBadge && (
-                <span className={`px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider border flex-shrink-0 ${gameBadge.style}`}>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border flex-shrink-0 ${gameBadge.style}`}>
                   {gameBadge.label}
                 </span>
               )}
 
               {externalLinks.length > 0 && (
-                <div className="flex items-center gap-1 ml-1">
+                <div className="flex items-center gap-0.5">
                   {externalLinks.map((link) => (
                     <a
                       key={link.type}
@@ -93,15 +94,14 @@ export function TeamHeader({ team, actions, children }: TeamHeaderProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       title={link.type}
-                      className="flex items-center justify-center w-7 h-7 rounded-md text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50 transition-colors"
+                      className="flex items-center justify-center w-6 h-6 rounded-md text-neutral-600 hover:text-neutral-300 hover:bg-neutral-800/50 transition-colors"
                     >
-                      <LinkIcon type={link.type} className="w-4 h-4" />
+                      <LinkIcon type={link.type} className="w-3.5 h-3.5" />
                     </a>
                   ))}
                 </div>
               )}
             </div>
-
           </div>
 
           {/* Bottom: tabs / actions */}

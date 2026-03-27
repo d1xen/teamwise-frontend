@@ -12,9 +12,6 @@ export default function DashboardPage() {
     const staffCount = members.filter(m => m.role !== "PLAYER").length;
     const playerCount = members.filter(m => m.role === "PLAYER").length;
 
-    const handleNavigateToFaceit = () => {
-        window.location.href = `/team/${team.id}/management?tab=faceit`;
-    };
 
     return (
         <div className="flex flex-col h-full">
@@ -30,7 +27,6 @@ export default function DashboardPage() {
                         members={members}
                         staffCount={staffCount}
                         playerCount={playerCount}
-                        onNavigateToFaceit={handleNavigateToFaceit}
                     />
                 </div>
             </div>

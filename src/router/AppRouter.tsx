@@ -70,11 +70,15 @@ const appRouter = createBrowserRouter([
                                 children: [
                                     {
                                         index: true,
-                                        element: <TeamPage />,
+                                        element: <DashboardPage />,
                                     },
                                     {
                                         path: "dashboard",
                                         element: <DashboardPage />,
+                                    },
+                                    {
+                                        path: "team",
+                                        element: <TeamPage />,
                                     },
                                     {
                                         path: "agenda",

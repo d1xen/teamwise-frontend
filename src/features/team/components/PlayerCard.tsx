@@ -54,7 +54,7 @@ export function PlayerCard({ member }: PlayerCardProps) {
 
           {member.countryCode && (
             <div className="absolute top-2.5 right-2.5 drop-shadow-md">
-              <Flag code={member.countryCode} className="w-6 h-4 rounded-[3px] shadow" />
+              <Flag code={member.countryCode} className="w-6 h-4 rounded-none shadow" />
             </div>
           )}
 
@@ -69,37 +69,47 @@ export function PlayerCard({ member }: PlayerCardProps) {
 
         {/* Info — bottom 40% */}
         <div className="flex flex-col justify-between px-3 pt-2 pb-3 flex-1 min-h-0">
-          <div>
+          {/* Role + FACEIT row */}
+          <div className="flex items-center justify-between mb-0.5">
             {inGameRoleLabel ? (
-              <p className={`text-[11px] font-bold uppercase tracking-widest ${roleAccent} mb-0.5`}>
+              <p className={`text-[11px] font-bold uppercase tracking-widest ${roleAccent}`}>
                 {inGameRoleLabel}
               </p>
             ) : (
-              <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-600 mb-0.5">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-600">
                 {t('roles.PLAYER')}
               </p>
             )}
+
+            {member.faceitNickname && (
+              <a
+                href={`https://www.faceit.com/en/players/${member.faceitNickname}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                title={`FACEIT · ${member.faceitNickname}`}
+                className="shrink-0 flex items-center gap-1 hover:opacity-80 transition-opacity"
+              >
+                <FaceitIcon className="w-3 h-3 text-orange-400" />
+                {member.faceitElo && (
+                  <span className="text-[10px] font-bold text-orange-400 tabular-nums">{member.faceitElo}</span>
+                )}
+                {member.faceitSkillLevel && (
+                  <img
+                    src={`/faceit/faceit_${member.faceitSkillLevel}.png`}
+                    alt={`Level ${member.faceitSkillLevel}`}
+                    className="w-6 h-6"
+                  />
+                )}
+              </a>
+            )}
           </div>
 
-          {/* Name + FACEIT */}
+          {/* Name */}
           <div className="flex-1 min-h-0">
-            <div className="flex items-center gap-1.5">
-              <h3 className="text-base font-black text-white leading-tight truncate">
-                {displayName}
-              </h3>
-              {member.faceitNickname && (
-                <a
-                  href={`https://www.faceit.com/en/players/${member.faceitNickname}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={e => e.stopPropagation()}
-                  title={`FACEIT · ${member.faceitNickname}`}
-                  className="shrink-0 hover:opacity-80 transition-opacity"
-                >
-                  <FaceitIcon className="w-3.5 h-3.5 text-orange-400" />
-                </a>
-              )}
-            </div>
+            <h3 className="text-base font-black text-white leading-tight truncate">
+              {displayName}
+            </h3>
             {fullName && (
               <p className="text-[11px] text-neutral-500 leading-tight truncate mt-0.5">
                 {fullName}

@@ -42,7 +42,7 @@ export default function InvitationPage() {
 
         // Rediriger après 2 secondes
         setTimeout(() => {
-          navigate(`/team/${team.id}`, { replace: true });
+          navigate(`/team/${team.id}/dashboard`, { replace: true });
         }, 2000);
       } catch (err) {
         setStatus("error");

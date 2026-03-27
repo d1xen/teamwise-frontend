@@ -48,6 +48,7 @@ export function TeamProvider({
         const currentLoadId = ++loadIdRef.current;
 
         if (!user || !teamId) {
+            if (!user) return;
             setIsReady(true);
             return;
         }
@@ -91,6 +92,8 @@ export function TeamProvider({
                 ...(m.countryCode && { countryCode: m.countryCode }),
                 ...(m.customUsername && { customUsername: m.customUsername }),
                 faceitNickname: m.faceitNickname ?? null,
+                faceitElo: m.faceitElo ?? null,
+                faceitSkillLevel: m.faceitSkillLevel ?? null,
                 ...(m.joinedAt && { joinedAt: m.joinedAt }),
             }));
 
@@ -144,7 +147,7 @@ export function TeamProvider({
                 wasReadyRef.current = true;
             }
         }
-    }, [user, teamId, navigate]);
+    }, [user, teamId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         void loadTeam({ blockUi: true });

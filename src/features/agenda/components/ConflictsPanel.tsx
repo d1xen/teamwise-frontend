@@ -53,7 +53,7 @@ export default function ConflictsPanel({ conflicts, onConflictClick }: Conflicts
     const dateFmt = new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "short" });
 
     return (
-        <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl overflow-hidden flex flex-col">
+        <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl overflow-hidden flex flex-col min-h-[140px]">
             {/* Header */}
             <div className="px-3.5 py-2.5 border-b border-blue-400/[0.07] bg-blue-500/[0.035] shrink-0">
                 <div className="flex items-center justify-between">

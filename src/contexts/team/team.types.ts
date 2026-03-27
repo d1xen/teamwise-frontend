@@ -55,6 +55,8 @@ export interface TeamMember {
     activePlayer?: boolean;
     links?: TeamMemberLink[];
     faceitNickname?: string | null;
+    faceitElo?: number | null;
+    faceitSkillLevel?: number | null;
     // Données enrichies pour TeamPage Premium
     firstName?: string;
     lastName?: string;

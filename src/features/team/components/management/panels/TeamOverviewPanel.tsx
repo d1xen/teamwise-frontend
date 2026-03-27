@@ -11,16 +11,17 @@ import { useMySchedule } from "@/features/agenda/hooks/useMySchedule";
 import { getConflicts } from "@/api/endpoints/agenda.api";
 import { getActiveCompetitions } from "@/api/endpoints/competition.api";
 import { getStrats } from "@/api/endpoints/stratbook.api";
+import { getTeamElo, type TeamEloDto } from "@/api/endpoints/faceit.api";
 import {
   Users, UserCog, Crown, CheckCircle2, Calendar, AlertCircle, ArrowRight, Clock,
-  Swords, Trophy, BookOpen, AlertTriangle, Gamepad2,
+  Swords, Trophy, BookOpen, AlertTriangle, Gamepad2, TrendingUp, TrendingDown,
 } from "lucide-react";
 import FaceitIcon from "@/shared/components/FaceitIcon";
 import { useCountdown } from "@/shared/hooks/useCountdown";
 
 interface Props {
   team: Team; membership: TeamMembership; members: TeamMember[];
-  staffCount: number; playerCount: number; onNavigateToFaceit?: () => void;
+  staffCount: number; playerCount: number;
 }
 
 function countdownColor(urgency: string): string {
@@ -36,7 +37,7 @@ function fmtDt(iso: string) {
 
 const DOT: Record<string, string> = { MATCH: "bg-blue-500", MEETING: "bg-emerald-500", STRAT_TIME: "bg-yellow-500", BREAK: "bg-teal-500", CUSTOM: "bg-neutral-500" };
 
-export default function TeamOverviewPanel({ team, membership, members, staffCount, playerCount, onNavigateToFaceit }: Props) {
+export default function TeamOverviewPanel({ team, membership, members, staffCount, playerCount }: Props) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const go = (p: string) => nav(`/team/${team.id}/${p}`);
@@ -65,6 +66,7 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
   }, [rawConflicts]);
   const [comps, setComps] = useState<CompetitionSummaryDto[]>([]);
   const [stratCount, setStratCount] = useState(0);
+  const [teamElo, setTeamElo] = useState<TeamEloDto | null>(null);
 
   useEffect(() => {
     const id = String(team.id);
@@ -72,7 +74,10 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
     getActiveCompetitions(id).then(setComps).catch(() => {});
     getStrats(id, { map: "", side: "", type: "", status: "", difficulty: "", search: "", tag: "", favoritesOnly: false }, 0, 1)
       .then(r => setStratCount(r.totalElements)).catch(() => {});
-  }, [team.id]);
+    if (team.game === "CS2") {
+      getTeamElo(id).then(setTeamElo).catch(() => {});
+    }
+  }, [team.id, team.game]);
 
   const done = summary?.completed ?? [];
   const wins = done.filter(m => m.result === "WIN").length;
@@ -109,7 +114,7 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
               {draws > 0 && <div className="bg-neutral-600 rounded-full" style={{ flex: draws }} />}
               {losses > 0 && <div className="bg-red-500 rounded-full" style={{ flex: losses }} />}
             </div>
-            <p className="text-[10px] text-neutral-700 mt-1 text-right tabular-nums">{done.length} played</p>
+            <p className="text-[10px] text-neutral-700 mt-1 text-right tabular-nums">{t("management.matches_played", { count: done.length })}</p>
           </div>
         )}
       </div>
@@ -181,30 +186,36 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
       </div>
 
       {/* FACEIT */}
-      {onNavigateToFaceit && team.game === "CS2" ? (() => {
-        const stored = sessionStorage.getItem(`tw.faceit.lastSync.${team.id}`);
-        const lastSync = stored ? new Date(stored) : null;
+      {team.game === "CS2" ? (() => {
         const linked = members.filter(m => m.role === "PLAYER" && m.activePlayer !== false && m.faceitNickname != null).length;
         return (
-          <button onClick={onNavigateToFaceit} className="col-span-4 group text-left bg-orange-500/[0.03] border border-orange-500/15 hover:border-orange-500/25 rounded-xl p-3.5 transition-all">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5 text-orange-500/70">
-                <FaceitIcon className="w-4 h-4" />
-                <span className="text-[11px] font-semibold uppercase tracking-wider">{t("management.faceit_sync")}</span>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-orange-700/40 group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all" />
+          <div className="col-span-4 bg-orange-500/[0.03] border border-orange-500/15 rounded-xl p-3.5">
+            <div className="flex items-center gap-1.5 text-orange-500/70 mb-2">
+              <FaceitIcon className="w-4 h-4" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider">FACEIT</span>
             </div>
-            <p className="text-xs text-neutral-400">{t("management.faceit_linked_count", { count: linked })}</p>
-            <p className="text-[11px] text-neutral-600 mt-0.5">
-              {lastSync ? t("faceit.last_sync_full", { date: new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(lastSync) }) : t("management.faceit_never_synced")}
-            </p>
-          </button>
+            {teamElo?.averageElo ? (
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-2xl font-black text-white tabular-nums">{teamElo.averageElo}</span>
+                <span className="text-[11px] text-neutral-500">{t("management.elo_avg")}</span>
+                {teamElo.delta != null && teamElo.delta !== 0 && (
+                  <span className={`flex items-center gap-0.5 text-[11px] font-bold tabular-nums ${teamElo.delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {teamElo.delta > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                    {teamElo.delta > 0 ? "+" : ""}{teamElo.delta}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-neutral-500 mb-1">{t("management.faceit_no_elo")}</p>
+            )}
+            <p className="text-[11px] text-neutral-600">{t("management.faceit_linked_count", { count: linked })}</p>
+          </div>
         );
       })() : (
         <div className="col-span-4 bg-neutral-900/50 border border-neutral-800 rounded-xl p-3.5">
           <div className="flex items-center gap-1.5 text-neutral-600 mb-1.5">
             <FaceitIcon className="w-4 h-4" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider">{t("management.faceit_sync")}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider">FACEIT</span>
           </div>
           <p className="text-xs text-neutral-600">{t("management.faceit_not_available")}</p>
         </div>
@@ -275,7 +286,7 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
             </div>
           </button>
         ) : (
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-4">
+          <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-4 min-h-[100px]">
             <div className="flex items-center gap-1.5 text-neutral-600 mb-1.5">
               <AlertTriangle className="w-4 h-4" />
               <span className="text-[11px] font-semibold uppercase tracking-wider">{t("management.scheduling_conflicts")}</span>
@@ -287,7 +298,7 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
       </div>
 
       {/* ── Schedule ── 3 cols */}
-      <button onClick={() => go("agenda")} className="col-span-3 group text-left bg-neutral-900/50 border border-neutral-800 hover:border-neutral-700 rounded-2xl p-4 transition-all self-start">
+      <button onClick={() => go("agenda")} className="col-span-3 group text-left bg-neutral-900/50 border border-neutral-800 hover:border-neutral-700 rounded-2xl p-4 transition-all self-start min-h-[100px]">
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-1.5 text-neutral-500">
             <Calendar className="w-4 h-4" />
