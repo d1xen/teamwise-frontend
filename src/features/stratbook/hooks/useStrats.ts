@@ -84,6 +84,13 @@ export function useStrats(teamId: string, initialFilters?: Partial<StratFilters>
     // Reload when filters change — reset to page 0
     useEffect(() => { loadPage(appliedFilters, 0, pageSize); }, [loadPage, appliedFilters, pageSize]);
 
+    // Re-fetch when tab regains focus
+    useEffect(() => {
+        const handleFocus = () => { if (hasContentRef.current) loadPage(appliedFilters, currentPage, pageSize); };
+        window.addEventListener("focus", handleFocus);
+        return () => window.removeEventListener("focus", handleFocus);
+    }, [loadPage, appliedFilters, currentPage, pageSize]);
+
     const goToPage = useCallback((page: number) => {
         loadPage(appliedFilters, page, pageSize);
     }, [loadPage, appliedFilters, pageSize]);

@@ -9,6 +9,7 @@ import {
     updateMapScore as updateMapScoreApi,
 } from "@/api/endpoints/match.api";
 import { invalidateMatchSummary } from "./useMatchSummary";
+import { invalidateCompetitions } from "@/features/competition/hooks/useCompetitions";
 import type {
     CreateMatchRequest,
     MatchDto,
@@ -158,6 +159,7 @@ export function useMatches(teamId: string) {
             toast.success(t("matches.create_success"));
             await reload();
             invalidateMatchSummary();
+            invalidateCompetitions();
             return true;
         } catch { toast.error(t("matches.create_error")); return false; }
     };
@@ -168,6 +170,7 @@ export function useMatches(teamId: string) {
             toast.success(t("matches.delete_success"));
             await reload();
             invalidateMatchSummary();
+            invalidateCompetitions();
         } catch { toast.error(t("matches.delete_error")); }
     };
 
@@ -177,6 +180,7 @@ export function useMatches(teamId: string) {
             toast.success(t("matches.bulk_delete_success", { count: matchIds.length }));
             await reload();
             invalidateMatchSummary();
+            invalidateCompetitions();
         } catch { toast.error(t("matches.bulk_delete_error")); }
     };
 
@@ -185,6 +189,7 @@ export function useMatches(teamId: string) {
             const updated = await updateMatchApi(matchId, payload);
             await reload();
             invalidateMatchSummary();
+            invalidateCompetitions();
             return updated;
         } catch { toast.error(t("matches.update_error")); return null; }
     };
@@ -195,6 +200,7 @@ export function useMatches(teamId: string) {
             if (!silent) toast.success(t("matches.score_saved"));
             await reload();
             invalidateMatchSummary();
+            invalidateCompetitions();
             return true;
         } catch { toast.error(t("matches.score_error")); return false; }
     };

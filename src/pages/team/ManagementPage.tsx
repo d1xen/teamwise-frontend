@@ -8,8 +8,6 @@ import type { UserProfileDto } from "@/api/endpoints/profile.api";
 import { useManagementPermissions } from "@/features/team/hooks/useManagementPermissions";
 import { useTeamActions } from "@/features/team/hooks/useTeamActions";
 import { Users, User, Crown } from "lucide-react";
-import FaceitIcon from "@/shared/components/FaceitIcon";
-import FaceitOverview from "@/features/faceit/components/FaceitOverview";
 
 
 // Profile & Team components
@@ -33,7 +31,7 @@ import { Button } from '@/design-system/components';
 
 type View = ManagementTabId;
 
-const MANAGEMENT_VIEWS: View[] = ["members", "teams", "profile", "faceit"];
+const MANAGEMENT_VIEWS: View[] = ["members", "teams", "profile"];
 
 function isManagementView(value: string | null): value is View {
   return value !== null && MANAGEMENT_VIEWS.includes(value as View);
@@ -200,7 +198,6 @@ export default function ManagementPage() {
     { id: "members" as View, label: t("management.members"), icon: Users },
     { id: "teams" as View, label: t("management.teams"), icon: Crown },
     { id: "profile" as View, label: t("management.profile"), icon: User },
-    ...(team.game === "CS2" ? [{ id: "faceit" as View, label: "FACEIT", icon: FaceitIcon }] : []),
   ];
 
   const handleSelectMember = (member: TeamMember) => {
@@ -261,10 +258,6 @@ export default function ManagementPage() {
                 canDelete={permissions.isOwner}
                 actions={actions}
               />
-            )}
-
-            {activeView === "faceit" && team.game === "CS2" && (
-              <FaceitOverview teamId={team.id} />
             )}
 
             {activeView === "profile" && (

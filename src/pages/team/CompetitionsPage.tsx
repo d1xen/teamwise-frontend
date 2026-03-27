@@ -11,6 +11,7 @@ import { PaginationTop, PaginationBottom } from "@/shared/components/Pagination"
 import type { PageSize } from "@/shared/components/Pagination";
 import { useCompetitions } from "@/features/competition/hooks/useCompetitions";
 import FeatureHeader from "@/shared/components/FeatureHeader";
+import FaceitSyncButton from "@/shared/components/FaceitSyncButton";
 import CompetitionCard from "@/features/competition/components/CompetitionCard";
 import CreateCompetitionModal from "@/features/competition/components/CreateCompetitionModal";
 import CompetitionDetail from "@/features/competition/components/CompetitionDetail";
@@ -38,7 +39,7 @@ const COMPETITION_TYPES: CompetitionType[] = ["LEAGUE", "TOURNAMENT", "CUP", "LA
 
 export default function CompetitionsPage() {
     const { t } = useTranslation();
-    const { team, membership } = useTeam();
+    const { team, membership, members } = useTeam();
     const {
         competitions,
         isLoading,
@@ -148,6 +149,10 @@ export default function CompetitionsPage() {
         setShowDeleteConfirm(false);
     };
 
+    const isFaceitTeam = team?.game === "CS2";
+    const activePlayers = members.filter(m => m.role === "PLAYER" && m.activePlayer !== false);
+    const linkedCount = activePlayers.filter(m => m.faceitNickname != null).length;
+
     const handleBackFromDetail = () => {
         setDetailCompetition(null);
         navigate(`/team/${team?.id}/competitions`);
@@ -221,48 +226,13 @@ export default function CompetitionsPage() {
                             {(isLoading || isRefreshing) && (
                                 <Loader2 className="w-3.5 h-3.5 text-neutral-600 animate-spin" />
                             )}
-                            {/* Filters button */}
-                            <div className={`flex items-center rounded-lg border text-xs transition-colors ${
-                                hasActiveFilters
-                                    ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400"
-                                    : showFilters
-                                    ? "border-neutral-700 bg-neutral-800 text-neutral-300"
-                                    : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300"
-                            }`}>
-                                <button
-                                    onClick={() => setShowFilters(v => !v)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5"
-                                >
-                                    <SlidersHorizontal className="w-3 h-3" />
-                                    {t("matches.filters")}
-                                </button>
-                                {hasActiveFilters && (
-                                    <button
-                                        onClick={() => { setFilterType(""); setFilterName(""); }}
-                                        className="pr-2 pl-0.5 py-1.5 hover:text-white transition-colors"
-                                        title={t("matches.clear_filters")}
-                                    >
-                                        <X className="w-3 h-3" />
-                                    </button>
-                                )}
-                            </div>
 
-                            {/* Select mode toggle */}
-                            {isStaff && (
-                                <button
-                                    onClick={toggleEditMode}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors ${
-                                        editMode
-                                            ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-400"
-                                            : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300"
-                                    }`}
-                                >
-                                    <Check className="w-3 h-3" />
-                                    {editMode ? t("competitions.exit_select_mode") : t("competitions.select_mode")}
-                                </button>
+                            {/* FACEIT */}
+                            {isFaceitTeam && isStaff && (
+                                <FaceitSyncButton teamId={team?.id ?? ""} onSynced={reload} showDiscover linkedCount={linkedCount} totalPlayers={activePlayers.length} />
                             )}
 
-                            {/* New competition — last */}
+                            {/* New competition */}
                             {isStaff && (
                                 <button
                                     onClick={() => setShowCreate(true)}
@@ -275,46 +245,44 @@ export default function CompetitionsPage() {
                         </div>
                     </div>
 
-                    {/* Filter panel */}
-                    {showFilters && (
-                        <div className="p-4 bg-neutral-900/60 border border-neutral-800 rounded-2xl space-y-3">
-                            <div className="flex items-center gap-3">
-                                <div className="relative flex-1 max-w-xs">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-600 pointer-events-none" />
-                                    <input
-                                        type="text"
-                                        value={filterName}
-                                        onChange={e => setFilterName(e.target.value)}
-                                        placeholder={t("competitions.name_placeholder")}
-                                        className="w-full pl-8 pr-3 py-2 rounded-lg bg-neutral-800 border border-neutral-700 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
-                                    />
-                                </div>
-                            </div>
+                    {/* Select + filters + result count + pagination */}
+                    <div className="flex items-center flex-wrap gap-2">
+                        {isStaff && (
+                            <button onClick={toggleEditMode}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] transition-colors ${
+                                    editMode
+                                        ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-400"
+                                        : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300"
+                                }`}>
+                                <Check className="w-3 h-3" />
+                                {editMode ? t("competitions.exit_select_mode") : t("competitions.select_mode")}
+                            </button>
+                        )}
 
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-semibold text-neutral-700 uppercase tracking-wider w-16 shrink-0">
-                                    {t("competitions.type")}
-                                </span>
-                                <div className="flex flex-wrap gap-1.5">
-                                    <FilterChip label={t("matches.filter_all")} active={filterType === ""} onClick={() => setFilterType("")} />
-                                    {COMPETITION_TYPES.map(ct => (
-                                        <FilterChip
-                                            key={ct}
-                                            label={t(`competitions.type_${ct.toLowerCase()}`)}
-                                            active={filterType === ct}
-                                            onClick={() => setFilterType(ct)}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
+                        <div className={`flex items-center rounded-lg border text-[11px] transition-colors ${
+                            hasActiveFilters
+                                ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400"
+                                : showFilters
+                                ? "border-neutral-700 bg-neutral-800 text-neutral-300"
+                                : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300"
+                        }`}>
+                            <button onClick={() => setShowFilters(v => !v)} className="flex items-center gap-1.5 px-2.5 py-1">
+                                <SlidersHorizontal className="w-3 h-3" />
+                                {t("matches.filters")}
+                            </button>
+                            {hasActiveFilters && (
+                                <button onClick={() => { setFilterType(""); setFilterName(""); }}
+                                    className="pr-2 pl-0.5 py-1 hover:text-white transition-colors">
+                                    <X className="w-3 h-3" />
+                                </button>
+                            )}
                         </div>
-                    )}
 
-                    {/* Results count + pagination */}
-                    <div className="flex items-center justify-between">
                         <p className={`text-xs transition-colors duration-150 ${isLoading || isRefreshing ? "text-neutral-800" : "text-neutral-600"}`}>
                             {t("matches.result_count", { count: filteredTotal })}
                         </p>
+
+                        <div className="ml-auto">
                         <PaginationTop
                             page={safePage}
                             totalPages={compTotalPages}
@@ -323,7 +291,32 @@ export default function CompetitionsPage() {
                             onPageSizeChange={s => { setCompPageSize(s); setCompPage(0); }}
                             label={t("competitions.per_page")}
                         />
+                        </div>
                     </div>
+
+
+                    {/* Filter panel */}
+                    {showFilters && (
+                        <div className="p-4 bg-neutral-900/60 border border-neutral-800 rounded-2xl space-y-3">
+                            <div className="flex items-center gap-3">
+                                <div className="relative flex-1 max-w-xs">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-600 pointer-events-none" />
+                                    <input type="text" value={filterName} onChange={e => setFilterName(e.target.value)}
+                                        placeholder={t("competitions.name_placeholder")}
+                                        className="w-full pl-8 pr-3 py-2 rounded-lg bg-neutral-800 border border-neutral-700 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-indigo-500/50 transition-colors" />
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-semibold text-neutral-700 uppercase tracking-wider w-16 shrink-0">{t("competitions.type")}</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                    <FilterChip label={t("matches.filter_all")} active={filterType === ""} onClick={() => setFilterType("")} />
+                                    {COMPETITION_TYPES.map(ct => (
+                                        <FilterChip key={ct} label={t(`competitions.type_${ct.toLowerCase()}`)} active={filterType === ct} onClick={() => setFilterType(ct)} />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Select-all */}
                     {editMode && deletableInView.length > 0 && (
@@ -354,17 +347,26 @@ export default function CompetitionsPage() {
                             <div className={`space-y-3 transition-opacity duration-150 ${isRefreshing ? "opacity-60" : "opacity-100"}`}>
                                 {filtered.map(c => (
                                     <div key={c.id} className="relative">
-                                        {editMode && c.status !== "COMPLETED" && (
-                                            <div
-                                                onClick={() => toggleSelect(c.id)}
-                                                className={`absolute -left-7 top-1/2 -translate-y-1/2 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer z-10 ${
-                                                    selectedIds.has(c.id)
-                                                        ? "bg-indigo-600 border-indigo-600"
-                                                        : "border-neutral-600 hover:border-neutral-400"
-                                                }`}
-                                            >
-                                                {selectedIds.has(c.id) && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-                                            </div>
+                                        {editMode && (
+                                            c.source === "FACEIT" ? (
+                                                <div className="absolute -left-7 top-1/2 -translate-y-1/2 z-10 group/tip">
+                                                    <div className="w-5 h-5 rounded border-2 border-neutral-800 bg-neutral-900/50 cursor-not-allowed" />
+                                                    <div className="absolute left-7 top-1/2 -translate-y-1/2 whitespace-nowrap px-2.5 py-1.5 rounded-lg bg-neutral-800 border border-neutral-700 text-[10px] text-neutral-400 opacity-0 pointer-events-none group-hover/tip:opacity-100 transition-opacity z-50">
+                                                        {t("competitions.faceit_no_delete")}
+                                                    </div>
+                                                </div>
+                                            ) : c.status !== "COMPLETED" ? (
+                                                <div
+                                                    onClick={() => toggleSelect(c.id)}
+                                                    className={`absolute -left-7 top-1/2 -translate-y-1/2 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer z-10 ${
+                                                        selectedIds.has(c.id)
+                                                            ? "bg-indigo-600 border-indigo-600"
+                                                            : "border-neutral-600 hover:border-neutral-400"
+                                                    }`}
+                                                >
+                                                    {selectedIds.has(c.id) && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                                                </div>
+                                            ) : null
                                         )}
                                         <CompetitionCard competition={c} onClick={(comp) => navigate(`/team/${team?.id}/competitions/${comp.id}`)} />
                                     </div>

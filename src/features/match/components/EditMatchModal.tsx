@@ -32,6 +32,8 @@ export interface EditMatchModalProps {
     onClose: () => void;
     onUpdateMatch: (matchId: number, payload: UpdateMatchRequest) => Promise<MatchDto | null>;
     onSaveMap: (matchId: number, mapId: number, payload: UpdateMapScoreRequest, silent?: boolean) => Promise<boolean>;
+    /** When true, opens directly in score-completion mode */
+    completeMode?: boolean | undefined;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -94,7 +96,7 @@ const GRID = "24px 1fr 64px 20px 64px 28px 32px";
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function EditMatchModal({
-    match, teamTag, game, onClose, onUpdateMatch, onSaveMap,
+    match, teamTag, game, onClose, onUpdateMatch, onSaveMap, completeMode,
 }: EditMatchModalProps) {
     const { t } = useTranslation();
     const { team } = useTeam();
@@ -127,7 +129,7 @@ export default function EditMatchModal({
     }, [team?.id]);
 
     // ── Score state (TO_COMPLETE and COMPLETED only) ──────────────────────────
-    const hasScores = match.state === "TO_COMPLETE" || match.state === "COMPLETED";
+    const hasScores = completeMode || match.state === "TO_COMPLETE" || match.state === "COMPLETED";
     const [showMetadata, setShowMetadata] = useState(!hasScores);
     const [rows, setRows]           = useState<MapRow[]>(match.maps.map(toRow));
     const [validated, setValidated] = useState<Set<number>>(

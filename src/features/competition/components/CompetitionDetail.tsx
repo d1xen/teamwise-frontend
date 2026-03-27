@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { ArrowLeft, Pencil, Trash2, Calendar, DollarSign, Trophy, ExternalLink } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Calendar, DollarSign, Trophy, ExternalLink, CheckCircle2 } from "lucide-react";
+import FaceitIcon from "@/shared/components/FaceitIcon";
 import type { CompetitionDto, UpdateCompetitionRequest } from "@/api/types/competition";
 import type { NoteDto } from "@/api/types/common";
 import { getCompetition, updateCompetition as updateApi, deleteCompetition as deleteApi, getCompetitionNotes, addCompetitionNote, deleteCompetitionNote } from "@/api/endpoints/competition.api";
@@ -110,7 +111,20 @@ export default function CompetitionDetail({ teamId, competitionId, isStaff, onBa
         );
     }
 
-    const canDelete = isStaff && comp.status !== "COMPLETED";
+    const isFaceit = comp.source === "FACEIT";
+    const canEdit = isStaff && !isFaceit;
+    const canDelete = isStaff && !isFaceit && comp.status !== "COMPLETED";
+    const isCompleted = comp.status === "COMPLETED";
+    const canToggleStatus = isStaff;
+
+    const handleToggleStatus = async () => {
+        const newStatus = isCompleted ? "ONGOING" : "COMPLETED";
+        try {
+            await updateApi(teamId, comp.id, { status: newStatus });
+            toast.success(t(isCompleted ? "competitions.marked_ongoing" : "competitions.marked_completed"));
+            load();
+        } catch { toast.error(t("competitions.update_error")); }
+    };
 
     return (
         <div className="space-y-6">
@@ -121,27 +135,25 @@ export default function CompetitionDetail({ teamId, competitionId, isStaff, onBa
                     {t("common.back")}
                 </button>
                 <div className="ml-auto flex items-center gap-2">
-                    {isStaff && (
-                        <>
-                            <button onClick={() => setShowEdit(true)}
-                                className="px-3 py-1.5 rounded-[4px] bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white text-xs font-medium transition-colors flex items-center gap-1.5">
-                                <Pencil className="w-3.5 h-3.5" />
-                                {t("common.edit")}
-                            </button>
-                            {canDelete && (
-                                <button onClick={() => setShowDeleteConfirm(true)}
-                                    className="p-2 rounded-lg text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            )}
-                        </>
+                    {canEdit && (
+                        <button onClick={() => setShowEdit(true)}
+                            className="px-3 py-1.5 rounded-[4px] bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white text-xs font-medium transition-colors flex items-center gap-1.5">
+                            <Pencil className="w-3.5 h-3.5" />
+                            {t("common.edit")}
+                        </button>
+                    )}
+                    {canDelete && (
+                        <button onClick={() => setShowDeleteConfirm(true)}
+                            className="p-2 rounded-lg text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
                     )}
                 </div>
             </div>
 
             {/* Main card */}
             <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6">
-                {/* Badges */}
+                {/* Badges + actions */}
                 <div className="flex items-center gap-2 mb-4">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] border uppercase ${TYPE_STYLES[comp.type] ?? TYPE_STYLES.OTHER}`}>
                         {t(`competitions.type_${comp.type.toLowerCase()}`)}
@@ -150,7 +162,20 @@ export default function CompetitionDetail({ teamId, competitionId, isStaff, onBa
                         {t(`competitions.status_${comp.status.toLowerCase()}`)}
                     </span>
                     {comp.source === "FACEIT" && (
-                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">FACEIT</span>
+                        <span className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                            <FaceitIcon className="w-2.5 h-2.5" />
+                        </span>
+                    )}
+                    {canToggleStatus && (
+                        <button onClick={handleToggleStatus}
+                            className={`ml-auto px-3 py-1 rounded-lg border text-[11px] font-medium transition-colors flex items-center gap-1.5 ${
+                                isCompleted
+                                    ? "bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30 text-blue-400"
+                                    : "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                            }`}>
+                            <CheckCircle2 className="w-3 h-3" />
+                            {t(isCompleted ? "competitions.mark_ongoing" : "competitions.mark_completed")}
+                        </button>
                     )}
                 </div>
 
@@ -164,8 +189,21 @@ export default function CompetitionDetail({ teamId, competitionId, isStaff, onBa
                         )}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-xl font-bold text-white truncate">{comp.name}</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-xl font-bold text-white truncate">{comp.name}</p>
+                            {comp.url && (
+                                <a href={comp.url} target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center text-xs text-indigo-400 hover:text-indigo-300 transition-colors shrink-0">
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                            )}
+                        </div>
                         {comp.stage && <p className="text-xs text-neutral-400 mt-0.5">{comp.stage}</p>}
+                        {isFaceit && comp.organizerName && (
+                            <p className="text-[11px] text-neutral-600 mt-0.5">
+                                {t("competitions.organized_by")} {comp.organizerName}
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -178,6 +216,17 @@ export default function CompetitionDetail({ teamId, competitionId, isStaff, onBa
                         <span className="text-neutral-600">{t("competitions.no_date")}</span>
                     )}
                 </div>
+
+                {/* Match record */}
+                {comp.matchRecord && (comp.matchRecord.wins > 0 || comp.matchRecord.losses > 0) && (
+                    <div className="flex items-center gap-3 mt-4 text-sm font-medium tabular-nums">
+                        <span className="text-emerald-400">{comp.matchRecord.wins}W</span>
+                        <span className="text-red-400">{comp.matchRecord.losses}L</span>
+                        {comp.matchRecord.draws > 0 && (
+                            <span className="text-neutral-500">{comp.matchRecord.draws}D</span>
+                        )}
+                    </div>
+                )}
 
                 {/* Metadata */}
                 {(comp.format || comp.cashprize) && (
@@ -194,21 +243,13 @@ export default function CompetitionDetail({ teamId, competitionId, isStaff, onBa
                 )}
 
                 {/* FACEIT tags */}
-                {(comp.season || comp.region || comp.division) && (
+                {(comp.season || comp.region || comp.division || comp.category) && (
                     <div className="flex flex-wrap gap-1.5 mt-3">
+                        {comp.category && <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 text-neutral-400 font-mono font-semibold">{comp.category}</span>}
                         {comp.season && <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 text-neutral-400 font-mono font-semibold">{comp.season}</span>}
                         {comp.region && <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 text-neutral-400 font-mono font-semibold">{comp.region}</span>}
                         {comp.division && <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 text-neutral-400 font-mono font-semibold">{comp.division}</span>}
                     </div>
-                )}
-
-                {/* URL */}
-                {comp.url && (
-                    <a href={comp.url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors mt-3">
-                        <ExternalLink className="w-3 h-3" />
-                        {t("competitions.url")}
-                    </a>
                 )}
 
                 {/* Notes */}
@@ -223,6 +264,7 @@ export default function CompetitionDetail({ teamId, competitionId, isStaff, onBa
                     <MetaInfo createdAt={comp.createdAt} updatedAt={comp.updatedAt}
                         createdBy={comp.createdByNickname} updatedBy={comp.updatedByNickname} />
                 </div>
+
             </div>
 
             <NoteSection

@@ -52,6 +52,12 @@ export function TeamProvider({
             return;
         }
 
+        // Guard: teamId must be numeric — invalid values redirect to team selection
+        if (!/^\d+$/.test(teamId)) {
+            navigate("/select-team", { replace: true });
+            return;
+        }
+
         setIsLoading(true);
         setLoadError(null);
         if (blockUi) {

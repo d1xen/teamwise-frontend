@@ -31,6 +31,10 @@ export type CompetitionDto = {
     season: string | null;
     region: string | null;
     division: string | null;
+    organizerId: string | null;
+    organizerName: string | null;
+    category: string | null;
+    matchRecord: { wins: number; losses: number; draws: number } | null;
     createdByNickname: string | null;
     updatedByNickname: string | null;
     createdAt: string | null;

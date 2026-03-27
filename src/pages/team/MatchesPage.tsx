@@ -3,12 +3,13 @@ import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
     Plus, Clock, AlertCircle, CheckCircle2, Loader2,
-    Search, SlidersHorizontal, LayoutList, X,
-    Check,
+    Search, SlidersHorizontal, X,
+    Check, Play,
 } from "lucide-react";
 import { useTeam } from "@/contexts/team/useTeam";
+import FaceitSyncButton from "@/shared/components/FaceitSyncButton";
 import { useAuth } from "@/contexts/auth/useAuth";
-import { useMatchSummary } from "@/features/match/hooks/useMatchSummary";
+import { useMatchSummary, invalidateMatchSummary } from "@/features/match/hooks/useMatchSummary";
 import FeatureHeader from "@/shared/components/FeatureHeader";
 import MatchCard from "@/features/match/components/MatchCard";
 import CreateMatchModal from "@/features/match/components/CreateMatchModal";
@@ -32,13 +33,13 @@ type TabDef = {
 
 const TABS: TabDef[] = [
     { id: "upcoming",    labelKey: "matches.tab_upcoming",    icon: Clock,        color: "text-blue-400",    activeColor: "border-blue-400 text-blue-400" },
+    { id: "ongoing",     labelKey: "matches.tab_ongoing",     icon: Play,         color: "text-rose-400",    activeColor: "border-rose-400 text-rose-400" },
     { id: "to_complete", labelKey: "matches.tab_to_complete", icon: AlertCircle,  color: "text-amber-400",   activeColor: "border-amber-400 text-amber-400" },
     { id: "results",     labelKey: "matches.tab_completed",   icon: CheckCircle2, color: "text-emerald-400", activeColor: "border-emerald-400 text-emerald-400" },
-    { id: "all",         labelKey: "matches.tab_all",         icon: LayoutList,   color: "text-neutral-400", activeColor: "border-neutral-300 text-neutral-300" },
 ];
 
 function isMatchTab(value: string | null): value is MatchFilters["tab"] {
-    return value === "upcoming" || value === "to_complete" || value === "results" || value === "all";
+    return value === "upcoming" || value === "ongoing" || value === "to_complete" || value === "results";
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
@@ -48,7 +49,7 @@ export default function MatchesPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const { matchId: matchIdParam } = useParams<{ matchId?: string }>();
     const navigate = useNavigate();
-    const { team, membership } = useTeam();
+    const { team, membership, members } = useTeam();
     const { user } = useAuth();
     const { toCompleteCount } = useMatchSummary(team?.id ?? "");
 
@@ -78,11 +79,11 @@ export default function MatchesPage() {
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-    const scrollByTabRef = useRef<Record<MatchFilters["tab"], number>>({
+    const scrollByTabRef = useRef<Record<string, number>>({
         upcoming: 0,
+        ongoing: 0,
         to_complete: 0,
         results: 0,
-        all: 0,
     });
 
     const {
@@ -134,6 +135,14 @@ export default function MatchesPage() {
     if (!team || !membership || !user) return null;
 
     const isStaff = membership.isOwner || membership.role !== "PLAYER";
+    const isFaceitTeam = team.game === "CS2";
+    const activePlayers = members.filter(m => m.role === "PLAYER" && m.activePlayer !== false);
+    const linkedCount = activePlayers.filter(m => m.faceitNickname != null).length;
+
+    const handleFaceitSynced = () => {
+        reload();
+        invalidateMatchSummary();
+    };
 
     const toggleEditMode = () => {
         setEditMode(v => !v);
@@ -149,12 +158,12 @@ export default function MatchesPage() {
         });
     };
 
-    const scheduledInView = content.filter(m => m.status === "SCHEDULED");
-    const allSelected = scheduledInView.length > 0 && scheduledInView.every(m => selectedIds.has(m.id));
+    const deletableInView = content.filter(m => m.source !== "FACEIT");
+    const allSelected = deletableInView.length > 0 && deletableInView.every(m => selectedIds.has(m.id));
 
     const toggleSelectAll = () => {
         if (allSelected) setSelectedIds(new Set());
-        else setSelectedIds(new Set(scheduledInView.map(m => m.id)));
+        else setSelectedIds(new Set(deletableInView.map(m => m.id)));
     };
 
     const handleBulkDelete = async () => {
@@ -238,49 +247,12 @@ export default function MatchesPage() {
                                 <Loader2 className="w-3.5 h-3.5 text-neutral-600 animate-spin" />
                             )}
 
-                            {/* Filters button */}
-                            <div className={`flex items-center rounded-lg border text-xs transition-colors ${
-                                hasActiveFilters
-                                    ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400"
-                                    : showFilters
-                                    ? "border-neutral-700 bg-neutral-800 text-neutral-300"
-                                    : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300"
-                            }`}>
-                                <button
-                                    onClick={() => setShowFilters(v => !v)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5"
-                                >
-                                    <SlidersHorizontal className="w-3 h-3" />
-                                    {t("matches.filters")}
-                                </button>
-                                {hasActiveFilters && (
-                                    <button
-                                        onClick={() => updateFilters({ type: "", format: "", opponent: "", competitionId: "", dateRange: "all" })}
-                                        className="pr-2 pl-0.5 py-1.5 hover:text-white transition-colors"
-                                        title={t("matches.clear_filters")}
-                                    >
-                                        <X className="w-3 h-3" />
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Select mode toggle */}
-                            {isStaff && (
-                                <button
-                                    onClick={toggleEditMode}
-                                    disabled={filters.tab === "results"}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-                                        editMode
-                                            ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-400"
-                                            : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300"
-                                    }`}
-                                >
-                                    <Check className="w-3 h-3" />
-                                    {editMode ? t("matches.exit_select_mode") : t("matches.select_mode")}
-                                </button>
+                            {/* FACEIT */}
+                            {isFaceitTeam && isStaff && (
+                                <FaceitSyncButton teamId={team.id} onSynced={handleFaceitSynced} showDiscover linkedCount={linkedCount} totalPlayers={activePlayers.length} />
                             )}
 
-                            {/* New match — last */}
+                            {/* New match */}
                             {isStaff && (
                                 <button
                                     onClick={() => setShowCreate(true)}
@@ -290,6 +262,59 @@ export default function MatchesPage() {
                                     {t("matches.new_match")}
                                 </button>
                             )}
+                        </div>
+                    </div>
+
+                    {/* Select + filters + result count + pagination */}
+                    <div className="flex items-center flex-wrap gap-2">
+                        {/* Select mode toggle */}
+                        {isStaff && (
+                            <button
+                                onClick={toggleEditMode}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] transition-colors ${
+                                    editMode
+                                        ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-400"
+                                        : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300"
+                                }`}
+                            >
+                                <Check className="w-3 h-3" />
+                                {editMode ? t("matches.exit_select_mode") : t("matches.select_mode")}
+                            </button>
+                        )}
+
+                        {/* Filters */}
+                        <div className={`flex items-center rounded-lg border text-[11px] transition-colors ${
+                            hasActiveFilters
+                                ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400"
+                                : showFilters
+                                ? "border-neutral-700 bg-neutral-800 text-neutral-300"
+                                : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300"
+                        }`}>
+                            <button onClick={() => setShowFilters(v => !v)} className="flex items-center gap-1.5 px-2.5 py-1">
+                                <SlidersHorizontal className="w-3 h-3" />
+                                {t("matches.filters")}
+                            </button>
+                            {hasActiveFilters && (
+                                <button onClick={() => updateFilters({ type: "", format: "", opponent: "", competitionId: "", dateRange: "all" })}
+                                    className="pr-2 pl-0.5 py-1 hover:text-white transition-colors">
+                                    <X className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
+
+                        <p className={`text-xs transition-colors duration-150 ${isLoading || isRefreshing ? "text-neutral-800" : "text-neutral-600"}`}>
+                            {t("matches.result_count", { count: totalElements })}
+                        </p>
+
+                        <div className="ml-auto">
+                        <PaginationTop
+                            page={currentPage}
+                            totalPages={totalPages}
+                            pageSize={pageSize}
+                            onPageChange={goToPage}
+                            onPageSizeChange={changePageSize}
+                            label={t("matches.per_page")}
+                        />
                         </div>
                     </div>
 
@@ -303,23 +328,8 @@ export default function MatchesPage() {
                         />
                     )}
 
-                    {/* Results count + pagination */}
-                    <div className="flex items-center justify-between">
-                        <p className={`text-xs transition-colors duration-150 ${isLoading || isRefreshing ? "text-neutral-800" : "text-neutral-600"}`}>
-                            {t("matches.result_count", { count: totalElements })}
-                        </p>
-                        <PaginationTop
-                            page={currentPage}
-                            totalPages={totalPages}
-                            pageSize={pageSize}
-                            onPageChange={goToPage}
-                            onPageSizeChange={changePageSize}
-                            label={t("matches.per_page")}
-                        />
-                    </div>
-
-                    {/* Select-all — below count, only in select mode */}
-                    {editMode && scheduledInView.length > 0 && (
+                    {/* Select-all — below filters, only in select mode */}
+                    {editMode && deletableInView.length > 0 && (
                         <div className="flex items-center gap-3 px-1">
                             <button
                                 onClick={toggleSelectAll}

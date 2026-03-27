@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import HeaderTabs from '@/shared/components/HeaderTabs';
 
-export type ManagementTabId = 'overview' | 'members' | 'teams' | 'profile' | 'faceit';
+export type ManagementTabId = 'overview' | 'members' | 'teams' | 'profile';
 
 export interface ManagementTabItem {
   id: ManagementTabId;

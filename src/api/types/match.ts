@@ -3,8 +3,8 @@
 // ============================================================================
 
 export type MatchType = "OFFICIAL" | "SCRIM";
-export type MatchStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED";
-export type MatchState = "UPCOMING" | "TO_COMPLETE" | "COMPLETED" | "CANCELLED";
+export type MatchStatus = "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+export type MatchState = "UPCOMING" | "ONGOING" | "TO_COMPLETE" | "COMPLETED" | "CANCELLED";
 export type MatchResult = "WIN" | "LOSE" | "DRAW";
 export type MatchFormat = "BO1" | "BO3" | "BO5";
 export type MatchSource = "MANUAL" | "FACEIT";
@@ -47,6 +47,7 @@ export type MatchDto = {
     maps: MatchMapDto[];
     source: MatchSource;
     faceitMatchId: string | null;
+    forfeit: boolean;
 };
 
 export type ToCompleteSection = {
@@ -106,7 +107,7 @@ export type PagedMatchesDto = {
     hasPrevious: boolean;
 };
 
-export type MatchTab = "upcoming" | "to_complete" | "results" | "all";
+export type MatchTab = "upcoming" | "ongoing" | "to_complete" | "results" | "all";
 export type DateRange = "1m" | "3m" | "6m" | "1y" | "all";
 
 export type MatchFilters = {

@@ -14,6 +14,12 @@ import {
     deleteCompetition as deleteCompetitionApi,
 } from "@/api/endpoints/competition.api";
 
+// Lightweight event bus — match mutations trigger competition refresh (matchRecord updates)
+const listeners = new Set<() => void>();
+export function invalidateCompetitions() {
+    listeners.forEach(fn => fn());
+}
+
 export function useCompetitions(teamId: string) {
     const { t } = useTranslation();
 
@@ -43,6 +49,22 @@ export function useCompetitions(teamId: string) {
     }, [teamId, t]);
 
     useEffect(() => { load(); }, [load]);
+
+    // Subscribe to cross-module invalidation (e.g., match mutations update matchRecord)
+    const loadRef = useRef(load);
+    loadRef.current = load;
+    useEffect(() => {
+        const handler = () => { if (hasContentRef.current) loadRef.current(); };
+        listeners.add(handler);
+        return () => { listeners.delete(handler); };
+    }, []);
+
+    // Re-fetch when tab regains focus (user navigates back)
+    useEffect(() => {
+        const handleFocus = () => { if (hasContentRef.current) load(); };
+        window.addEventListener("focus", handleFocus);
+        return () => window.removeEventListener("focus", handleFocus);
+    }, [load]);
 
     const filtered = competitions.filter((c) => {
         if (tab === "active") return c.status === "UPCOMING" || c.status === "ONGOING";

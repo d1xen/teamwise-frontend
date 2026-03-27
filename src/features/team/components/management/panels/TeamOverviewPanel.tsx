@@ -16,18 +16,17 @@ import {
   Swords, Trophy, BookOpen, AlertTriangle, Gamepad2,
 } from "lucide-react";
 import FaceitIcon from "@/shared/components/FaceitIcon";
+import { useCountdown } from "@/shared/hooks/useCountdown";
 
 interface Props {
   team: Team; membership: TeamMembership; members: TeamMember[];
   staffCount: number; playerCount: number; onNavigateToFaceit?: () => void;
 }
 
-function countdown(iso: string): { label: string; cls: string } {
-  const h = Math.max(0, Math.floor((new Date(iso).getTime() - Date.now()) / 3600000));
-  const d = Math.floor(h / 24);
-  if (h < 24) return { label: h === 0 ? "< 1h" : `${h}h`, cls: "text-amber-400 bg-amber-400/10 border-amber-400/20" };
-  if (d < 7) return { label: `${d}d`, cls: "text-blue-400 bg-blue-400/10 border-blue-400/20" };
-  return { label: `${d}d`, cls: "text-neutral-400 bg-neutral-800/60 border-neutral-700/30" };
+function countdownColor(urgency: string): string {
+  if (urgency === "high") return "text-amber-400 bg-amber-400/10 border-amber-400/20";
+  if (urgency === "medium") return "text-blue-400 bg-blue-400/10 border-blue-400/20";
+  return "text-neutral-400 bg-neutral-800/60 border-neutral-700/30";
 }
 
 function fmtDt(iso: string) {
@@ -47,6 +46,7 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
   const est = team.createdAt ? formatDateShort(team.createdAt) : null;
 
   const { nextMatch, toCompleteCount, summary } = useMatchSummary(team.id);
+  const nextMatchCountdown = useCountdown(nextMatch?.scheduledAt ?? null, t);
   const { events: sched } = useMySchedule(String(team.id));
 
   const [rawConflicts, setRawConflicts] = useState<ConflictSummaryDto[]>([]);
@@ -115,9 +115,7 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
       </div>
 
       {/* ── Next match ── 4 cols */}
-      {nextMatch ? (() => {
-        const cd = countdown(nextMatch.scheduledAt);
-        return (
+      {nextMatch ? (
           <button onClick={() => go("matches?tab=upcoming")} className="col-span-4 group text-left bg-neutral-900/50 border border-neutral-800 hover:border-neutral-700 rounded-2xl p-4 transition-all">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider">{t("management.next_match")}</span>
@@ -129,11 +127,14 @@ export default function TeamOverviewPanel({ team, membership, members, staffCoun
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 text-neutral-400">{nextMatch.format}</span>
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cd.cls}`}>{cd.label}</span>
+              {nextMatchCountdown && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${countdownColor(nextMatchCountdown.urgency)} ${nextMatchCountdown.isLive ? "font-mono tabular-nums" : ""}`}>
+                  {nextMatchCountdown.label}
+                </span>
+              )}
             </div>
           </button>
-        );
-      })() : (
+        ) : (
         <div className="col-span-4 bg-neutral-900/50 border border-neutral-800 rounded-2xl p-4 flex flex-col items-center justify-center">
           <Calendar className="w-4 h-4 text-neutral-800 mb-1.5" />
           <p className="text-[11px] text-neutral-700">{t("management.no_upcoming_match")}</p>

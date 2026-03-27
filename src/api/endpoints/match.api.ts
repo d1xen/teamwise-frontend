@@ -70,6 +70,10 @@ export function deleteMatch(matchId: number): Promise<void> {
     return apiClient<void>(`/api/matches/${matchId}`, { method: "DELETE" });
 }
 
+export function syncMatch(matchId: number): Promise<{ status: string }> {
+    return apiClient<{ status: string }>(`/api/matches/${matchId}/sync`, { method: "POST" });
+}
+
 export function getMaps(matchId: number): Promise<MatchMapDto[]> {
     return apiClient<MatchMapDto[]>(`/api/matches/${matchId}/maps`);
 }
@@ -91,6 +95,7 @@ export function getMatchesPaginated(
 
     const stateMap: Record<MatchFilters["tab"], MatchState | null> = {
         upcoming: "UPCOMING",
+        ongoing: "ONGOING",
         to_complete: "TO_COMPLETE",
         results: "COMPLETED",
         all: null,

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar, ChevronDown, Check, ClipboardCheck, ExternalLink, Trophy } from "lucide-react";
+import { Calendar, ChevronDown, Check, ExternalLink, Trophy } from "lucide-react";
+import FaceitIcon from "@/shared/components/FaceitIcon";
+import { useCountdown } from "@/shared/hooks/useCountdown";
 import type { MatchDto } from "@/api/types/match";
 
 interface MatchCardProps {
@@ -19,13 +21,8 @@ function formatDateTime(iso: string): string {
         + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
-function getTimeUntil(iso: string): { value: number; unit: "hours" | "days"; urgency: "high" | "medium" | "low" } {
-    const diff = new Date(iso).getTime() - Date.now();
-    const totalHours = Math.max(0, Math.floor(diff / (1000 * 60 * 60)));
-    const days = Math.floor(totalHours / 24);
-    if (totalHours < 24) return { value: totalHours, unit: "hours", urgency: "high" };
-    if (days < 7)        return { value: days,       unit: "days",  urgency: "medium" };
-    return                      { value: days,       unit: "days",  urgency: "low" };
+function formatTime(iso: string): string {
+    return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function MatchCard({
@@ -54,47 +51,55 @@ export default function MatchCard({
     const scoredMaps = match.maps.filter(m => m.ourScore != null);
     const canExpand  = !editMode && match.status === "COMPLETED" && scoredMaps.length > 0;
 
-    const isScheduled  = match.status === "SCHEDULED";
+    const isFaceit     = match.source === "FACEIT";
     const isUpcoming   = match.state === "UPCOMING";
-    const isToComplete = match.state === "TO_COMPLETE";
 
     const isCardClickable = true;
 
     const handleCardClick = () => {
-        if (editMode && isScheduled) {
+        if (editMode && !isFaceit) {
             onToggleSelect?.(match.id);
         } else if (!editMode) {
             onClick?.(match);
         }
     };
 
-    const borderClass = editMode && isScheduled && selected
+    const borderClass = editMode && selected
         ? "border-indigo-500/40 bg-indigo-500/5"
         : isCardClickable
         ? "border-neutral-800 hover:border-neutral-700"
         : "border-neutral-800";
 
-    const timeUntil = isUpcoming ? getTimeUntil(match.scheduledAt) : null;
-    const timeUntilColor = timeUntil?.urgency === "high"
+    const countdown = useCountdown(isUpcoming ? match.scheduledAt : null, t);
+    const countdownColor = countdown?.urgency === "high"
         ? "text-amber-400 bg-amber-400/10 border-amber-400/20"
-        : timeUntil?.urgency === "medium"
+        : countdown?.urgency === "medium"
         ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
         : "text-neutral-500 bg-neutral-800/60 border-neutral-700/40";
 
     return (
         <div className="relative">
             {/* Checkbox — absolute left, vertically centered */}
-            {editMode && isScheduled && isStaff && (
-                <div
-                    onClick={e => { e.stopPropagation(); onToggleSelect?.(match.id); }}
-                    className={`absolute -left-7 top-1/2 -translate-y-1/2 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer z-10 ${
-                        selected
-                            ? "bg-indigo-600 border-indigo-600"
-                            : "border-neutral-600 hover:border-neutral-400"
-                    }`}
-                >
-                    {selected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-                </div>
+            {editMode && isStaff && (
+                isFaceit ? (
+                    <div className="absolute -left-7 top-1/2 -translate-y-1/2 z-10 group/tip">
+                        <div className="w-5 h-5 rounded border-2 border-neutral-800 bg-neutral-900/50 cursor-not-allowed" />
+                        <div className="absolute left-7 top-1/2 -translate-y-1/2 whitespace-nowrap px-2.5 py-1.5 rounded-lg bg-neutral-800 border border-neutral-700 text-[10px] text-neutral-400 opacity-0 pointer-events-none group-hover/tip:opacity-100 transition-opacity z-50">
+                            {t("matches.faceit_no_delete")}
+                        </div>
+                    </div>
+                ) : (
+                    <div
+                        onClick={e => { e.stopPropagation(); onToggleSelect?.(match.id); }}
+                        className={`absolute -left-7 top-1/2 -translate-y-1/2 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer z-10 ${
+                            selected
+                                ? "bg-indigo-600 border-indigo-600"
+                                : "border-neutral-600 hover:border-neutral-400"
+                        }`}
+                    >
+                        {selected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                    </div>
+                )
             )}
 
             <div
@@ -113,11 +118,11 @@ export default function MatchCard({
                             onError={() => setLogoError(true)}
                         />
                     ) : match.opponentName ? (
-                        <span className="text-sm font-bold text-neutral-300 uppercase tracking-wide">
+                        <span className="text-xl font-bold text-neutral-300 uppercase tracking-wide">
                             {match.opponentName.split(" ").map(w => w[0]).join("").slice(0, 3)}
                         </span>
                     ) : (
-                        <span className="text-sm font-bold text-neutral-600">?</span>
+                        <span className="text-2xl font-bold text-neutral-600">?</span>
                     )}
                 </div>
 
@@ -130,6 +135,11 @@ export default function MatchCard({
                         <span className="text-xs px-2 py-0.5 rounded-md bg-neutral-800 border border-neutral-700 text-neutral-400 font-mono font-semibold">
                             {match.format}
                         </span>
+                        {isFaceit && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md border bg-orange-500/10 border-orange-500/20 text-orange-400">
+                                <FaceitIcon className="w-2.5 h-2.5" />
+                            </span>
+                        )}
                         <span className={`text-xs px-2 py-0.5 rounded-md border font-medium ${
                             match.type === "OFFICIAL"
                                 ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
@@ -137,6 +147,13 @@ export default function MatchCard({
                         }`}>
                             {t(`matches.type_${match.type.toLowerCase()}`)}
                         </span>
+                        {match.matchUrl && (
+                            <a href={match.matchUrl} target="_blank" rel="noopener noreferrer"
+                                onClick={e => e.stopPropagation()}
+                                className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+                                <ExternalLink className="w-3 h-3" />
+                            </a>
+                        )}
                     </div>
 
                     {match.competitionName && (
@@ -151,49 +168,41 @@ export default function MatchCard({
                         </div>
                     )}
 
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>{formatDateTime(match.playedAt ?? match.scheduledAt)}</span>
-                        </div>
-                        {match.matchUrl && (
-                            <a
-                                href={match.matchUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={e => e.stopPropagation()}
-                                className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                            >
-                                <ExternalLink className="w-3 h-3" />
-                                {t("matches.match_url_link")}
-                            </a>
+                    <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{formatDateTime(match.scheduledAt)}</span>
+                        {match.playedAt && match.status === "COMPLETED" && (
+                            <>
+                                <span className="text-neutral-700">→</span>
+                                <span className="text-neutral-400">{formatTime(match.playedAt)}</span>
+                            </>
                         )}
                     </div>
                 </div>
 
-                {/* Right side — single badge per state */}
-                <div className="flex-shrink-0 self-center">
+                {/* Right side — top-aligned badge */}
+                <div className="flex-shrink-0 self-start mt-1">
 
-                    {timeUntil && (
-                        <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium whitespace-nowrap ${timeUntilColor}`}>
-                            {t(timeUntil.unit === "hours" ? "matches.in_hours" : "matches.in_days", { count: timeUntil.value })}
+                    {countdown && !countdown.isPast && countdown.label && (
+                        <span className={`text-xs px-2.5 py-1 rounded-lg border whitespace-nowrap ${countdownColor} ${countdown.isLive ? "font-mono font-bold tabular-nums" : "font-medium"}`}>
+                            {countdown.label}
                         </span>
                     )}
 
-                    {isToComplete && !editMode && (
-                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-medium whitespace-nowrap">
-                            <ClipboardCheck className="w-3.5 h-3.5" />
-                            {t("matches.to_complete_badge")}
-                        </span>
-                    )}
 
                     {match.result && (
                         <button
                             onClick={canExpand ? (e) => { e.stopPropagation(); setExpanded(v => !v); } : undefined}
                             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold whitespace-nowrap ${resultColor} ${canExpand ? "cursor-pointer hover:brightness-125 transition-all" : ""}`}
                         >
-                            <span className="tabular-nums">{ourWins}–{theirWins}</span>
-                            <span>{t(`matches.result_${match.result.toLowerCase()}`)}</span>
+                            {match.forfeit ? (
+                                <span>{t(match.result === "WIN" ? "matches.forfeit_win" : "matches.forfeit_lose")}</span>
+                            ) : (
+                                <>
+                                    <span className="tabular-nums">{ourWins}–{theirWins}</span>
+                                    <span>{t(`matches.result_${match.result.toLowerCase()}`)}</span>
+                                </>
+                            )}
                             {canExpand && (
                                 <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
                             )}

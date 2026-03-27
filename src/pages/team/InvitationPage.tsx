@@ -108,7 +108,7 @@ export default function InvitationPage() {
               </h1>
               <p className="text-neutral-400 mb-6">{message}</p>
               <button
-                onClick={() => navigate("/team/select", { replace: true })}
+                onClick={() => navigate("/select-team", { replace: true })}
                 className="w-full px-4 py-2.5 bg-[#4338ca] hover:bg-[#4f46e5] text-white rounded-lg font-medium transition-colors"
               >
                 {t("common.back")}
