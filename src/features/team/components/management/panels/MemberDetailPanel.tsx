@@ -5,7 +5,7 @@ import type { useManagementPermissions } from "@/features/team/hooks/useManageme
 import type { useTeamActions } from "@/features/team/hooks/useTeamActions";
 import type { InGameRole } from "@/api/types/team";
 import { getUserProfile, updateUserProfile } from "@/api/endpoints/profile.api";
-import { updateMemberRole, updateMemberRoster } from "@/api/endpoints/team.api";
+import { updateMemberRole, updateMemberRoster, setMemberFaceit } from "@/api/endpoints/team.api";
 import type { UserProfileDto } from "@/api/endpoints/profile.api";
 import { useTeam } from "@/contexts/team/useTeam";
 import { useAuth } from "@/contexts/auth/useAuth";
@@ -127,7 +127,7 @@ export default function MemberDetailPanel({
   const [editing, setEditing] = useState(false);
   const [showPrivate, setShowPrivate] = useState(false);
   const [privateLoaded, setPrivateLoaded] = useState(false);
-  const [form, setForm] = useState({ customUsername: "", firstName: "", lastName: "", email: "", phone: "", discord: "", twitter: "", hltv: "", birthDate: "", address: "", zipCode: "", city: "", timezone: "" });
+  const [form, setForm] = useState({ customUsername: "", firstName: "", lastName: "", email: "", phone: "", discord: "", twitter: "", hltv: "", birthDate: "", address: "", zipCode: "", city: "", timezone: "", faceitNickname: "" });
   const [memberProfile, setMemberProfile] = useState<UserProfileDto | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -221,6 +221,7 @@ export default function MemberDetailPanel({
       zipCode: p?.zipCode ?? "",
       city: p?.city ?? "",
       timezone: p?.timezone ?? "",
+      faceitNickname: member.faceitNickname ? `https://www.faceit.com/en/players/${member.faceitNickname}` : "",
     });
     roleBeforeEdit.current = { role: currentRole, active: activePlayerState, inGameRole };
     setEditing(true);
@@ -259,6 +260,7 @@ export default function MemberDetailPanel({
         birthDate: u.birthDate ?? '', address: u.address ?? '',
         zipCode: u.zipCode ?? '', city: u.city ?? '',
         timezone: u.timezone ?? '',
+        faceitNickname: form.faceitNickname,
       });
 
       // Save role if changed
@@ -276,10 +278,25 @@ export default function MemberDetailPanel({
         await updateMemberRoster(teamId, member.steamId, { inGameRole: inGameRole ?? null });
       }
 
+      // Save FACEIT if changed — parse URL to extract nickname
+      const rawFaceit = form.faceitNickname.trim();
+      let faceitNick: string | null = null;
+      if (rawFaceit) {
+        const match = rawFaceit.match(/faceit\.com\/[a-z]{2}\/players\/([^/?#]+)/);
+        faceitNick = match ? match[1] : rawFaceit; // Accept URL or raw nickname
+      }
+      const currentNick = member.faceitNickname ?? "";
+      if (faceitNick !== currentNick && (faceitNick || currentNick)) {
+        await setMemberFaceit(teamId, member.steamId, { faceitNickname: faceitNick });
+      }
+
       setEditing(false);
       toast.success(t("profile.save_profile"));
       await refreshTeam();
-    } catch { toast.error(t("profile.save_error")); }
+    } catch (err: unknown) {
+      const msg = err && typeof err === "object" && "message" in err ? (err as { message: string }).message : null;
+      toast.error(msg ?? t("profile.save_error"));
+    }
     finally { setIsSavingProfile(false); }
   };
 
@@ -328,7 +345,7 @@ export default function MemberDetailPanel({
 
           <div className="flex-1 min-w-0">
             {/* Row 1: Nickname + Actions */}
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-0.5">
               <h2 className="text-lg font-bold text-white truncate">{member.nickname}</h2>
               {member.countryCode && <Flag code={member.countryCode} className="w-5 h-3.5 rounded-none opacity-80 shrink-0" />}
               {member.faceitNickname && (
@@ -367,6 +384,7 @@ export default function MemberDetailPanel({
                 ]} />
               )}
             </div>
+            <p className="text-[10px] text-neutral-600 font-mono mb-2">Steam ID: {member.steamId}</p>
             {/* Row 2: Badges — profil → owner → role/status → in-game */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className={cn(
@@ -429,7 +447,6 @@ export default function MemberDetailPanel({
                 <Cell label={t("profile.birth_date")} value={editing ? form.birthDate : memberProfile.birthDate}
                   editing={editing} onChange={v => setForm(p => ({ ...p, birthDate: v }))} type="date" locale={i18n.language} required />
               )}
-              <Cell label="Steam ID" value={member.steamId} />
               {member.joinedAt && (
                 <Cell label={t("meta.joined_label")}
                   value={new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "long", year: "numeric" }).format(new Date(member.joinedAt))} />
@@ -547,11 +564,12 @@ export default function MemberDetailPanel({
               </div>
 
               {/* Links & Socials */}
-              {(validLinks.includes("discord") || validLinks.includes("twitter") || validLinks.includes("hltv")) && (
                 <div className="pt-6 mt-8 -mx-5 px-5 border-t border-neutral-800 space-y-2.5">
                   <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest">{t("management.links")}</p>
                   {editing ? (
                     <>
+                      <Cell label="FACEIT" value={form.faceitNickname}
+                        editing onChange={v => setForm(p => ({ ...p, faceitNickname: v }))} placeholder="https://www.faceit.com/en/players/..." />
                       {validLinks.includes("discord") && <Cell label="Discord" value={form.discord}
                         editing onChange={v => setForm(p => ({ ...p, discord: v }))} placeholder="pseudo#1234" />}
                       {validLinks.includes("twitter") && <Cell label="Twitter / X" value={form.twitter}
@@ -561,6 +579,19 @@ export default function MemberDetailPanel({
                     </>
                   ) : (
                     <div className="space-y-1.5">
+                      {(() => {
+                        const val = member.faceitNickname;
+                        return (
+                          <div className="flex items-center gap-2 py-1">
+                            <span className="text-[10px] font-medium text-neutral-500 uppercase w-14 shrink-0">FACEIT</span>
+                            {val ? <a href={`https://www.faceit.com/en/players/${val}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="text-sm text-indigo-300 hover:text-indigo-200 truncate transition-colors">
+                              {val}
+                            </a> : <span className="text-sm text-neutral-700">—</span>}
+                          </div>
+                        );
+                      })()}
                       {validLinks.includes("discord") && (() => {
                         const val = memberProfile?.discord ?? member.discord;
                         return (
@@ -600,7 +631,6 @@ export default function MemberDetailPanel({
                     </div>
                   )}
                 </div>
-              )}
             </div>
           </div>
         </>

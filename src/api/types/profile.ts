@@ -15,6 +15,7 @@ export type UserProfileDto = {
     discord: string | null;
     twitter: string | null;
     hltv: string | null;
+    faceitNickname: string | null;
     customUsername: string | null;
     timezone: string | null;
     profileCompleted: boolean;

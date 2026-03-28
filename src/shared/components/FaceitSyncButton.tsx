@@ -134,12 +134,17 @@ export default function FaceitSyncButton({ teamId, onSynced, linkedCount, totalP
 
                     {/* Warning if not enough players */}
                     {!canSync && (
-                        <div className="px-5 py-3 border-b border-neutral-800/50">
-                            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                                <p className="text-xs text-amber-400/80 leading-relaxed">
-                                    {t("faceit.need_more_players_detail", { current: linkedCount ?? 0, required: 3 })}
-                                </p>
+                        <div className="px-5 py-3 border-b border-neutral-800/50 space-y-2">
+                            <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                                <div className="space-y-1.5">
+                                    <p className="text-xs text-amber-400/80 leading-relaxed">
+                                        {t("faceit.need_more_players_detail", { current: linkedCount ?? 0, required: 3 })}
+                                    </p>
+                                    <p className="text-[11px] text-neutral-500 leading-relaxed">
+                                        {t("faceit.link_manual_hint")}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}

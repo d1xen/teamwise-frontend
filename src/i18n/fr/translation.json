@@ -35,7 +35,8 @@
     "email": "Email",
     "try_again": "Veuillez réessayer",
     "more": "de plus",
-    "page": "page"
+    "page": "page",
+    "import": "Importer"
   },
   "meta": {
     "created_at": "Créé le {{date}}",
@@ -948,6 +949,9 @@
     "sync_label": "Synchroniser",
     "need_more_players": "Pas assez de joueurs FACEIT linkés",
     "need_more_players_detail": "{{current}}/{{required}} joueurs actifs linkés. Au moins {{required}} joueurs qui jouent ensemble doivent lier leur compte FACEIT depuis leur profil pour activer la synchronisation.",
+    "import_blocked_hint": "{{current}}/{{required}} joueurs linkés — liez vos joueurs pour débloquer",
+    "import_blocked_tooltip": "Au moins 3 joueurs actifs doivent avoir leur compte FACEIT lié. Chaque joueur peut le faire depuis son profil, ou un staff peut renseigner le pseudo FACEIT dans Management > Membres > Liens.",
+    "link_manual_hint": "Un staff peut aussi renseigner le lien FACEIT des joueurs manuellement dans Management > Membres > Liens.",
     "players_linked_short": "linkés",
     "sync_button": "Sync",
     "never_synced": "Jamais synchronisé",
@@ -972,7 +976,15 @@
     "discover_success_other": "{{count}} matchs importés",
     "discover_competition_added": "Compétition ajoutée — les matchs se synchroniseront automatiquement",
     "discover_already_exists": "Cette compétition est déjà dans votre liste",
-    "discover_error": "Impossible de trouver cette compétition"
+    "discover_error": "Impossible de trouver cette compétition",
+    "error_url_required": "URL ou identifiant requis",
+    "error_invalid_url": "Format d'URL ou d'identifiant FACEIT invalide",
+    "error_league_url": "Les URLs de leagues ne peuvent pas être importées directement — une league contient plusieurs compétitions. Importez chaque compétition séparément via son URL de championship.",
+    "error_competition_not_accessible": "Cette compétition n'est pas accessible via l'API FACEIT. Utilisez le bouton Sync pour importer les matchs via l'historique des joueurs.",
+    "error_competition_not_found": "Compétition introuvable sur FACEIT",
+    "error_matchmaking": "Ce match ne fait pas partie d'une compétition (matchmaking)",
+    "error_matchmaking_only": "Les matchs de matchmaking ne peuvent pas être importés — uniquement les compétitions officielles",
+    "error_match_not_found": "Match introuvable sur FACEIT"
   },
   "agenda": {
     "header_subtitle": "Planifiez vos événements, gérez les disponibilités, anticipez les conflits",

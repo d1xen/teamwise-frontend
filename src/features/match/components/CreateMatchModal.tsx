@@ -1,6 +1,6 @@
 import { type FormEvent, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { X, ChevronDown, PenLine, Loader } from "lucide-react";
+import { X, ChevronDown, PenLine, Loader, AlertTriangle } from "lucide-react";
 import FaceitIcon from "@/shared/components/FaceitIcon";
 import type { CreateMatchRequest, MatchFormat, MatchType } from "@/api/types/match";
 import type { CompetitionSummaryDto } from "@/api/types/competition";
@@ -10,6 +10,7 @@ import { useTeam } from "@/contexts/team/useTeam";
 import DatePicker from "@/design-system/components/DatePicker";
 import TimePicker from "@/design-system/components/TimePicker";
 import toast from "react-hot-toast";
+import { mapFaceitImportError } from "@/shared/utils/faceitErrors";
 
 interface CreateMatchModalProps {
     onClose: () => void;
@@ -17,7 +18,7 @@ interface CreateMatchModalProps {
     onFaceitImported?: () => void;
 }
 
-type Mode = "choose" | "manual" | "faceit";
+type Mode = "choose" | "manual";
 
 const MATCH_TYPES: MatchType[] = ["OFFICIAL", "SCRIM"];
 const MATCH_FORMATS: MatchFormat[] = ["BO1", "BO3", "BO5"];
@@ -33,8 +34,13 @@ const INPUT = "w-full bg-neutral-900/60 border border-neutral-800 rounded-lg px-
 
 export default function CreateMatchModal({ onClose, onSubmit, onFaceitImported }: CreateMatchModalProps) {
     const { t } = useTranslation();
-    const { team } = useTeam();
+    const { team, members } = useTeam();
     const [mode, setMode] = useState<Mode>("choose");
+    const isFaceitTeam = team?.game === "CS2";
+
+    const activePlayers = members.filter(m => m.role === "PLAYER" && m.activePlayer !== false);
+    const linkedCount = activePlayers.filter(m => m.faceitNickname != null).length;
+    const canImport = linkedCount >= 3;
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -47,7 +53,7 @@ export default function CreateMatchModal({ onClose, onSubmit, onFaceitImported }
             <div className="bg-[#141414] border border-neutral-800 rounded-2xl w-full max-w-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between px-6 pt-6 pb-5">
                     <h2 className="text-base font-semibold text-white">
-                        {mode === "choose" ? t("matches.create_title") : mode === "faceit" ? t("matches.import_faceit") : t("matches.create_manual")}
+                        {mode === "manual" ? t("matches.create_manual") : t("matches.create_title")}
                     </h2>
                     <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-neutral-800 text-neutral-600 hover:text-white transition-colors">
                         <X className="w-4 h-4" />
@@ -55,57 +61,37 @@ export default function CreateMatchModal({ onClose, onSubmit, onFaceitImported }
                 </div>
 
                 {mode === "choose" && (
-                    <ChooseMode onManual={() => setMode("manual")} onFaceit={() => setMode("faceit")} isFaceitTeam={team?.game === "CS2"} />
+                    <ChooseScreen
+                        teamId={team?.id ?? ""}
+                        isFaceitTeam={isFaceitTeam}
+                        canImport={canImport}
+                        linkedCount={linkedCount}
+                        totalPlayers={activePlayers.length}
+                        onManual={() => setMode("manual")}
+                        onImported={() => { onFaceitImported?.(); onClose(); }}
+                    />
                 )}
                 {mode === "manual" && (
                     <ManualForm onClose={onClose} onSubmit={onSubmit} onBack={() => setMode("choose")} teamId={team?.id ?? ""} />
-                )}
-                {mode === "faceit" && (
-                    <FaceitImport teamId={team?.id ?? ""} onImported={() => { onFaceitImported?.(); onClose(); }} onBack={() => setMode("choose")} />
                 )}
             </div>
         </div>
     );
 }
 
-function ChooseMode({ onManual, onFaceit, isFaceitTeam }: { onManual: () => void; onFaceit: () => void; isFaceitTeam: boolean }) {
-    const { t } = useTranslation();
-    return (
-        <div className="px-6 pb-6 space-y-3">
-            <button onClick={onManual}
-                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/40 transition-all text-left">
-                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-                    <PenLine className="w-5 h-5 text-indigo-400" />
-                </div>
-                <div>
-                    <p className="text-sm font-semibold text-white">{t("matches.create_manual")}</p>
-                    <p className="text-xs text-neutral-500 mt-0.5">{t("matches.create_manual_hint")}</p>
-                </div>
-            </button>
+// ── Choose screen with inline FACEIT import ─────────────────────────────────
 
-            {isFaceitTeam && (
-                <button onClick={onFaceit}
-                    className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-orange-500/20 hover:border-orange-500/30 hover:bg-orange-500/[0.03] transition-all text-left">
-                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
-                        <FaceitIcon className="w-5 h-5 text-orange-400" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold text-white">{t("matches.import_faceit")}</p>
-                        <p className="text-xs text-neutral-500 mt-0.5">{t("matches.import_faceit_hint")}</p>
-                    </div>
-                </button>
-            )}
-        </div>
-    );
-}
-
-function FaceitImport({ teamId, onImported, onBack }: { teamId: string | number; onImported: () => void; onBack: () => void }) {
+function ChooseScreen({ teamId, isFaceitTeam, canImport, linkedCount, totalPlayers, onManual, onImported }: {
+    teamId: string | number; isFaceitTeam: boolean; canImport: boolean;
+    linkedCount: number; totalPlayers: number;
+    onManual: () => void; onImported: () => void;
+}) {
     const { t } = useTranslation();
     const [url, setUrl] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
     const handleImport = async () => {
-        if (!url.trim()) return;
+        if (!url.trim() || !canImport) return;
         setIsLoading(true);
         try {
             const result = await discoverFaceitCompetition(teamId, url.trim());
@@ -119,32 +105,61 @@ function FaceitImport({ teamId, onImported, onBack }: { teamId: string | number;
             onImported();
         } catch (err: unknown) {
             const apiErr = err as { message?: string };
-            toast.error(apiErr?.message ?? t("faceit.discover_error"));
+            toast.error(t(mapFaceitImportError(apiErr?.message)));
         } finally { setIsLoading(false); }
     };
 
     return (
-        <div className="px-6 pb-6 space-y-4">
-            <div className="bg-orange-500/[0.03] border border-orange-500/15 rounded-xl p-4 space-y-3">
-                <p className="text-xs text-neutral-400 leading-relaxed">{t("matches.import_faceit_info")}</p>
-                <input type="text" value={url} onChange={e => setUrl(e.target.value)}
-                    placeholder={t("faceit.discover_placeholder")} className={INPUT} autoFocus
-                    onKeyDown={e => e.key === "Enter" && handleImport()} />
-            </div>
-            <div className="flex gap-3">
-                <button type="button" onClick={onBack}
-                    className="flex-1 py-2.5 rounded-xl border border-neutral-800 text-sm font-medium text-neutral-500 hover:text-neutral-300 hover:border-neutral-700 transition-colors">
-                    {t("common.back")}
-                </button>
-                <button onClick={handleImport} disabled={isLoading || !url.trim()}
-                    className="flex-1 py-2.5 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-orange-400 transition-colors flex items-center justify-center gap-2">
-                    {isLoading ? <Loader className="w-4 h-4 animate-spin" /> : <FaceitIcon className="w-4 h-4" />}
-                    {t("matches.import_button")}
-                </button>
-            </div>
+        <div className="px-6 pb-6 space-y-3">
+            {/* Manual creation */}
+            <button onClick={onManual}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/40 transition-all text-left">
+                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                    <PenLine className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                    <p className="text-sm font-semibold text-white">{t("matches.create_manual")}</p>
+                    <p className="text-xs text-neutral-500 mt-0.5">{t("matches.create_manual_hint")}</p>
+                </div>
+            </button>
+
+            {/* FACEIT import inline */}
+            {isFaceitTeam && (
+                <div className={`rounded-xl border p-4 space-y-3 ${canImport ? "border-orange-500/20 bg-orange-500/[0.02]" : "border-neutral-800 bg-neutral-900/30"}`}>
+                    <div className="flex items-center gap-2">
+                        <FaceitIcon className={`w-4 h-4 ${canImport ? "text-orange-400" : "text-neutral-600"}`} />
+                        <span className={`text-sm font-semibold ${canImport ? "text-white" : "text-neutral-500"}`}>{t("matches.import_faceit")}</span>
+                        {!canImport && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+                        {!canImport && <span className="text-[10px] text-amber-400 font-medium ml-auto">{linkedCount}/{totalPlayers} {t("faceit.players_linked_short")}</span>}
+                    </div>
+
+                    {canImport ? (
+                        <>
+                            <p className="text-xs text-neutral-500 leading-relaxed">{t("matches.import_faceit_info")}</p>
+                            <div className="flex gap-2">
+                                <input type="text" value={url} onChange={e => setUrl(e.target.value)}
+                                    placeholder={t("faceit.discover_placeholder")} className={`${INPUT} flex-1`}
+                                    onKeyDown={e => e.key === "Enter" && handleImport()} />
+                                <button onClick={handleImport} disabled={isLoading || !url.trim()}
+                                    className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0">
+                                    {isLoading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <FaceitIcon className="w-3.5 h-3.5" />}
+                                    {t("common.import")}
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                            <p className="text-[11px] text-amber-400/80 leading-relaxed">{t("faceit.import_blocked_tooltip")}</p>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
+
+// ── Manual form ─────────────────────────────────────────────────────────────
 
 function ManualForm({ onClose, onSubmit, onBack, teamId }: { onClose: () => void; onSubmit: (p: CreateMatchRequest) => Promise<boolean>; onBack: () => void; teamId: string | number }) {
     const { t } = useTranslation();

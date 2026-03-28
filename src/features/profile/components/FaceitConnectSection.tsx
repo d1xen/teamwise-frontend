@@ -30,6 +30,8 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
     const pollIntervalRef = useRef<number | null>(null);
     const pollTimeoutRef = useRef<number | null>(null);
     const hasCompletedRef = useRef(false);
+    const connectInitiatedRef = useRef(false);
+    const closeWatcherRef = useRef<number | null>(null);
 
     const clearPolling = () => {
         if (pollIntervalRef.current !== null) {
@@ -40,10 +42,15 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
             window.clearTimeout(pollTimeoutRef.current);
             pollTimeoutRef.current = null;
         }
+        if (closeWatcherRef.current !== null) {
+            window.clearInterval(closeWatcherRef.current);
+            closeWatcherRef.current = null;
+        }
     };
 
     const completeLinkFlow = (nickname?: string | null) => {
         if (hasCompletedRef.current) return;
+        if (!connectInitiatedRef.current) return; // ignore if no connect was initiated this session
         hasCompletedRef.current = true;
         setStatus({ linked: true, faceitNickname: nickname ?? null });
         toast.success(t('faceit.connect_success'));
@@ -72,6 +79,7 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
         const params = new URLSearchParams(window.location.search);
         const queryResult = params.get('faceit_result');
         if (queryResult === 'linked') {
+            connectInitiatedRef.current = true; // query param means OAuth just completed
             const nickname = params.get('faceit_nickname') ?? '';
             setStatus({ linked: true, faceitNickname: nickname });
             toast.success(t('faceit.connect_success'));
@@ -124,6 +132,7 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
 
     const handleConnect = async () => {
         hasCompletedRef.current = false;
+        connectInitiatedRef.current = true;
         setIsActing(true);
 
         // Ouvre immédiatement une popup sur geste utilisateur pour éviter le blocage navigateur.
@@ -172,9 +181,12 @@ export default function FaceitConnectSection({ canEdit, variant = 'card' }: Face
                 }
             }, 90_000);
 
-            const closeWatcher = window.setInterval(() => {
+            closeWatcherRef.current = window.setInterval(() => {
                 if (popupRef.current && popupRef.current.closed) {
-                    window.clearInterval(closeWatcher);
+                    if (closeWatcherRef.current !== null) {
+                        window.clearInterval(closeWatcherRef.current);
+                        closeWatcherRef.current = null;
+                    }
                     popupRef.current = null;
                     if (!hasCompletedRef.current) {
                         setIsActing(false);

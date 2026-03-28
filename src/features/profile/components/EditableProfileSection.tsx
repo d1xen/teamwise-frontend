@@ -329,12 +329,50 @@ export default function EditableProfileSection({
           <Cell label={t('profile.timezone')} value={profile.timezone} editing={e} formValue={form.timezone} onChange={v => set('timezone', v)} options={TIMEZONES} labelMap={TIMEZONE_LABEL} placeholder={t('profile.select_timezone')} required />
         </div>
 
-        {/* Gaming */}
+        {/* Links */}
         <div className="p-5 space-y-2.5">
-          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t('profile.gaming')}</p>
-          {validLinks.includes('discord') && <Cell label="Discord" value={profile.discord} editing={e} formValue={form.discord} onChange={v => set('discord', v)} placeholder={t('profile.discord_placeholder')} />}
-          {validLinks.includes('twitter') && <Cell label="Twitter / X" value={profile.twitter} editing={e} formValue={form.twitter} onChange={v => set('twitter', v)} placeholder={t('profile.twitter_placeholder')} />}
-          {validLinks.includes('hltv') && <Cell label="HLTV" value={profile.hltv} editing={e} formValue={form.hltv} onChange={v => set('hltv', v)} placeholder={t('profile.hltv_placeholder')} />}
+          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">{t('management.links')}</p>
+          {e ? (
+            <>
+              <Cell label="FACEIT" value={profile.faceitNickname ? `https://www.faceit.com/en/players/${profile.faceitNickname}` : null} editing={false} />
+              {validLinks.includes('discord') && <Cell label="Discord" value={profile.discord} editing formValue={form.discord} onChange={v => set('discord', v)} placeholder={t('profile.discord_placeholder')} />}
+              {validLinks.includes('twitter') && <Cell label="Twitter / X" value={profile.twitter} editing formValue={form.twitter} onChange={v => set('twitter', v)} placeholder={t('profile.twitter_placeholder')} />}
+              {validLinks.includes('hltv') && <Cell label="HLTV" value={profile.hltv} editing formValue={form.hltv} onChange={v => set('hltv', v)} placeholder={t('profile.hltv_placeholder')} />}
+            </>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 py-1">
+                <span className="text-[10px] font-medium text-neutral-500 uppercase w-14 shrink-0">FACEIT</span>
+                {profile.faceitNickname
+                  ? <a href={`https://www.faceit.com/en/players/${profile.faceitNickname}`} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-300 hover:text-indigo-200 truncate transition-colors">{profile.faceitNickname}</a>
+                  : <span className="text-sm text-neutral-700">—</span>}
+              </div>
+              {validLinks.includes('discord') && (
+                <div className="flex items-center gap-2 py-1">
+                  <span className="text-[10px] font-medium text-neutral-500 uppercase w-14 shrink-0">Discord</span>
+                  {profile.discord
+                    ? <span className="text-sm text-indigo-300 font-mono">#{profile.discord}</span>
+                    : <span className="text-sm text-neutral-700">—</span>}
+                </div>
+              )}
+              {validLinks.includes('twitter') && (
+                <div className="flex items-center gap-2 py-1">
+                  <span className="text-[10px] font-medium text-neutral-500 uppercase w-14 shrink-0">Twitter</span>
+                  {profile.twitter
+                    ? <a href={profile.twitter.startsWith('http') ? profile.twitter : `https://twitter.com/${profile.twitter}`} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-300 hover:text-indigo-200 truncate transition-colors">{profile.twitter.replace(/^https?:\/\/(www\.)?(twitter|x)\.com\//, '@')}</a>
+                    : <span className="text-sm text-neutral-700">—</span>}
+                </div>
+              )}
+              {validLinks.includes('hltv') && (
+                <div className="flex items-center gap-2 py-1">
+                  <span className="text-[10px] font-medium text-neutral-500 uppercase w-14 shrink-0">HLTV</span>
+                  {profile.hltv
+                    ? <a href={profile.hltv.startsWith('http') ? profile.hltv : `https://hltv.org/player/${profile.hltv}`} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-300 hover:text-indigo-200 truncate transition-colors">{profile.hltv.replace(/^https?:\/\/(www\.)?hltv\.org\//, '')}</a>
+                    : <span className="text-sm text-neutral-700">—</span>}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
