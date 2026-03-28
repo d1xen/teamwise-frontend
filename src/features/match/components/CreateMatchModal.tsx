@@ -287,8 +287,8 @@ function FaceitImportView({ teamId, onImported, onBack }: { teamId: string | num
     };
 
     return (
-        <div className="px-6 pb-6 space-y-4">
-            <p className="text-xs text-neutral-400 leading-relaxed">{t("matches.import_faceit_info")}</p>
+        <div className="px-6 pt-5 pb-6 space-y-5">
+            <p className="text-sm text-neutral-400 leading-relaxed">{t("matches.import_faceit_info")}</p>
             <input type="text" value={url} onChange={e => setUrl(e.target.value)}
                 placeholder={t("faceit.discover_placeholder")} className={INPUT} autoFocus
                 onKeyDown={e => e.key === "Enter" && handleImport()} />

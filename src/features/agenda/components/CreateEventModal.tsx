@@ -636,12 +636,12 @@ export default function CreateEventModal({ teamId, members, game, initialDate, i
 
                     {/* ── FACEIT import form (Match or Competition) ───────────── */}
                     {isFormStep && (isMatch || isCompetition) && createMode === "faceit" && (
-                        <div className="p-5 space-y-4">
-                            <div className="flex items-center gap-2.5 mb-2">
+                        <div className="p-5 space-y-5">
+                            <div className="flex items-center gap-2.5">
                                 <FaceitIcon className="w-5 h-5 text-orange-400" />
                                 <span className="text-sm font-semibold text-white">{isMatch ? t("matches.import_faceit") : t("competitions.import_faceit")}</span>
                             </div>
-                            <p className="text-xs text-neutral-500 leading-relaxed">
+                            <p className="text-sm text-neutral-400 leading-relaxed">
                                 {isMatch ? t("matches.import_faceit_info") : t("competitions.import_faceit_info")}
                             </p>
                             <div className="flex gap-2">
