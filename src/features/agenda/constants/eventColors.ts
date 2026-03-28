@@ -9,9 +9,7 @@ export const TYPE_COLORS: Record<string, string> = {
 };
 
 export const CUSTOM_SUBTYPE_COLORS: Record<string, string> = {
-    LAN:        "bg-orange-500/15 text-orange-300 border-orange-500/25",
-    TOURNAMENT: "bg-red-500/15 text-red-300 border-red-500/25",
-    QUALIFIER:  "bg-amber-500/15 text-amber-300 border-amber-500/25",
-    VACATION:   "bg-cyan-500/15 text-cyan-300 border-cyan-500/25",
     TRAVEL:     "bg-violet-500/15 text-violet-300 border-violet-500/25",
+    VACATION:   "bg-cyan-500/15 text-cyan-300 border-cyan-500/25",
+    MEDIA:      "bg-pink-500/15 text-pink-300 border-pink-500/25",
 };

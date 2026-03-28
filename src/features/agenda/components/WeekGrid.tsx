@@ -1,6 +1,6 @@
 import { useMemo, useRef, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, CalendarPlus, UserCog } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/design-system";
 import type { EventDto, AvailabilityDto, ConflictSummaryDto } from "@/api/types/agenda";
 import EventChip from "./EventChip";
@@ -99,6 +99,43 @@ function layoutAllDayEvents(events: EventDto[], weekDays: Date[]): AllDayRow[] {
     return rows;
 }
 
+// ── Unavailability overlap layout (side-by-side columns) ─────────────────────
+
+type LayoutedUnavail = { unavail: AvailabilityDto; top: number; height: number; col: number; totalCols: number };
+
+function layoutOverlappingUnavails(avails: AvailabilityDto[], startMin: number, endMin: number, totalH: number, totalMin: number): LayoutedUnavail[] {
+    if (avails.length === 0) return [];
+    const items = avails.map(a => {
+        const s = Math.max(minutesFromMidnight(new Date(a.startAt)), startMin);
+        const e = Math.min(minutesFromMidnight(new Date(a.endAt)) || endMin, endMin);
+        return { unavail: a, s, e };
+    }).filter(i => i.e > i.s).sort((a, b) => a.s - b.s);
+
+    // Assign columns: for each item, find the first column not occupied by an overlapping item
+    const cols: number[] = [];
+    const colEnds: number[] = []; // track end time of each column
+    for (const item of items) {
+        let col = 0;
+        while (col < colEnds.length && colEnds[col] > item.s) col++;
+        cols.push(col);
+        if (col < colEnds.length) colEnds[col] = item.e;
+        else colEnds.push(item.e);
+    }
+
+    // For each item, compute totalCols (max columns among overlapping group)
+    return items.map((item, i) => {
+        let groupCols = cols[i] + 1;
+        for (let j = 0; j < items.length; j++) {
+            if (items[i].s < items[j].e && items[i].e > items[j].s) {
+                groupCols = Math.max(groupCols, cols[j] + 1);
+            }
+        }
+        const top = ((item.s - startMin) / totalMin) * totalH;
+        const height = Math.max(((item.e - item.s) / totalMin) * totalH, 18);
+        return { unavail: item.unavail, top, height, col: cols[i], totalCols: groupCols };
+    });
+}
+
 // ── Timed event layout (overlapping columns) ─────────────────────────────────
 
 type LayoutedEvent = { event: EventDto; top: number; height: number; depth: number; maxDepth: number };
@@ -148,41 +185,6 @@ function layoutOverlappingEvents(events: EventDto[], startMin: number, endMin: n
     });
 }
 
-// ── Quick add menu ────────────────────────────────────────────────────────────
-
-function QuickAddMenu({ date, isStaff, onSelect, onClose }: {
-    date: string; isStaff: boolean;
-    onSelect: (date: string, type: "event" | "availability") => void;
-    onClose: () => void;
-}) {
-    const { t } = useTranslation();
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-        };
-        document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
-    }, [onClose]);
-
-    return (
-        <div ref={ref} className="absolute left-1/2 -translate-x-1/2 top-full mt-0.5 z-50 bg-[#141414] border border-neutral-700 rounded-lg overflow-hidden min-w-[150px]">
-            {isStaff && (
-                <button onClick={() => { onSelect(date, "event"); onClose(); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-neutral-800/60 transition-colors text-left">
-                    <CalendarPlus className="w-3.5 h-3.5 text-indigo-400" />
-                    <span className="text-[11px] font-medium text-neutral-200">{t("agenda.new_team_event")}</span>
-                </button>
-            )}
-            <button onClick={() => { onSelect(date, "availability"); onClose(); }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-neutral-800/60 transition-colors text-left">
-                <UserCog className="w-3.5 h-3.5 text-orange-400" />
-                <span className="text-[11px] font-medium text-neutral-200">{t("agenda.new_personal")}</span>
-            </button>
-        </div>
-    );
-}
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -197,7 +199,6 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
     const startMinutes = startHour * 60;
 
     const dayFmt = new Intl.DateTimeFormat(i18n.language, { weekday: "short", day: "numeric" });
-    const [quickAddKey, setQuickAddKey] = useState<string | null>(null);
     const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
     // Separate all-day vs timed events, and expand multi-day timed events
@@ -308,22 +309,12 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
                             )}
                         >
                             {onQuickAdd && isDayHovered && (
-                                <>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setQuickAddKey(quickAddKey === dateStr ? null : dateStr); }}
-                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-neutral-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all z-10"
-                                    >
-                                        <Plus className="w-3 h-3" />
-                                    </button>
-                                    {quickAddKey === dateStr && (
-                                        <QuickAddMenu
-                                            date={dateStr}
-                                            isStaff={isStaff ?? false}
-                                            onSelect={(d, type) => { onQuickAdd(d, type); setQuickAddKey(null); }}
-                                            onClose={() => setQuickAddKey(null)}
-                                        />
-                                    )}
-                                </>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onQuickAdd(dateStr, "event"); }}
+                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-neutral-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all z-10"
+                                >
+                                    <Plus className="w-3 h-3" />
+                                </button>
                             )}
                             <div className="flex items-center justify-center gap-1.5">
                                 <span className={cn(
@@ -524,30 +515,28 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
                                     isDayHovered && !isToday && "bg-white/[0.02]"
                                 )}
                             >
-                                {/* Unavailability blocks — always visible, behind events */}
-                                {dayUnavailabilities.filter(a => a.type === "UNAVAILABLE").map((a, ai) => {
-                                    const s = new Date(a.startAt);
-                                    const e = new Date(a.endAt);
-                                    const aStart = Math.max(minutesFromMidnight(s), startMinutes);
-                                    const aEnd = Math.min(minutesFromMidnight(e) || endHour * 60, endHour * 60);
-                                    if (aEnd <= aStart) return null;
-                                    const uTop = ((aStart - startMinutes) / totalMinutes) * totalHeight;
-                                    const uHeight = ((aEnd - aStart) / totalMinutes) * totalHeight;
-
-                                    return (
-                                        <div key={`unavail-${ai}`}
-                                            onClick={isStaff && onUnavailClick ? () => onUnavailClick(a) : undefined}
-                                            className={cn(
-                                                "absolute left-0.5 right-0.5 z-[3] rounded-[3px] border border-orange-500/15 overflow-hidden bg-orange-400/[0.04] bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(251,191,36,0.06)_4px,rgba(251,191,36,0.06)_8px)]",
-                                                isStaff && "cursor-pointer hover:border-orange-500/30 hover:bg-orange-400/[0.08] transition-colors"
-                                            )}
-                                            style={{ top: uTop, height: uHeight }}>
-                                            <div className="px-1.5 py-0.5">
-                                                <span className="text-[10px] font-semibold text-white/70 truncate block">{a.nickname}</span>
+                                {/* Unavailability blocks — side-by-side when overlapping */}
+                                {(() => {
+                                    const unavails = dayUnavailabilities.filter(a => a.type === "UNAVAILABLE");
+                                    const laid = layoutOverlappingUnavails(unavails, startMinutes, endHour * 60, totalHeight, totalMinutes);
+                                    return laid.map(({ unavail: a, top: uTop, height: uHeight, col, totalCols }) => {
+                                        const widthPct = 100 / totalCols;
+                                        const leftPct = col * widthPct;
+                                        return (
+                                            <div key={`unavail-${a.id ?? col}`}
+                                                onClick={isStaff && onUnavailClick ? () => onUnavailClick(a) : undefined}
+                                                className={cn(
+                                                    "absolute z-[3] rounded-[3px] border border-orange-500/15 overflow-hidden bg-orange-400/[0.04] bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(251,191,36,0.06)_4px,rgba(251,191,36,0.06)_8px)]",
+                                                    isStaff && "cursor-pointer hover:border-orange-500/30 hover:bg-orange-400/[0.08] transition-colors"
+                                                )}
+                                                style={{ top: uTop, height: uHeight, left: `calc(${leftPct}% + 2px)`, width: `calc(${widthPct}% - 4px)` }}>
+                                                <div className="px-1.5 py-0.5">
+                                                    <span className="text-[10px] font-semibold text-white/70 truncate block">{a.nickname}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    });
+                                })()}
                                 {hours.map(hour => (
                                     <div key={hour} className="absolute left-0 right-0 border-t border-neutral-800/30"
                                         style={{ top: (hour - startHour) * HOUR_HEIGHT }} />

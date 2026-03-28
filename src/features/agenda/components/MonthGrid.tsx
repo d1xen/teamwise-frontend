@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, CalendarPlus, UserCog } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/design-system";
 import type { EventDto } from "@/api/types/agenda";
 import EventChip from "./EventChip";
@@ -117,46 +117,12 @@ function OverflowPopover({ events, onEventClick, onClose }: { events: EventDto[]
     );
 }
 
-function QuickAddMenu({ date, isStaff, onSelect, onClose }: {
-    date: string; isStaff: boolean;
-    onSelect: (date: string, type: "event" | "availability") => void;
-    onClose: () => void;
-}) {
-    const { t } = useTranslation();
-    const ref = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-        };
-        document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
-    }, [onClose]);
-
-    return (
-        <div ref={ref} className="absolute left-0 top-full mt-0.5 z-50 bg-[#141414] border border-neutral-700 rounded-lg overflow-hidden min-w-[150px]">
-            {isStaff && (
-                <button onClick={() => { onSelect(date, "event"); onClose(); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-neutral-800/60 transition-colors text-left">
-                    <CalendarPlus className="w-3.5 h-3.5 text-indigo-400" />
-                    <span className="text-[11px] font-medium text-neutral-200">{t("agenda.new_team_event")}</span>
-                </button>
-            )}
-            <button onClick={() => { onSelect(date, "availability"); onClose(); }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-neutral-800/60 transition-colors text-left">
-                <UserCog className="w-3.5 h-3.5 text-orange-400" />
-                <span className="text-[11px] font-medium text-neutral-200">{t("agenda.new_personal")}</span>
-            </button>
-        </div>
-    );
-}
-
-export default function MonthGrid({ currentDate, events, isStaff = false, onEventClick, onQuickAdd }: MonthGridProps) {
+export default function MonthGrid({ currentDate, events, onEventClick, onQuickAdd }: MonthGridProps) {
     const { t } = useTranslation();
     const today = new Date();
     const month = currentDate.getMonth();
     const [overflowKey, setOverflowKey] = useState<string | null>(null);
-    const [quickAddKey, setQuickAddKey] = useState<string | null>(null);
     const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
     const weeks = useMemo(() => getMonthDays(currentDate), [currentDate]);
@@ -221,22 +187,12 @@ export default function MonthGrid({ currentDate, events, isStaff = false, onEven
                                             )}
                                         >
                                             {onQuickAdd && isHovered && (
-                                                <>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setQuickAddKey(quickAddKey === dateStr ? null : dateStr); }}
-                                                        className="absolute left-0.5 top-0.5 w-4 h-4 rounded flex items-center justify-center text-neutral-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all z-10"
-                                                    >
-                                                        <Plus className="w-2.5 h-2.5" />
-                                                    </button>
-                                                    {quickAddKey === dateStr && (
-                                                        <QuickAddMenu
-                                                            date={dateStr}
-                                                            isStaff={isStaff}
-                                                            onSelect={(d, type) => { onQuickAdd(d, type); setQuickAddKey(null); }}
-                                                            onClose={() => setQuickAddKey(null)}
-                                                        />
-                                                    )}
-                                                </>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); onQuickAdd(dateStr, "event"); }}
+                                                    className="absolute left-0.5 top-0.5 w-4 h-4 rounded flex items-center justify-center text-neutral-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all z-10"
+                                                >
+                                                    <Plus className="w-2.5 h-2.5" />
+                                                </button>
                                             )}
                                             <span className={cn(
                                                 "text-[10px] font-medium w-5 h-5 flex items-center justify-center rounded-full ml-auto",

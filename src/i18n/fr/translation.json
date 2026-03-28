@@ -682,7 +682,7 @@
 
   "matches": {
     "new_match": "Nouveau match",
-    "create_title": "Planifier un match",
+    "create_title": "Ajouter un match",
     "create_manual": "Créer manuellement",
     "create_manual_hint": "Renseignez l'adversaire, la date et le format",
     "import_faceit": "Importer depuis FACEIT",
@@ -1070,16 +1070,20 @@
     "custom_category": "Catégorie",
     "custom_placeholder": "Nom de l'événement",
     "subtype": {
-      "LAN": "LAN",
-      "TOURNAMENT": "Tournoi",
-      "QUALIFIER": "Qualifier",
-      "VACATION": "Vacances",
       "TRAVEL": "Déplacement",
+      "VACATION": "Vacances",
+      "MEDIA": "Média",
       "OTHER": "Autre"
     },
     "strat_maps": "Maps à travailler",
     "strat_objectives": "Objectifs",
     "strat_objectives_placeholder": "Points à travailler, focus…",
+    "strat_picker_label": "Strats à travailler",
+    "strat_picker_placeholder": "Rechercher une strat…",
+    "strat_picker_empty": "Aucune strat trouvée",
+    "strat_picker_none": "Aucune strat dans le stratbook",
+    "type_competition": "Compétition",
+    "type_availability": "Indisponibilité",
     "break_start": "Date de début",
     "break_end": "Date de fin",
     "all_day": "Toute la journée",

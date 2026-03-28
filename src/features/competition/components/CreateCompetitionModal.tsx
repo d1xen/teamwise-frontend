@@ -1,7 +1,8 @@
 import { type FormEvent, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { X, ChevronDown, PenLine, Loader, AlertTriangle } from "lucide-react";
+import { X, ChevronDown, Hand, Loader, AlertTriangle, ArrowLeft } from "lucide-react";
 import FaceitIcon from "@/shared/components/FaceitIcon";
+import { cn } from "@/design-system";
 import type { CompetitionType, CreateCompetitionRequest } from "@/api/types/competition";
 import { discoverFaceitCompetition } from "@/api/endpoints/faceit.api";
 import { useTeam } from "@/contexts/team/useTeam";
@@ -13,9 +14,11 @@ interface CreateCompetitionModalProps {
     onClose: () => void;
     onSubmit: (payload: CreateCompetitionRequest) => Promise<boolean>;
     onFaceitImported?: () => void;
+    initialStartDate?: string | undefined;
+    onBack?: (() => void) | undefined;
 }
 
-type Mode = "choose" | "manual";
+type Mode = "choose" | "manual" | "faceit";
 
 const COMPETITION_TYPES: CompetitionType[] = ["LEAGUE", "TOURNAMENT", "CUP", "LAN", "QUALIFIER", "OTHER"];
 
@@ -28,7 +31,7 @@ function chip(active: boolean) {
 const LABEL = "block text-[10px] font-semibold text-neutral-600 uppercase tracking-wider mb-2";
 const INPUT = "w-full bg-neutral-900/60 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-indigo-500/40 transition-colors";
 
-export default function CreateCompetitionModal({ onClose, onSubmit, onFaceitImported }: CreateCompetitionModalProps) {
+export default function CreateCompetitionModal({ onClose, onSubmit, onFaceitImported, initialStartDate, onBack }: CreateCompetitionModalProps) {
     const { t } = useTranslation();
     const { team, members } = useTeam();
     const [mode, setMode] = useState<Mode>("choose");
@@ -48,10 +51,17 @@ export default function CreateCompetitionModal({ onClose, onSubmit, onFaceitImpo
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4" onClick={onClose}>
             <div className="bg-[#141414] border border-neutral-800 rounded-2xl w-full max-w-xl" onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 pt-6 pb-5">
-                    <h2 className="text-base font-semibold text-white">
-                        {mode === "manual" ? t("competitions.create_manual") : t("competitions.create_title")}
-                    </h2>
+                <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-neutral-800">
+                    <div className="flex items-center gap-2">
+                        {onBack && (
+                            <button type="button" onClick={() => { onClose(); onBack(); }} className="p-1.5 rounded-lg hover:bg-neutral-800 text-neutral-500 hover:text-white transition-colors">
+                                <ArrowLeft className="w-4 h-4" />
+                            </button>
+                        )}
+                        <h2 className="text-base font-semibold text-white">
+                            {mode === "manual" ? t("competitions.create_manual") : t("competitions.create_title")}
+                        </h2>
+                    </div>
                     <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-neutral-800 text-neutral-600 hover:text-white transition-colors">
                         <X className="w-4 h-4" />
                     </button>
@@ -59,17 +69,17 @@ export default function CreateCompetitionModal({ onClose, onSubmit, onFaceitImpo
 
                 {mode === "choose" && (
                     <ChooseScreen
-                        teamId={team?.id ?? ""}
                         isFaceitTeam={isFaceitTeam}
                         canImport={canImport}
-                        linkedCount={linkedCount}
-                        totalPlayers={activePlayers.length}
                         onManual={() => setMode("manual")}
-                        onImported={() => { onFaceitImported?.(); onClose(); }}
+                        onImportMode={() => setMode("faceit")}
                     />
                 )}
+                {mode === "faceit" && (
+                    <FaceitImportView teamId={team?.id ?? ""} onImported={() => { onFaceitImported?.(); onClose(); }} onBack={() => setMode("choose")} />
+                )}
                 {mode === "manual" && (
-                    <ManualForm onClose={onClose} onSubmit={onSubmit} onBack={() => setMode("choose")} />
+                    <ManualForm onClose={onClose} onSubmit={onSubmit} onBack={() => setMode("choose")} initialStartDate={initialStartDate} />
                 )}
             </div>
         </div>
@@ -78,27 +88,57 @@ export default function CreateCompetitionModal({ onClose, onSubmit, onFaceitImpo
 
 // ── Choose screen with inline FACEIT import ─────────────────────────────────
 
-function ChooseScreen({ teamId, isFaceitTeam, canImport, linkedCount, totalPlayers, onManual, onImported }: {
-    teamId: string | number; isFaceitTeam: boolean; canImport: boolean;
-    linkedCount: number; totalPlayers: number;
-    onManual: () => void; onImported: () => void;
+function ChooseScreen({ isFaceitTeam, canImport, onManual, onImportMode }: {
+    isFaceitTeam: boolean; canImport: boolean;
+    onManual: () => void; onImportMode: () => void;
 }) {
+    const { t } = useTranslation();
+
+    return (
+        <>
+            <div className="px-6 py-5 space-y-2.5">
+                <button onClick={onManual}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/40 transition-all text-left">
+                    <div className="w-9 h-9 rounded-lg bg-neutral-700/40 border border-neutral-600/40 flex items-center justify-center shrink-0 text-neutral-300">
+                        <Hand className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-semibold text-neutral-200">{t("competitions.create_manual")}</span>
+                </button>
+
+                {isFaceitTeam && (
+                    <button onClick={canImport ? onImportMode : undefined}
+                        className={cn("w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all text-left",
+                            canImport ? "border-orange-500/20 hover:border-orange-500/30 hover:bg-orange-500/[0.03]" : "border-neutral-800 opacity-50 cursor-not-allowed")}>
+                        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border",
+                            canImport ? "bg-orange-500/10 border-orange-500/30 text-orange-400" : "bg-neutral-800 border-neutral-700 text-neutral-600")}>
+                            <FaceitIcon className="w-4 h-4" />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span className={cn("text-sm font-semibold", canImport ? "text-neutral-200" : "text-neutral-500")}>{t("competitions.import_faceit")}</span>
+                            {!canImport && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+                        </div>
+                    </button>
+                )}
+            </div>
+        </>
+    );
+}
+
+// ── FACEIT import view ──────────────────────────────────────────────────────
+
+function FaceitImportView({ teamId, onImported, onBack }: { teamId: string | number; onImported: () => void; onBack: () => void }) {
     const { t } = useTranslation();
     const [url, setUrl] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
     const handleImport = async () => {
-        if (!url.trim() || !canImport) return;
+        if (!url.trim()) return;
         setIsLoading(true);
         try {
             const result = await discoverFaceitCompetition(teamId, url.trim());
-            if (result.imported > 0) {
-                toast.success(t("faceit.discover_success", { count: result.imported }));
-            } else if (result.skipped > 0) {
-                toast(t("faceit.discover_already_exists"), { icon: "ℹ️" });
-            } else {
-                toast.success(t("faceit.discover_competition_added"));
-            }
+            if (result.imported > 0) toast.success(t("faceit.discover_success", { count: result.imported }));
+            else if (result.skipped > 0) toast(t("faceit.discover_already_exists"), { icon: "ℹ️" });
+            else toast.success(t("faceit.discover_competition_added"));
             onImported();
         } catch (err: unknown) {
             const apiErr = err as { message?: string };
@@ -107,58 +147,29 @@ function ChooseScreen({ teamId, isFaceitTeam, canImport, linkedCount, totalPlaye
     };
 
     return (
-        <div className="px-6 pb-6 space-y-3">
-            {/* Manual creation */}
-            <button onClick={onManual}
-                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/40 transition-all text-left">
-                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-                    <PenLine className="w-5 h-5 text-indigo-400" />
-                </div>
-                <div>
-                    <p className="text-sm font-semibold text-white">{t("competitions.create_manual")}</p>
-                    <p className="text-xs text-neutral-500 mt-0.5">{t("competitions.create_manual_hint")}</p>
-                </div>
-            </button>
-
-            {/* FACEIT import inline */}
-            {isFaceitTeam && (
-                <div className={`rounded-xl border p-4 space-y-3 ${canImport ? "border-orange-500/20 bg-orange-500/[0.02]" : "border-neutral-800 bg-neutral-900/30"}`}>
-                    <div className="flex items-center gap-2">
-                        <FaceitIcon className={`w-4 h-4 ${canImport ? "text-orange-400" : "text-neutral-600"}`} />
-                        <span className={`text-sm font-semibold ${canImport ? "text-white" : "text-neutral-500"}`}>{t("competitions.import_faceit")}</span>
-                        {!canImport && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-                        {!canImport && <span className="text-[10px] text-amber-400 font-medium ml-auto">{linkedCount}/{totalPlayers} {t("faceit.players_linked_short")}</span>}
-                    </div>
-
-                    {canImport ? (
-                        <>
-                            <p className="text-xs text-neutral-500 leading-relaxed">{t("competitions.import_faceit_info")}</p>
-                            <div className="flex gap-2">
-                                <input type="text" value={url} onChange={e => setUrl(e.target.value)}
-                                    placeholder={t("faceit.discover_placeholder")} className={`${INPUT} flex-1`}
-                                    onKeyDown={e => e.key === "Enter" && handleImport()} />
-                                <button onClick={handleImport} disabled={isLoading || !url.trim()}
-                                    className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0">
-                                    {isLoading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <FaceitIcon className="w-3.5 h-3.5" />}
-                                    {t("common.import")}
-                                </button>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                            <p className="text-[11px] text-amber-400/80 leading-relaxed">{t("faceit.import_blocked_tooltip")}</p>
-                        </div>
-                    )}
-                </div>
-            )}
+        <div className="px-6 pb-6 space-y-4">
+            <p className="text-xs text-neutral-400 leading-relaxed">{t("competitions.import_faceit_info")}</p>
+            <input type="text" value={url} onChange={e => setUrl(e.target.value)}
+                placeholder={t("faceit.discover_placeholder")} className={INPUT} autoFocus
+                onKeyDown={e => e.key === "Enter" && handleImport()} />
+            <div className="flex gap-3">
+                <button type="button" onClick={onBack}
+                    className="flex-1 py-2.5 rounded-xl border border-neutral-800 text-sm font-medium text-neutral-500 hover:text-neutral-300 hover:border-neutral-700 transition-colors">
+                    {t("common.back")}
+                </button>
+                <button onClick={handleImport} disabled={isLoading || !url.trim()}
+                    className="flex-1 py-2.5 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-orange-400 transition-colors flex items-center justify-center gap-2">
+                    {isLoading && <Loader className="w-4 h-4 animate-spin" />}
+                    {t("common.import")}
+                </button>
+            </div>
         </div>
     );
 }
 
 // ── Manual form ─────────────────────────────────────────────────────────────
 
-function ManualForm({ onClose, onSubmit, onBack }: { onClose: () => void; onSubmit: (p: CreateCompetitionRequest) => Promise<boolean>; onBack: () => void }) {
+function ManualForm({ onClose, onSubmit, onBack, initialStartDate }: { onClose: () => void; onSubmit: (p: CreateCompetitionRequest) => Promise<boolean>; onBack: () => void; initialStartDate?: string | undefined }) {
     const { t } = useTranslation();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
@@ -166,7 +177,7 @@ function ManualForm({ onClose, onSubmit, onBack }: { onClose: () => void; onSubm
     const [name, setName] = useState("");
     const [type, setType] = useState<CompetitionType>("TOURNAMENT");
     const [stage, setStage] = useState("");
-    const [startDate, setStartDate] = useState("");
+    const [startDate, setStartDate] = useState(initialStartDate ?? "");
     const [endDate, setEndDate] = useState("");
     const [format, setFormat] = useState("");
     const [cashprize, setCashprize] = useState("");
@@ -198,7 +209,7 @@ function ManualForm({ onClose, onSubmit, onBack }: { onClose: () => void; onSubm
 
     return (
         <form onSubmit={handleSubmit}>
-            <div className="px-6 space-y-5">
+            <div className="px-6 pt-5 space-y-5">
                 <div>
                     <label className={LABEL}>{t("competitions.name")}<span className="ml-1.5 text-indigo-500 normal-case tracking-normal font-normal">*</span></label>
                     <input type="text" className={INPUT} value={name} onChange={e => setName(e.target.value)} placeholder={t("competitions.name_placeholder")} autoFocus />
