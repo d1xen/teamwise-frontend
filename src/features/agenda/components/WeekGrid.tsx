@@ -49,14 +49,11 @@ function minutesFromMidnight(date: Date): number {
 }
 
 function isAllDayEvent(event: EventDto): boolean {
-    // COMPETITION events are always all-day
     if (event.type === "COMPETITION") return true;
     const s = new Date(event.startAt);
     const e = new Date(event.endAt);
     const diffHours = (e.getTime() - s.getTime()) / (1000 * 60 * 60);
-    // All-day if duration >= 23h (covers both local midnight and UTC midnight events)
     if (diffHours >= 23) return true;
-    // Fallback: starts at midnight local and long duration
     const startsAtMidnight = s.getHours() === 0 && s.getMinutes() === 0;
     return startsAtMidnight && diffHours >= 12;
 }
@@ -460,7 +457,7 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
                                 return (
                                     <div
                                         key={di}
-                                        className="border-l border-neutral-800/30 px-0.5 py-0.5"
+                                        className="border-l border-neutral-800/30 px-0.5 py-0.5 overflow-hidden"
                                         style={{ gridColumn: `${di + 2} / span ${item.span}` }}
                                     >
                                         <EventChip event={item.event} allDay onClick={() => onEventClick(item.event)} />

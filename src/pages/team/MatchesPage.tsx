@@ -249,7 +249,7 @@ export default function MatchesPage() {
 
                             {/* FACEIT */}
                             {isFaceitTeam && isStaff && (
-                                <FaceitSyncButton teamId={team.id} onSynced={handleFaceitSynced} showDiscover linkedCount={linkedCount} totalPlayers={activePlayers.length} />
+                                <FaceitSyncButton teamId={team.id} onSynced={handleFaceitSynced} linkedCount={linkedCount} totalPlayers={activePlayers.length} />
                             )}
 
                             {/* New match */}
@@ -411,6 +411,7 @@ export default function MatchesPage() {
                 <CreateMatchModal
                     onClose={() => setShowCreate(false)}
                     onSubmit={createMatch}
+                    onFaceitImported={() => { reload(); setShowCreate(false); }}
                 />
             )}
 

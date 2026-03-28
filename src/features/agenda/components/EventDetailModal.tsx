@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { X, Users, Loader } from "lucide-react";
+import { X, Users, Loader, Trophy, Clock, ExternalLink } from "lucide-react";
+import FaceitIcon from "@/shared/components/FaceitIcon";
 import MetaInfo from "@/shared/components/MetaInfo";
 import { cn } from "@/design-system";
 import type { EventDto, UpdateEventRequest } from "@/api/types/agenda";
@@ -178,6 +179,43 @@ export default function EventDetailModal({ event, teamId, isStaff, onClose, onDe
                                                 </div>
                                             ))}
                                         </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Competition info */}
+                            {event.competition && (
+                                <div className="bg-neutral-900/60 border border-neutral-800 rounded-lg px-3.5 py-3 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        {event.competition.logoUrl ? (
+                                            <img src={event.competition.logoUrl} alt="" className="w-6 h-6 rounded object-cover" />
+                                        ) : (
+                                            <Trophy className="w-4 h-4 text-neutral-500" />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-neutral-200 truncate">{event.competition.name}</p>
+                                            {event.competition.organizerName && (
+                                                <p className="text-[10px] text-neutral-600">{t("competitions.organized_by")} {event.competition.organizerName}</p>
+                                            )}
+                                        </div>
+                                        {event.competition.source === "FACEIT" && <FaceitIcon className="w-3.5 h-3.5 text-orange-400 shrink-0" />}
+                                    </div>
+                                    <div className="flex items-center gap-3 text-[11px] text-neutral-500 flex-wrap">
+                                        {event.competition.format && <span>{event.competition.format}</span>}
+                                        {event.competition.region && <span>{event.competition.region}</span>}
+                                        {event.competition.checkInDate && (
+                                            <span className="flex items-center gap-1 text-amber-400/80">
+                                                <Clock className="w-3 h-3" />
+                                                {t("competitions.check_in")} {new Date(event.competition.checkInDate).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {event.competition.url && (
+                                        <a href={event.competition.url} target="_blank" rel="noopener noreferrer"
+                                            className="flex items-center gap-1 text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors">
+                                            <ExternalLink className="w-3 h-3" />
+                                            {t("competitions.url")}
+                                        </a>
                                     )}
                                 </div>
                             )}

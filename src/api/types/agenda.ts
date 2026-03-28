@@ -40,6 +40,21 @@ export type EventMatchDto = {
     maps: EventMatchMapDto[];
 };
 
+export type EventCompetitionDto = {
+    competitionId: number;
+    name: string;
+    type: string;
+    status: string;
+    format: string | null;
+    region: string | null;
+    organizerName: string | null;
+    logoUrl: string | null;
+    url: string | null;
+    registrationDate: string | null;
+    checkInDate: string | null;
+    source: "MANUAL" | "FACEIT";
+};
+
 export type EventDto = {
     id: number;
     teamId: number;
@@ -53,6 +68,7 @@ export type EventDto = {
     source: EventSource;
     faceitMatchId: string | null;
     linkedMatchId: number | null;
+    linkedCompetitionId: number | null;
     recurrenceGroupId: string | null;
     participantScope: ParticipantScope | null;
     createdByNickname: string | null;
@@ -61,6 +77,7 @@ export type EventDto = {
     updatedAt: string;
     participants: EventParticipantDto[];
     match: EventMatchDto | null;
+    competition: EventCompetitionDto | null;
 };
 
 export type AvailabilityDto = {

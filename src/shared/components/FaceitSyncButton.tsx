@@ -1,16 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { RefreshCw, Plus, Info, Loader, ChevronDown, AlertTriangle } from "lucide-react";
+import { RefreshCw, Info, Loader, ChevronDown, AlertTriangle } from "lucide-react";
 import { cn } from "@/design-system";
 import toast from "react-hot-toast";
 import FaceitIcon from "@/shared/components/FaceitIcon";
-import { triggerFaceitSync, discoverFaceitCompetition } from "@/api/endpoints/faceit.api";
+import { triggerFaceitSync } from "@/api/endpoints/faceit.api";
 
 interface FaceitSyncButtonProps {
     teamId: string | number;
     onSynced: () => void;
-    showDiscover?: boolean | undefined;
     linkedCount?: number | undefined;
     totalPlayers?: number | undefined;
 }
@@ -51,12 +50,10 @@ function formatRelativeTime(iso: string | null, t: TFunction): string {
     return t("faceit.days_ago", { count: days });
 }
 
-export default function FaceitSyncButton({ teamId, onSynced, showDiscover, linkedCount, totalPlayers }: FaceitSyncButtonProps) {
+export default function FaceitSyncButton({ teamId, onSynced, linkedCount, totalPlayers }: FaceitSyncButtonProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [discoverUrl, setDiscoverUrl] = useState("");
-    const [isDiscovering, setIsDiscovering] = useState(false);
     const [period, setPeriodState] = useState<SyncPeriod>(() => getSyncPeriod(teamId));
     const ref = useRef<HTMLDivElement>(null);
 
@@ -88,27 +85,6 @@ export default function FaceitSyncButton({ teamId, onSynced, showDiscover, linke
             onSynced();
         } catch { toast.error(t("faceit.sync_failed")); }
         finally { setIsSyncing(false); }
-    };
-
-    const handleDiscover = async () => {
-        if (!discoverUrl.trim() || !canSync) return;
-        setIsDiscovering(true);
-        try {
-            const result = await discoverFaceitCompetition(teamId, discoverUrl.trim());
-            setLastSync(teamId);
-            if (result.imported > 0) {
-                toast.success(t("faceit.discover_success", { count: result.imported }));
-                onSynced();
-            } else if (result.skipped > 0) {
-                toast.success(t("faceit.discover_already_synced"));
-            } else {
-                toast(t("faceit.discover_no_matches"));
-            }
-            setDiscoverUrl("");
-        } catch (err: unknown) {
-            const apiErr = err as { message?: string };
-            toast.error(apiErr?.message ?? t("faceit.discover_error"));
-        } finally { setIsDiscovering(false); }
     };
 
     return (
@@ -201,27 +177,6 @@ export default function FaceitSyncButton({ teamId, onSynced, showDiscover, linke
                         <p className="text-xs text-neutral-500 leading-relaxed">{t("faceit.how_it_works_4")}</p>
                     </div>
 
-                    {/* Discover — always visible, disabled if not enough players */}
-                    {showDiscover && (
-                        <div className={cn("px-5 py-4 space-y-2.5", !canSync && "opacity-50 pointer-events-none")}>
-                            <div className="flex items-center gap-1.5">
-                                <Plus className="w-3.5 h-3.5 text-orange-400" />
-                                <span className="text-xs font-semibold text-neutral-300">{t("faceit.discover_title")}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <input type="text" value={discoverUrl}
-                                    onChange={e => setDiscoverUrl(e.target.value)}
-                                    onKeyDown={e => e.key === "Enter" && handleDiscover()}
-                                    placeholder={t("faceit.discover_placeholder")}
-                                    disabled={!canSync}
-                                    className="flex-1 px-3 py-2 rounded-lg bg-neutral-800/60 border border-neutral-700/50 text-xs text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-orange-500/40 transition-colors disabled:cursor-not-allowed" />
-                                <button onClick={handleDiscover} disabled={isDiscovering || !discoverUrl.trim() || !canSync}
-                                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400 text-xs font-semibold hover:bg-orange-500/25 disabled:opacity-40 transition-colors">
-                                    {isDiscovering ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </div>
             )}
         </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { ArrowLeft, Pencil, Trash2, Calendar, DollarSign, Trophy, ExternalLink, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Calendar, DollarSign, Trophy, ExternalLink, CheckCircle2, Clock, UserCheck } from "lucide-react";
 import FaceitIcon from "@/shared/components/FaceitIcon";
 import type { CompetitionDto, UpdateCompetitionRequest } from "@/api/types/competition";
 import type { NoteDto } from "@/api/types/common";
@@ -216,6 +216,24 @@ export default function CompetitionDetail({ teamId, competitionId, isStaff, onBa
                         <span className="text-neutral-600">{t("competitions.no_date")}</span>
                     )}
                 </div>
+
+                {/* Registration + Check-in */}
+                {(comp.registrationDate || comp.checkInDate) && (
+                    <div className="flex flex-wrap gap-4 mt-3 text-xs text-neutral-500">
+                        {comp.registrationDate && (
+                            <span className="flex items-center gap-1.5">
+                                <UserCheck className="w-3.5 h-3.5 text-neutral-600" />
+                                {t("competitions.registration")} {new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(comp.registrationDate))}
+                            </span>
+                        )}
+                        {comp.checkInDate && (
+                            <span className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 text-amber-500/70" />
+                                {t("competitions.check_in")} {new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(comp.checkInDate))}
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 {/* Match record */}
                 {comp.matchRecord && (comp.matchRecord.wins > 0 || comp.matchRecord.losses > 0) && (

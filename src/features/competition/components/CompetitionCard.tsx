@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { Calendar, ExternalLink, Trophy, DollarSign } from "lucide-react";
+import { Calendar, ExternalLink, Trophy, DollarSign, Clock } from "lucide-react";
 import FaceitIcon from "@/shared/components/FaceitIcon";
+import { useCountdown } from "@/shared/hooks/useCountdown";
 import type { CompetitionDto } from "@/api/types/competition";
 
 interface CompetitionCardProps {
@@ -34,6 +35,19 @@ export default function CompetitionCard({ competition, onClick }: CompetitionCar
     const { t } = useTranslation();
     const c = competition;
     const isFaceit = c.source === "FACEIT";
+    const isUpcoming = c.status === "UPCOMING";
+
+    // Countdown target: checkInDate (precise) > startDate (day only)
+    const countdownTarget = isUpcoming
+        ? (c.checkInDate ?? (c.startDate ? c.startDate + "T00:00:00" : null))
+        : null;
+    const countdown = useCountdown(countdownTarget, t);
+
+    const countdownColor = countdown?.urgency === "high"
+        ? "text-amber-400 bg-amber-400/10 border-amber-400/20"
+        : countdown?.urgency === "medium"
+        ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
+        : "text-neutral-500 bg-neutral-800/60 border-neutral-700/40";
 
     const borderClass = c.status === "ONGOING"
         ? "border-emerald-500/30"
@@ -102,8 +116,19 @@ export default function CompetitionCard({ competition, onClick }: CompetitionCar
                             )}
                         </span>
 
+                        {c.checkInDate && isUpcoming && (
+                            <span className="flex items-center gap-1 text-amber-400/80">
+                                <Clock className="w-3 h-3" />
+                                {t("competitions.check_in")} {new Date(c.checkInDate).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                        )}
+
                         {c.format && (
                             <span className="text-neutral-600">{c.format}</span>
+                        )}
+
+                        {c.region && (
+                            <span className="text-neutral-600">{c.region}</span>
                         )}
 
                         {c.cashprize && (
@@ -126,11 +151,17 @@ export default function CompetitionCard({ competition, onClick }: CompetitionCar
                     </div>
                 </div>
 
-                {/* Right side — status (top-aligned) */}
+                {/* Right side — countdown or status badge */}
                 <div className="flex-shrink-0 self-start mt-1">
-                    <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${STATUS_STYLES[c.status] ?? STATUS_STYLES.UPCOMING}`}>
-                        {t(`competitions.status_${c.status.toLowerCase()}`)}
-                    </span>
+                    {countdown && !countdown.isPast && countdown.label ? (
+                        <span className={`text-xs px-2.5 py-1 rounded-lg border whitespace-nowrap ${countdownColor} ${countdown.isLive ? "font-mono font-bold tabular-nums" : "font-medium"}`}>
+                            {countdown.label}
+                        </span>
+                    ) : (
+                        <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${STATUS_STYLES[c.status] ?? STATUS_STYLES.UPCOMING}`}>
+                            {t(`competitions.status_${c.status.toLowerCase()}`)}
+                        </span>
+                    )}
                 </div>
             </div>
         </div>

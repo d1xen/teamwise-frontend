@@ -229,7 +229,7 @@ export default function CompetitionsPage() {
 
                             {/* FACEIT */}
                             {isFaceitTeam && isStaff && (
-                                <FaceitSyncButton teamId={team?.id ?? ""} onSynced={reload} showDiscover linkedCount={linkedCount} totalPlayers={activePlayers.length} />
+                                <FaceitSyncButton teamId={team?.id ?? ""} onSynced={reload} linkedCount={linkedCount} totalPlayers={activePlayers.length} />
                             )}
 
                             {/* New competition */}
@@ -425,6 +425,7 @@ export default function CompetitionsPage() {
                 <CreateCompetitionModal
                     onClose={() => setShowCreate(false)}
                     onSubmit={createCompetition}
+                    onFaceitImported={() => { reload(); setShowCreate(false); }}
                 />
             )}
 
