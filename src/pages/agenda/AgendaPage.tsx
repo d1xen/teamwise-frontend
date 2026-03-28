@@ -48,7 +48,7 @@ export default function AgendaPage() {
         }
     }, [eventIdParam, selectedEvent, teamId, team, navigate]);
 
-    const handleQuickAdd = useCallback((date: string, _type: "event" | "availability") => {
+    const handleQuickAdd = useCallback((date: string) => {
         setQuickAddDate(date);
         setShowCreateEvent(true);
     }, []);
