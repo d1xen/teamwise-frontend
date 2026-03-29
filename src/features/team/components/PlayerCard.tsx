@@ -9,6 +9,7 @@ import FaceitIcon from '@/shared/components/FaceitIcon';
 
 interface PlayerCardProps {
   member: TeamMember;
+  onClick?: (() => void) | undefined;
 }
 
 const ROLE_ACCENT: Record<string, string> = {
@@ -22,7 +23,7 @@ const ROLE_ACCENT: Record<string, string> = {
   FLEX: 'text-indigo-300',
 };
 
-export function PlayerCard({ member }: PlayerCardProps) {
+export function PlayerCard({ member, onClick }: PlayerCardProps) {
   const { t } = useTranslation();
 
   const age = calculateAge(member.birthDate);
@@ -39,7 +40,7 @@ export function PlayerCard({ member }: PlayerCardProps) {
   const roleAccent = member.inGameRole ? (ROLE_ACCENT[member.inGameRole] ?? 'text-neutral-400') : 'text-neutral-400';
 
   return (
-    <div className="group relative flex flex-col">
+    <div className="group relative flex flex-col cursor-pointer" onClick={onClick}>
       <div className="relative bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-700 transition-all duration-200 flex flex-col h-72">
 
         {/* Avatar — top 60% */}

@@ -9,7 +9,7 @@ import {
 import FaceitIcon from "@/shared/components/FaceitIcon";
 import DatePicker from "@/design-system/components/DatePicker";
 import TimePicker from "@/design-system/components/TimePicker";
-import { createEvent, createAvailability } from "@/api/endpoints/agenda.api";
+import { createEvent, createAvailability, createRecurringEvents } from "@/api/endpoints/agenda.api";
 import { createMatch } from "@/api/endpoints/match.api";
 import { createCompetition, getActiveCompetitions } from "@/api/endpoints/competition.api";
 import { discoverFaceitCompetition } from "@/api/endpoints/faceit.api";
@@ -148,6 +148,52 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
     );
 }
 
+function RecurrenceSelector({ enabled, onEnabledChange, days, onDaysChange, weeks, onWeeksChange }: {
+    enabled: boolean; onEnabledChange: (v: boolean) => void;
+    days: string[]; onDaysChange: (d: string[]) => void;
+    weeks: number; onWeeksChange: (w: number) => void;
+}) {
+    const { t } = useTranslation();
+    const toggleDay = (key: string) => onDaysChange(days.includes(key) ? days.filter(d => d !== key) : [...days, key]);
+
+    return (
+        <div className={cn("rounded-xl border transition-colors", enabled ? "border-indigo-500/20 bg-indigo-500/[0.03]" : "border-neutral-800")}>
+            <button type="button" onClick={() => onEnabledChange(!enabled)}
+                className="w-full flex items-center justify-between px-4 py-3">
+                <span className="text-xs font-semibold text-neutral-300">{t("agenda.recurrence_title")}</span>
+                <div className={cn("w-8 h-[18px] rounded-full relative transition-colors", enabled ? "bg-indigo-500" : "bg-neutral-700")}>
+                    <div className={cn("absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform", enabled ? "translate-x-[16px]" : "translate-x-[2px]")} />
+                </div>
+            </button>
+            {enabled && (
+                <div className="px-4 pb-4 space-y-3 border-t border-neutral-800/50 pt-3">
+                    <div>
+                        <label className={LABEL}>{t("agenda.recurrence_days")}</label>
+                        <div className="flex gap-1">
+                            {DAYS_OF_WEEK.map(d => (
+                                <button key={d.key} type="button" onClick={() => toggleDay(d.key)}
+                                    className={cn("flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-colors",
+                                        days.includes(d.key)
+                                            ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                                            : "text-neutral-600 border-neutral-700/50 hover:text-neutral-400 hover:border-neutral-600")}>
+                                    {d.short}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label className="text-xs text-neutral-400">{t("agenda.recurrence_duration")}</label>
+                        <input type="number" min={1} max={52} value={weeks}
+                            onChange={e => onWeeksChange(parseInt(e.target.value) || 1)}
+                            className={cn(INPUT_CLS, "w-14 text-center")} />
+                        <span className="text-xs text-neutral-500">{t("agenda.weeks")}</span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function StratPicker({ teamId, selectedMaps, selectedIds, onChange }: { teamId: string; selectedMaps: string[]; selectedIds: number[]; onChange: (ids: number[]) => void }) {
     const { t } = useTranslation();
     const [strats, setStrats] = useState<StratSummaryDto[]>([]);
@@ -267,16 +313,16 @@ export default function CreateEventModal({ teamId, members, game, initialDate, i
     const [description, setDescription] = useState("");
     const [link, setLink] = useState("");
     const [customSubtype, setCustomSubtype] = useState<string | null>(null);
-    const [breakRecurrence, setBreakRecurrence] = useState(false);
-    const [breakWeeks, setBreakWeeks] = useState(1);
+
+    // ── Unified recurrence state (shared by events + availability) ──
+    const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
+    const [recurrenceDays, setRecurrenceDays] = useState<string[]>([]);
+    const [recurrenceWeeks, setRecurrenceWeeks] = useState(4);
 
     // ── Availability state ──
     const [availStartTime, setAvailStartTime] = useState("09:00");
     const [availEndTime, setAvailEndTime] = useState("18:00");
     const [reason, setReason] = useState("");
-    const [recurring, setRecurring] = useState(false);
-    const [selectedDays, setSelectedDays] = useState<string[]>([]);
-    const [recurWeeks, setRecurWeeks] = useState(4);
 
     const gameMaps = getMapsForGame(game);
 
@@ -359,11 +405,12 @@ export default function CreateEventModal({ teamId, members, game, initialDate, i
     // ── canSave ──
     const canSaveMatch = !!date && !!startTime;
     const canSaveCompetition = !!compName.trim();
-    const canSaveAvailability = !!date && !!availStartTime && !!availEndTime && (!recurring || selectedDays.length > 0);
+    const canSaveAvailability = !!date && !!availStartTime && !!availEndTime && (!recurrenceEnabled || recurrenceDays.length > 0);
     const canSaveEvent = (() => {
         if (!type || !date) return false;
-        if (type === "REST") return true;
+        if (type === "REST") return !recurrenceEnabled || recurrenceDays.length > 0;
         if (!allDay && (!startTime || !endTime)) return false;
+        if (recurrenceEnabled && recurrenceDays.length === 0) return false;
         if (type === "MEETING") return !!title.trim();
         if (type === "CUSTOM") return !!title.trim() && !!customSubtype;
         return true;
@@ -398,8 +445,8 @@ export default function CreateEventModal({ teamId, members, game, initialDate, i
                     startAt: new Date(`${date}T${availStartTime}:00`).toISOString(),
                     endAt: new Date(`${date}T${availEndTime}:00`).toISOString(),
                     reason: reason.trim() || undefined,
-                    recurringDays: recurring ? selectedDays : undefined,
-                    recurringWeeks: recurring ? recurWeeks : undefined,
+                    recurringDays: recurrenceEnabled ? recurrenceDays : undefined,
+                    recurringWeeks: recurrenceEnabled ? recurrenceWeeks : undefined,
                 });
                 toast.success(t("agenda.unavailability_created"));
             } else if (type) {
@@ -416,7 +463,12 @@ export default function CreateEventModal({ teamId, members, game, initialDate, i
                 const descParts = [type === "STRAT_TIME" ? stratDesc : description.trim(), link.trim() || ""].filter(Boolean);
                 const autoTags = type === "STRAT_TIME" && stratMaps.length ? stratMaps.join(",") : type === "CUSTOM" && customSubtype ? customSubtype : undefined;
                 const { scope, ids } = detectScope();
-                await createEvent(teamId, { type, title: autoTitle, description: descParts.length ? descParts.join("\n") : undefined, startAt, endAt, tags: autoTags, participantScope: scope, participantSteamIds: ids });
+                const eventPayload = { type, title: autoTitle, description: descParts.length ? descParts.join("\n") : undefined, startAt, endAt, tags: autoTags, participantScope: scope, participantSteamIds: ids };
+                if (recurrenceEnabled && recurrenceDays.length > 0) {
+                    await createRecurringEvents(teamId, { event: eventPayload, frequency: "WEEKLY", daysOfWeek: recurrenceDays, occurrences: recurrenceWeeks });
+                } else {
+                    await createEvent(teamId, eventPayload);
+                }
                 toast.success(t("agenda.event_created"));
             }
             onCreated();
@@ -672,26 +724,11 @@ export default function CreateEventModal({ teamId, members, game, initialDate, i
                             </div>
                             <div><label className={LABEL}>{t("agenda.field_reason")}</label>
                                 <input value={reason} onChange={e => setReason(e.target.value)} placeholder={t("agenda.reason_placeholder")} className={INPUT_CLS} /></div>
-                            <Toggle checked={recurring} onChange={setRecurring} label={t("agenda.recurring_label")} />
-                            {recurring && (
-                                <div className="space-y-3 pl-1">
-                                    <div>
-                                        <label className={LABEL}>{t("agenda.recurring_days")}</label>
-                                        <div className="flex gap-1">
-                                            {DAYS_OF_WEEK.map(d => (
-                                                <button key={d.key} type="button" onClick={() => setSelectedDays(prev => prev.includes(d.key) ? prev.filter(x => x !== d.key) : [...prev, d.key])}
-                                                    className={cn("w-8 h-8 rounded-lg text-[10px] font-bold border transition-colors",
-                                                        selectedDays.includes(d.key) ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-neutral-500 border-neutral-700/50 hover:text-neutral-300")}>{d.short}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <label className="text-xs text-neutral-400">{t("agenda.recurring_for")}</label>
-                                        <input type="number" min={1} max={52} value={recurWeeks} onChange={e => setRecurWeeks(parseInt(e.target.value) || 1)} className={cn(INPUT_CLS, "w-14 text-center")} />
-                                        <span className="text-xs text-neutral-500">{t("agenda.weeks")}</span>
-                                    </div>
-                                </div>
-                            )}
+                            <RecurrenceSelector
+                                enabled={recurrenceEnabled} onEnabledChange={setRecurrenceEnabled}
+                                days={recurrenceDays} onDaysChange={setRecurrenceDays}
+                                weeks={recurrenceWeeks} onWeeksChange={setRecurrenceWeeks}
+                            />
                         </div>
                     )}
 
@@ -761,13 +798,11 @@ export default function CreateEventModal({ teamId, members, game, initialDate, i
                                 <ParticipantSelector members={members} selected={participantIds} onChange={setParticipantIds} />
                             </>)}
                             {showRecurrence && type && (
-                                <div className="flex items-center gap-3">
-                                    <Toggle checked={breakRecurrence} onChange={setBreakRecurrence} label={t("agenda.repeat_weekly")} />
-                                    {breakRecurrence && (<div className="flex items-center gap-1.5">
-                                        <input type="number" min={1} max={52} value={breakWeeks} onChange={e => setBreakWeeks(parseInt(e.target.value) || 1)} className={cn(INPUT_CLS, "w-14 text-center")} />
-                                        <span className="text-xs text-neutral-500">{t("agenda.weeks")}</span>
-                                    </div>)}
-                                </div>
+                                <RecurrenceSelector
+                                    enabled={recurrenceEnabled} onEnabledChange={setRecurrenceEnabled}
+                                    days={recurrenceDays} onDaysChange={setRecurrenceDays}
+                                    weeks={recurrenceWeeks} onWeeksChange={setRecurrenceWeeks}
+                                />
                             )}
                         </div>
                     )}

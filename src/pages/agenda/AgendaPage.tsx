@@ -122,9 +122,9 @@ export default function AgendaPage() {
                     {calendar.error && !calendar.data ? (
                         <div className="flex-1 flex items-center justify-center"><p className="text-sm text-red-400">{t("common.error")}</p></div>
                     ) : calendar.view === "month" ? (
-                        <MonthGrid currentDate={calendar.currentDate} events={events} isStaff={isStaff} onEventClick={handleEventClick} onQuickAdd={handleQuickAdd} />
+                        <MonthGrid key={calendar.currentDate.getTime()} currentDate={calendar.currentDate} events={events} conflicts={globalConflicts} onEventClick={handleEventClick} onQuickAdd={handleQuickAdd} />
                     ) : (
-                        <WeekGrid currentDate={calendar.currentDate} events={events} availabilities={availabilities}
+                        <WeekGrid key={calendar.currentDate.getTime()} currentDate={calendar.currentDate} events={events} availabilities={availabilities}
                             conflicts={globalConflicts} isStaff={isStaff} onEventClick={handleEventClick}
                             onUnavailClick={setSelectedUnavail} onQuickAdd={handleQuickAdd}
                             startHour={calendar.startHour} endHour={calendar.endHour} />

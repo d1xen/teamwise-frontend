@@ -9,9 +9,10 @@ import { cn } from '@/design-system';
 
 interface StaffCardProps {
   member: TeamMember;
+  onClick?: (() => void) | undefined;
 }
 
-export function StaffCard({ member }: StaffCardProps) {
+export function StaffCard({ member, onClick }: StaffCardProps) {
   const { t } = useTranslation();
 
   const displayName = member.customUsername || member.nickname;
@@ -19,7 +20,7 @@ export function StaffCard({ member }: StaffCardProps) {
   const roleStyle = ROLE_BADGE_STYLES[member.role] ?? 'bg-neutral-800 text-neutral-400 border-neutral-700';
 
   return (
-    <div className="flex items-start gap-3.5 px-4 py-3.5 bg-neutral-900/50 border border-neutral-800 rounded-xl hover:border-neutral-700 hover:bg-neutral-900/70 transition-all duration-200 group">
+    <div onClick={onClick} className="flex items-start gap-3.5 px-4 py-3.5 bg-neutral-900/50 border border-neutral-800 rounded-xl hover:border-neutral-700 hover:bg-neutral-900/70 transition-all duration-200 group cursor-pointer">
 
       {/* Avatar */}
       <div className="relative flex-shrink-0">

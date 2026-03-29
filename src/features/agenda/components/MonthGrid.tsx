@@ -2,13 +2,13 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { cn } from "@/design-system";
-import type { EventDto } from "@/api/types/agenda";
+import type { EventDto, ConflictSummaryDto } from "@/api/types/agenda";
 import EventChip from "./EventChip";
 
 interface MonthGridProps {
     currentDate: Date;
     events: EventDto[];
-    isStaff?: boolean;
+    conflicts?: ConflictSummaryDto[];
     onEventClick: (event: EventDto) => void;
     onQuickAdd?: (date: string, type: "event" | "availability") => void;
 }
@@ -118,14 +118,32 @@ function OverflowPopover({ events, onEventClick, onClose }: { events: EventDto[]
 }
 
 
-export default function MonthGrid({ currentDate, events, onEventClick, onQuickAdd }: MonthGridProps) {
+export default function MonthGrid({ currentDate, events, conflicts = [], onEventClick, onQuickAdd }: MonthGridProps) {
     const { t } = useTranslation();
     const today = new Date();
     const month = currentDate.getMonth();
     const [overflowKey, setOverflowKey] = useState<string | null>(null);
     const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
-    const weeks = useMemo(() => getMonthDays(currentDate), [currentDate]);
+    const weeks = useMemo(() => {
+        const all = getMonthDays(currentDate);
+        // Remove last week if it has no days from the current month
+        const last = all[all.length - 1];
+        if (last && last.every(d => d.getMonth() !== currentDate.getMonth())) {
+            return all.slice(0, -1);
+        }
+        return all;
+    }, [currentDate]);
+
+    // Days with at least one conflict
+    const conflictDays = useMemo(() => {
+        const days = new Set<string>();
+        for (const c of conflicts) {
+            const d = new Date(c.eventStartAt);
+            days.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+        }
+        return days;
+    }, [conflicts]);
 
     // Separate spanning (multi-day) events from timed events
     const { spanningEvents, timedEvents } = useMemo(() => {
@@ -162,12 +180,15 @@ export default function MonthGrid({ currentDate, events, onEventClick, onQuickAd
             </div>
 
             {/* Weeks */}
-            <div className="grid flex-1" style={{ gridTemplateRows: `repeat(${weeks.length}, 1fr)` }}>
+            <div className="grid flex-1" style={{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }}>
                 {weeks.map((week, wi) => {
                     const spanRows = layoutSpanningEvents(spanningEvents, week);
 
                     return (
-                        <div key={wi} className="border-b border-neutral-800/50 last:border-b-0 flex flex-col min-h-[68px]">
+                        <div key={wi} className="border-b border-neutral-800/50 last:border-b-0 flex flex-col overflow-hidden">
+                            {/* Max timed events to show = depends on spanning rows taking space */}
+                            {/* Each spanning row = 20px, day header = 24px, each timed = 20px, "+N" = 16px */}
+
                             {/* Day numbers row */}
                             <div className="grid grid-cols-7">
                                 {week.map((day, di) => {
@@ -186,35 +207,53 @@ export default function MonthGrid({ currentDate, events, onEventClick, onQuickAd
                                                 isHovered && "bg-white/[0.02]"
                                             )}
                                         >
-                                            {onQuickAdd && isHovered && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); onQuickAdd(dateStr, "event"); }}
-                                                    className="absolute left-0.5 top-0.5 w-4 h-4 rounded flex items-center justify-center text-neutral-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all z-10"
-                                                >
-                                                    <Plus className="w-2.5 h-2.5" />
-                                                </button>
-                                            )}
-                                            <span className={cn(
-                                                "text-[10px] font-medium w-5 h-5 flex items-center justify-center rounded-full ml-auto",
-                                                isToday ? "bg-indigo-500 text-white" : "text-neutral-400"
-                                            )}>
-                                                {day.getDate()}
-                                            </span>
+                                            <div className="flex items-center gap-0.5 px-0.5">
+                                                <span className={cn(
+                                                    "text-[10px] font-medium w-5 h-5 flex items-center justify-center rounded-full",
+                                                    isToday ? "bg-indigo-500 text-white" : "text-neutral-400"
+                                                )}>
+                                                    {day.getDate()}
+                                                </span>
+                                                {onQuickAdd && isHovered && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); onQuickAdd(dateStr, "event"); }}
+                                                        className="w-4 h-4 rounded flex items-center justify-center text-neutral-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                                                    >
+                                                        <Plus className="w-2.5 h-2.5" />
+                                                    </button>
+                                                )}
+                                                {conflictDays.has(dateStr) && (
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400 ml-auto" />
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })}
                             </div>
 
                             {/* Spanning event bars */}
-                            {spanRows.map((row, ri) => (
-                                <div key={`span-${ri}`} className="grid grid-cols-7 px-0.5" style={{ height: "20px" }}>
+                            {spanRows.length > 0 && spanRows.map((row, ri) => (
+                                <div key={`span-${ri}`} className="grid grid-cols-7 relative" style={{ height: "18px" }}>
+                                    {week.map((day, di) => {
+                                        const dateStr = toDateStr(day);
+                                        const isHov = hoveredDay === dateStr && day.getMonth() === month;
+                                        return (
+                                            <div key={`col-${di}`}
+                                                onMouseEnter={() => day.getMonth() === month && setHoveredDay(dateStr)}
+                                                onMouseLeave={() => hoveredDay === dateStr && setHoveredDay(null)}
+                                                className={cn("border-r border-neutral-800/30 last:border-r-0 transition-colors", isHov && "bg-white/[0.02]")}
+                                                style={{ gridColumn: di + 1, gridRow: 1 }} />
+                                        );
+                                    })}
                                     {row.map(item => (
                                         <div
                                             key={item.event.id}
-                                            className="px-0.5"
-                                            style={{ gridColumn: `${item.startCol + 1} / span ${item.span}` }}
+                                            className="px-0.5 relative z-[1] pointer-events-none"
+                                            style={{ gridColumn: `${item.startCol + 1} / span ${item.span}`, gridRow: 1 }}
                                         >
-                                            <EventChip event={item.event} allDay compact onClick={() => onEventClick(item.event)} />
+                                            <div className="pointer-events-auto">
+                                                <EventChip event={item.event} allDay compact onClick={() => onEventClick(item.event)} />
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -227,7 +266,8 @@ export default function MonthGrid({ currentDate, events, onEventClick, onQuickAd
                                     const key = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
                                     const dateStr = toDateStr(day);
                                     const dayEvents = timedByDate.get(key) ?? [];
-                                    const maxShow = 2;
+                                    // Dynamically compute how many events fit: fewer spanning rows = more room
+                                    const maxShow = Math.max(1, 3 - spanRows.length);
                                     const isHovered = hoveredDay === dateStr && isCurrentMonth;
 
                                     return (
@@ -236,7 +276,7 @@ export default function MonthGrid({ currentDate, events, onEventClick, onQuickAd
                                             onMouseEnter={() => isCurrentMonth && setHoveredDay(dateStr)}
                                             onMouseLeave={() => hoveredDay === dateStr && setHoveredDay(null)}
                                             className={cn(
-                                                "border-r border-neutral-800/30 last:border-r-0 px-1 pb-1 flex flex-col gap-0.5 relative transition-colors",
+                                                "border-r border-neutral-800/30 last:border-r-0 px-1 pb-0.5 flex flex-col gap-px relative transition-colors",
                                                 !isCurrentMonth && "opacity-30",
                                                 isHovered && "bg-white/[0.02]"
                                             )}

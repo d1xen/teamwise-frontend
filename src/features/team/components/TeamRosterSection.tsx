@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import type { TeamMember } from '@/contexts/team/team.types';
+import { useTeam } from '@/contexts/team/useTeam';
 import { PlayerCard } from './PlayerCard';
 import { StaffCard } from './StaffCard';
 
@@ -24,6 +26,13 @@ function SectionDivider({ label, count }: { label: string; count: number }) {
 
 export function TeamRosterSection({ activeRoster, staffMembers }: TeamRosterSectionProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { team } = useTeam();
+
+  const goToMember = (steamId: string) => {
+    if (!team) return;
+    navigate(`/team/${team.id}/management?tab=members&memberId=${steamId}`);
+  };
 
   const isEmpty = activeRoster.length === 0 && staffMembers.length === 0;
 
@@ -46,7 +55,7 @@ export function TeamRosterSection({ activeRoster, staffMembers }: TeamRosterSect
           {/* Grid joueurs — 2 à 5 colonnes selon la place */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {activeRoster.map((member) => (
-              <PlayerCard key={member.steamId} member={member} />
+              <PlayerCard key={member.steamId} member={member} onClick={() => goToMember(member.steamId)} />
             ))}
           </div>
         </section>
@@ -60,7 +69,7 @@ export function TeamRosterSection({ activeRoster, staffMembers }: TeamRosterSect
           {/* Grid staff — 2 colonnes */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {staffMembers.map((member) => (
-              <StaffCard key={member.steamId} member={member} />
+              <StaffCard key={member.steamId} member={member} onClick={() => goToMember(member.steamId)} />
             ))}
           </div>
         </section>

@@ -99,43 +99,6 @@ function layoutAllDayEvents(events: EventDto[], weekDays: Date[]): AllDayRow[] {
     return rows;
 }
 
-// ── Unavailability overlap layout (side-by-side columns) ─────────────────────
-
-type LayoutedUnavail = { unavail: AvailabilityDto; top: number; height: number; col: number; totalCols: number };
-
-function layoutOverlappingUnavails(avails: AvailabilityDto[], startMin: number, endMin: number, totalH: number, totalMin: number): LayoutedUnavail[] {
-    if (avails.length === 0) return [];
-    const items = avails.map(a => {
-        const s = Math.max(minutesFromMidnight(new Date(a.startAt)), startMin);
-        const e = Math.min(minutesFromMidnight(new Date(a.endAt)) || endMin, endMin);
-        return { unavail: a, s, e };
-    }).filter(i => i.e > i.s).sort((a, b) => a.s - b.s);
-
-    // Assign columns: for each item, find the first column not occupied by an overlapping item
-    const cols: number[] = [];
-    const colEnds: number[] = []; // track end time of each column
-    for (const item of items) {
-        let col = 0;
-        while (col < colEnds.length && colEnds[col] > item.s) col++;
-        cols.push(col);
-        if (col < colEnds.length) colEnds[col] = item.e;
-        else colEnds.push(item.e);
-    }
-
-    // For each item, compute totalCols (max columns among overlapping group)
-    return items.map((item, i) => {
-        let groupCols = cols[i] + 1;
-        for (let j = 0; j < items.length; j++) {
-            if (items[i].s < items[j].e && items[i].e > items[j].s) {
-                groupCols = Math.max(groupCols, cols[j] + 1);
-            }
-        }
-        const top = ((item.s - startMin) / totalMin) * totalH;
-        const height = Math.max(((item.e - item.s) / totalMin) * totalH, 18);
-        return { unavail: item.unavail, top, height, col: cols[i], totalCols: groupCols };
-    });
-}
-
 // ── Timed event layout (overlapping columns) ─────────────────────────────────
 
 type LayoutedEvent = { event: EventDto; top: number; height: number; depth: number; maxDepth: number };
@@ -147,10 +110,18 @@ function layoutOverlappingEvents(events: EventDto[], startMin: number, endMin: n
     const items = events.map(event => {
         const s = minutesFromMidnight(new Date(event.startAt));
         const e = minutesFromMidnight(new Date(event.endAt));
+        // Clamp to visible range — always show at least a min-height sliver at the edge
         const cs = Math.max(s, startMin);
-        const ce = Math.min(e, endMin);
+        const ce = Math.min(e || endMin, endMin);
+        // If event is entirely outside visible range, clamp to edge with minimum size
+        if (ce <= cs) {
+            if (e <= startMin) return { event, cs: startMin, ce: startMin + 30 }; // before visible → top edge
+            if (s >= endMin) return { event, cs: endMin - 30, ce: endMin }; // after visible → bottom edge
+            return null;
+        }
         return { event, cs, ce };
-    }).filter(i => i.ce > i.cs).sort((a, b) => a.cs - b.cs || (b.ce - b.cs) - (a.ce - a.cs));
+    }).filter((i): i is { event: EventDto; cs: number; ce: number } => i !== null)
+      .sort((a, b) => a.cs - b.cs || (b.ce - b.cs) - (a.ce - a.cs));
 
     const placed: { cs: number; ce: number; idx: number }[] = [];
     const depths: number[] = [];
@@ -207,13 +178,26 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
         const timed = new Map<string, EventDto[]>();
         for (const day of days) timed.set(dayKey(day), []);
 
+        const startMin = startHour * 60;
+
         for (const event of events) {
             if (isAllDayEvent(event)) {
                 allDay.push(event);
             } else {
-                // Place timed event on each day it spans
                 const s = new Date(event.startAt);
                 const e = new Date(event.endAt);
+
+                // If event ends before the visible time range starts, promote to all-day
+                const eMin = e.getHours() * 60 + e.getMinutes();
+                const endsBeforeVisible = eMin > 0 && eMin <= startMin;
+                // If event starts at midnight (00:00) and ends before visible range (or next midnight)
+                const sMin = s.getHours() * 60 + s.getMinutes();
+                if (sMin < startMin && (endsBeforeVisible || eMin === 0)) {
+                    allDay.push(event);
+                    continue;
+                }
+
+                // Place timed event on each day it spans
                 for (const day of days) {
                     const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
                     const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
@@ -224,7 +208,7 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
             }
         }
         return { allDayEvents: allDay, timedByDay: timed };
-    }, [events, days]);
+    }, [events, days, startHour]);
 
     const allDayRows = useMemo(() => layoutAllDayEvents(allDayEvents, days), [allDayEvents, days]);
     const hasAllDay = allDayRows.length > 0;
@@ -339,22 +323,26 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
                                         if (!entry.events.includes(label)) entry.events.push(label);
                                     }
 
-                                    // Group EVENT_OVERLAP as pairs
+                                    // Group EVENT_OVERLAP as unique pairs (deduplicate per-participant duplicates)
                                     const overlapPairs: { eventA: string; eventB: string }[] = [];
+                                    const seenPairs = new Set<string>();
                                     for (const c of overlapConflicts) {
-                                        overlapPairs.push({
-                                            eventA: c.eventTitle,
-                                            eventB: c.sourceDescription ?? "?",
-                                        });
+                                        const a = c.eventTitle;
+                                        const b = c.sourceDescription ?? "?";
+                                        const key = a < b ? `${a}||${b}` : `${b}||${a}`;
+                                        if (seenPairs.has(key)) continue;
+                                        seenPairs.add(key);
+                                        overlapPairs.push({ eventA: a, eventB: b });
                                     }
 
                                     const playerEntries = [...byPlayer.entries()];
+                                    const uniqueCount = byPlayer.size + overlapPairs.length;
 
                                     return (
                                         <div className="group/conflict relative">
                                             <div className="flex items-center gap-0.5">
                                                 <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                                                <span className="text-[9px] font-bold text-amber-400 tabular-nums">{dayConflicts.length}</span>
+                                                <span className="text-[9px] font-bold text-amber-400 tabular-nums">{uniqueCount}</span>
                                             </div>
                                             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-[70] hidden group-hover/conflict:block">
                                                 <div className="bg-[#141414] border border-neutral-700 rounded-xl w-[340px] overflow-hidden">
@@ -488,7 +476,7 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
                     <div className="relative border-r border-neutral-800/30">
                         {hours.map(hour => (
                             <div key={hour} className="absolute right-0 pr-2 text-[10px] text-neutral-600 tabular-nums"
-                                style={{ top: (hour - startHour) * HOUR_HEIGHT - 6 }}>
+                                style={{ top: Math.max(2, (hour - startHour) * HOUR_HEIGHT - 6) }}>
                                 {String(hour % 24).padStart(2, "0")}:00
                             </div>
                         ))}
@@ -515,23 +503,41 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
                                     isDayHovered && !isToday && "bg-white/[0.02]"
                                 )}
                             >
-                                {/* Unavailability blocks — side-by-side when overlapping */}
+                                {/* Unavailability blocks — individual, full width, staggered nicknames */}
                                 {(() => {
                                     const unavails = dayUnavailabilities.filter(a => a.type === "UNAVAILABLE");
-                                    const laid = layoutOverlappingUnavails(unavails, startMinutes, endHour * 60, totalHeight, totalMinutes);
-                                    return laid.map(({ unavail: a, top: uTop, height: uHeight, col, totalCols }) => {
-                                        const widthPct = 100 / totalCols;
-                                        const leftPct = col * widthPct;
+                                    if (unavails.length === 0) return null;
+
+                                    const items = unavails.map(a => {
+                                        const s = Math.max(minutesFromMidnight(new Date(a.startAt)), startMinutes);
+                                        const e = Math.min(minutesFromMidnight(new Date(a.endAt)) || endHour * 60, endHour * 60);
+                                        return { unavail: a, s, e };
+                                    }).filter(i => i.e > i.s).sort((a, b) => a.s - b.s);
+
+                                    // Compute label offset: count how many previous items overlap with this one
+                                    const labelOffsets: number[] = [];
+                                    for (let i = 0; i < items.length; i++) {
+                                        let offset = 0;
+                                        for (let j = 0; j < i; j++) {
+                                            if (items[j].s < items[i].e && items[j].e > items[i].s) offset++;
+                                        }
+                                        labelOffsets.push(offset);
+                                    }
+
+                                    return items.map((item, i) => {
+                                        const uTop = ((item.s - startMinutes) / totalMinutes) * totalHeight;
+                                        const uHeight = Math.max(((item.e - item.s) / totalMinutes) * totalHeight, 18);
+                                        const offset = labelOffsets[i];
                                         return (
-                                            <div key={`unavail-${a.id ?? col}`}
-                                                onClick={isStaff && onUnavailClick ? () => onUnavailClick(a) : undefined}
+                                            <div key={`unavail-${item.unavail.id ?? i}`}
+                                                onClick={isStaff && onUnavailClick ? () => onUnavailClick(item.unavail) : undefined}
                                                 className={cn(
-                                                    "absolute z-[3] rounded-[3px] border border-orange-500/15 overflow-hidden bg-orange-400/[0.04] bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(251,191,36,0.06)_4px,rgba(251,191,36,0.06)_8px)]",
+                                                    "absolute rounded-[3px] border border-orange-500/15 overflow-hidden bg-orange-400/[0.04] bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(251,191,36,0.06)_4px,rgba(251,191,36,0.06)_8px)]",
                                                     isStaff && "cursor-pointer hover:border-orange-500/30 hover:bg-orange-400/[0.08] transition-colors"
                                                 )}
-                                                style={{ top: uTop, height: uHeight, left: `calc(${leftPct}% + 2px)`, width: `calc(${widthPct}% - 4px)` }}>
-                                                <div className="px-1.5 py-0.5">
-                                                    <span className="text-[10px] font-semibold text-white/70 truncate block">{a.nickname}</span>
+                                                style={{ top: uTop, height: uHeight, left: 2 + offset * 6, right: 2, zIndex: 3 + offset }}>
+                                                <div className="px-1.5" style={{ paddingTop: 2 + offset * 14 }}>
+                                                    <span className="text-[10px] font-semibold text-orange-300/80 bg-neutral-900/70 px-1 rounded-sm leading-tight">{item.unavail.nickname}</span>
                                                 </div>
                                             </div>
                                         );
@@ -550,8 +556,8 @@ export default function WeekGrid({ currentDate, events, availabilities, conflict
                                             {laid.map(({ event, top, height, depth, maxDepth }) => (
                                                 <div key={event.id}
                                                     className={cn(
-                                                        "absolute transition-opacity duration-150",
-                                                        maxDepth > 0 && "group-hover/stack:opacity-30 hover:!opacity-100"
+                                                        "absolute",
+                                                        maxDepth > 0 && "transition-opacity duration-150 group-hover/stack:opacity-30 hover:!opacity-100"
                                                     )}
                                                     style={{
                                                         top,

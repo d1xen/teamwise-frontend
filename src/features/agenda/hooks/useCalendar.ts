@@ -51,8 +51,8 @@ type UseCalendarResult = {
 function getMonthRange(date: Date): { from: string; to: string } {
     const y = date.getFullYear();
     const m = date.getMonth();
-    const from = new Date(Date.UTC(y, m, 1)).toISOString();
-    const to = new Date(Date.UTC(y, m + 1, 0, 23, 59, 59)).toISOString();
+    const from = new Date(y, m, 1).toISOString();
+    const to = new Date(y, m + 1, 0, 23, 59, 59).toISOString();
     return { from, to };
 }
 
@@ -60,8 +60,8 @@ function getWeekRange(date: Date): { from: string; to: string } {
     const d = new Date(date);
     const day = d.getDay();
     const diff = day === 0 ? -6 : 1 - day;
-    const monday = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate() + diff));
-    const sunday = new Date(Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6, 23, 59, 59));
+    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diff);
+    const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6, 23, 59, 59);
     return { from: monday.toISOString(), to: sunday.toISOString() };
 }
 

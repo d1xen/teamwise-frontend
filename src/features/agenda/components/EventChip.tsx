@@ -26,8 +26,8 @@ export default function EventChip({ event, allDay, compact, textAlign = "top", o
         <button
             onClick={onClick}
             className={cn(
-                "w-full h-full text-left rounded-[4px] border transition-all hover:brightness-125 overflow-hidden relative flex flex-col",
-                allDay ? "px-1.5 py-0.5 text-[10px]" : compact ? "px-1 py-0.5 text-[10px]" : "px-1.5 py-1 text-[11px]",
+                "w-full text-left rounded-[4px] border transition-all hover:brightness-125 overflow-hidden relative flex flex-col",
+                allDay ? (compact ? "px-1 py-px text-[9px] h-[18px] justify-center" : "px-1.5 py-0.5 text-[10px]") : compact ? "px-1 py-px text-[9px] h-[18px] justify-center" : "h-full px-1.5 py-1 text-[11px]",
                 textAlign === "bottom" && "justify-end",
                 colors
             )}
@@ -38,11 +38,9 @@ export default function EventChip({ event, allDay, compact, textAlign = "top", o
                 ) : (
                     <>
                         <span className="font-semibold">{time}</span>
-                        {!compact && (
-                            <span className="ml-1 font-medium">
-                                {event.match?.opponentName ? `vs ${event.match.opponentName}` : event.title}
-                            </span>
-                        )}
+                        <span className="ml-1 font-medium opacity-80">
+                            {event.match?.opponentName ? `vs ${event.match.opponentName}` : event.title}
+                        </span>
                     </>
                 )}
             </div>
